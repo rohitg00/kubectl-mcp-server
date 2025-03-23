@@ -1,0 +1,29 @@
+# MCP dependency
+git+https://github.com/modelcontextprotocol/python-sdk.git@main#egg=mcp
+
+# Framework dependencies
+pydantic>=2.0.0
+fastapi>=0.100.0
+uvicorn>=0.22.0
+
+# Kubernetes dependencies
+kubernetes>=28.1.0
+PyYAML>=6.0.1
+requests>=2.31.0
+urllib3>=2.1.0
+websocket-client>=1.7.0
+jsonschema>=4.20.0
+cryptography>=42.0.2
+
+# Terminal formatting
+rich>=13.0.0
+
+# HTTP clients
+aiohttp>=3.8.0
+aiohttp-sse>=2.1.0
+
+# Build tools
+build>=0.10.0
+setuptools>=67.0.0
+wheel>=0.41.0
+twine>=4.0.0

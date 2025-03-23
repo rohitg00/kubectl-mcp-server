@@ -1,0 +1,13 @@
+{
+  "Servers": {
+    "mcp-server-firecrawl": {
+      "url": "http://localhost:8080"
+    },
+    "mcp-server-kubectl-mcp-tool": {
+      "name": "kubectl-mcp-tool",
+      "description": "Kubernetes operations using natural language",
+      "command": "python3 /absolute/path/to/kubectl-mcp-tool/windsurf_compatible_mcp_server.py",
+      "transport": "sse"
+    }
+  }
+}

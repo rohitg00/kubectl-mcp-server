@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-service
+  labels:
+    env: sandbox
+spec:
+  type: LoadBalancer
+  ports:
+  - port: 80
+  selector:
+    env: sandbox

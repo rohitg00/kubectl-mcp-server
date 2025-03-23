@@ -1,0 +1,6 @@
+{
+  "name": "kubectl-mcp-tool",
+  "description": "Kubernetes operations using natural language",
+  "command": "python3 /absolute/path/to/kubectl-mcp-tool/cursor_compatible_mcp_server.py",
+  "transport": "stdio"
+}
