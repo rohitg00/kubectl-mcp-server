@@ -1,0 +1,11 @@
+# MCP dependencies
+mcp-python>=0.1.0  # Official MCP Python SDK
+pydantic>=2.0.0
+fastapi>=0.100.0
+uvicorn>=0.22.0
+
+# Kubernetes dependencies
+kubernetes>=28.1.0
+
+# Terminal formatting
+rich>=13.0.0
