@@ -1,4 +1,4 @@
-# kubectl-mcp-server
+# kubectl-mcp-server with FastMCP [Beta testing]
 
 A Kubernetes Model Context Protocol (MCP) server implementation that provides natural language processing capabilities for `kubectl` commands. This tool enables AI assistants to interact with Kubernetes clusters through natural language.
 
