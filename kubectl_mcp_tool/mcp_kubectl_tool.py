@@ -16,6 +16,8 @@ from rich.table import Table
 from rich.panel import Panel
 from rich.text import Text
 
+MUTATING_COMMANDS = {"apply", "delete", "create", "scale"}
+
 # Configure logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 logger = logging.getLogger("kubectl-mcp-tool")
@@ -24,8 +26,18 @@ logger = logging.getLogger("kubectl-mcp-tool")
 console = Console()
 
 def _run_kubectl_command(command: List[str]) -> str:
-    """Run a kubectl command and return the output."""
+    """Run a kubectl command and return the output.
+    
+    If dry-run mode is enabled (via environment variable), and the command is mutating,
+    simulate the command execution.
+    """
+    dry_run = os.getenv("KUBECTL_MCP_DRY_RUN")
+    if dry_run and command[0] in MUTATING_COMMANDS:
+        simulated_command = "kubectl " + " ".join(command)
+        logger.info(f"Dry-run mode: Simulating command: {simulated_command}")
+        return f"Dry-run mode: Command simulated: {simulated_command}"
     try:
+
         result = subprocess.run(
             ["kubectl"] + command,
             capture_output=True,
