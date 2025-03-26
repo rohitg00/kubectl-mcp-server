@@ -27,3 +27,5 @@ build>=0.10.0
 setuptools>=67.0.0
 wheel>=0.41.0
 twine>=4.0.0
+
+fastmcp>=0.4.1

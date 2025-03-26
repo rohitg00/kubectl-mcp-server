@@ -316,6 +316,70 @@ python -m python_tests.test_all_features
 └── start_mcp_server.sh       # Server startup script
 ```
 
+---
+
+## Dry-Run Mode Verification
+
+To ensure that dry-run mode is working as expected, follow these steps:
+
+### Step 1. Start the Server in Dry-Run Mode
+
+Make sure your MCP server is running with the dry-run flag enabled. In your terminal, run:
+
+```bash
+python3 or python  -m kubectl_mcp_tool.cli serve --transport stdio --dry-run
+```
+
+You should see a log message similar to:
+
+```
+<frozen runpy>:128: RuntimeWarning: 'kubectl_mcp_tool.cli.__main__' found in sys.modules after import of package 'kubectl_mcp_tool.cli', but prior to execution of 'kubectl_mcp_tool.cli.__main__'; this may result in unpredictable behaviour
+2025-03-26 12:03:13,184 - INFO - Starting MCP server
+```
+
+This confirms that the server is up and running in dry-run mode.
+
+### Step 2. Test a Mutating Command
+
+A sample script (`create_pod.py`) is provided (located at create_pod.py filepath ) to simulate a mutating operation. Open a new terminal (or a Python shell) in the same virtual environment and run the following code:
+
+```python
+import asyncio
+from kubectl_mcp_tool.mcp_kubectl_tool import create_pod
+
+pod_yaml = """
+apiVersion: v1
+kind: Pod
+metadata:
+  name: test-pod
+spec:
+  containers:
+  - name: test-container
+    image: nginx:latest
+"""
+
+# Run the create_pod command asynchronously with a specified namespace
+result = asyncio.run(create_pod(pod_yaml, namespace="default"))
+print(result)
+```
+
+### Expected Output
+
+Since dry-run mode is enabled, instead of actually applying the pod configuration, the output should indicate that the command was simulated. For example, you might see something like:
+
+```
+Dry-run mode: Command simulated: kubectl apply -f /tmp/tmpabcd.yaml
+```
+
+This confirms that the mutating operation (create pod) was intercepted by the dry-run logic and was not executed on your Kubernetes cluster.
+
+
+```
+Run CTLR-C to  shutdown your terminal
+```
+---
+
+
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
