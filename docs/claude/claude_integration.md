@@ -36,7 +36,7 @@ This guide explains how to integrate the kubectl-mcp-tool with Claude AI for nat
 
 4. **Configure Claude**:
    - When using Claude in a web interface or API, you can provide the URL of your MCP server
-   - For Claude in Cursor, follow the [Cursor Integration Guide](./cursor_integration.md)
+   - For Claude in Cursor, follow the [Cursor Integration Guide](../cursor/cursor_integration.md)
 
 ## Using kubectl-mcp-tool with Claude
 
