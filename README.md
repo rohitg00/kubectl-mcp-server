@@ -183,18 +183,16 @@ Add the following to your Claude Desktop configuration:
 
 ### Cursor AI
 
-Add the following to your Cursor AI configuration:
+Add the following to your Cursor AI settings under MCP by adding a new global MCP server:
 
 ```json
 {
-  "tools": [
-    {
-      "name": "kubectl-mcp",
+  "mcpServers": {
+    "kubernetes": {
       "command": "python",
-      "args": ["-m", "kubectl_mcp_tool.cli"],
-      "description": "A tool for interacting with Kubernetes clusters."
+      "args": ["-m", "kubectl_mcp_tool.cli"]
     }
-  ]
+  }
 }
 ```
 
