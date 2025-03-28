@@ -9,8 +9,8 @@ import os
 import sys
 from typing import Dict, Any, Optional, List
 
-from fastmcp.server import Server
-from fastmcp.models import Tool, Parameter, ParameterType
+# Use FastMCP for the higher-level API
+from mcp.server.fastmcp import FastMCP
 from kubernetes import client, config
 
 # Configure logging
@@ -25,11 +25,10 @@ logging.basicConfig(
 )
 logger = logging.getLogger('kubectl-mcp')
 
-class KubectlServer(Server):
+class KubectlServer:
     def __init__(self):
-        super().__init__()
-        self.name = 'kubectl-mcp'
-        self.version = '0.1.0'
+        # Use FastMCP instead of Server
+        self.mcp = FastMCP(name='kubectl-mcp')
         try:
             config.load_kube_config()
             self.v1 = client.CoreV1Api()
@@ -39,66 +38,45 @@ class KubectlServer(Server):
             logger.error(f"Failed to initialize Kubernetes client: {e}")
             self.v1 = None
             self.apps_v1 = None
+        
+        # Register tools using FastMCP's decorator
+        self.setup_tools()
 
-    async def get_tools(self):
-        return [
-            Tool(
-                name="get_pods",
-                description="List all pods in a namespace",
-                parameters=[
-                    Parameter(
-                        name="namespace",
-                        type=ParameterType.STRING,
-                        description="Kubernetes namespace",
-                        required=True
-                    )
-                ]
-            ),
-            Tool(
-                name="get_namespaces",
-                description="List all namespaces",
-                parameters=[]
-            )
-        ]
+    def setup_tools(self):
+        @self.mcp.tool()
+        def get_pods(namespace: str) -> Dict[str, Any]:
+            """List all pods in a namespace"""
+            if not self.v1:
+                return {"error": "Kubernetes client not initialized"}
+            try:
+                pods = self.v1.list_namespaced_pod(namespace)
+                return {"pods": [pod.metadata.name for pod in pods.items]}
+            except Exception as e:
+                logger.error(f"Error getting pods: {e}")
+                return {"error": str(e)}
 
-    async def call_tool(self, tool_name: str, parameters: dict):
-        logger.info(f'Calling tool {tool_name} with params {parameters}')
-        try:
-            if tool_name == "get_pods":
-                return await self.get_pods(parameters["namespace"])
-            elif tool_name == "get_namespaces":
-                return await self.get_namespaces()
-            else:
-                raise ValueError(f"Unknown tool: {tool_name}")
-        except Exception as e:
-            logger.error(f'Error calling tool {tool_name}: {e}')
-            return {"error": str(e)}
+        @self.mcp.tool()
+        def get_namespaces() -> Dict[str, Any]:
+            """List all namespaces"""
+            if not self.v1:
+                return {"error": "Kubernetes client not initialized"}
+            try:
+                namespaces = self.v1.list_namespace()
+                return {"namespaces": [ns.metadata.name for ns in namespaces.items]}
+            except Exception as e:
+                logger.error(f"Error getting namespaces: {e}")
+                return {"error": str(e)}
 
-    async def get_pods(self, namespace: str):
-        if not self.v1:
-            return {"error": "Kubernetes client not initialized"}
-        try:
-            pods = self.v1.list_namespaced_pod(namespace)
-            return {"pods": [pod.metadata.name for pod in pods.items]}
-        except Exception as e:
-            logger.error(f"Error getting pods: {e}")
-            return {"error": str(e)}
-
-    async def get_namespaces(self):
-        if not self.v1:
-            return {"error": "Kubernetes client not initialized"}
-        try:
-            namespaces = self.v1.list_namespace()
-            return {"namespaces": [ns.metadata.name for ns in namespaces.items]}
-        except Exception as e:
-            logger.error(f"Error getting namespaces: {e}")
-            return {"error": str(e)}
+    async def serve_stdio(self):
+        """Serve using stdio transport"""
+        logger.info("Starting kubectl MCP server with stdio transport")
+        await self.mcp.run_stdio_async()
 
 async def main():
     logger.info("Starting kubectl MCP server")
     server = KubectlServer()
     try:
-        await server.stdio_server()
+        await server.serve_stdio()
     except Exception as e:
         logger.error(f"Server error: {e}")
 

@@ -1,182 +1,202 @@
 #!/usr/bin/env python3
 """
-Natural language processing for kubectl MCP tool.
+Natural language processing for kubectl.
+This module parses natural language queries and converts them to kubectl commands.
 """
 
-import os
-import logging
+import re
 import subprocess
+import logging
+import os
 import json
-from typing import Dict, Any, Optional
+from typing import Dict, Any, List, Optional, Union
 
 # Configure logging
-logger = logging.getLogger("kubectl-nl-processor")
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("natural-language")
 
 def process_query(query: str) -> Dict[str, Any]:
     """
-    Process a natural language query related to kubectl operations.
+    Process a natural language query and convert it to a kubectl command.
     
     Args:
         query: The natural language query to process
         
     Returns:
-        Dict containing the kubectl command and result
+        A dictionary containing the kubectl command and its output
     """
-    logger.info(f"Processing query: {query}")
-    
-    # Check if we're in mock mode (for testing)
-    if os.environ.get("MCP_TEST_MOCK_MODE", "0") == "1":
-        logger.info("Running in mock mode")
-        return _mock_process_query(query)
-    
-    # Process the query into a kubectl command
-    kubectl_cmd = _translate_query_to_kubectl(query)
-    
-    # Execute the kubectl command
     try:
-        logger.info(f"Executing kubectl command: {kubectl_cmd}")
-        result = subprocess.run(
-            kubectl_cmd, 
-            shell=True, 
-            capture_output=True, 
-            text=True
-        )
+        # Try to parse the query and generate a kubectl command
+        command = parse_query(query)
         
-        # Check if the command was successful
-        if result.returncode == 0:
-            logger.info("kubectl command successful")
-            return {
-                "command": kubectl_cmd,
-                "result": result.stdout,
-                "success": True
-            }
-        else:
-            logger.warning(f"kubectl command failed: {result.stderr}")
-            return {
-                "command": kubectl_cmd,
-                "result": f"Error: {result.stderr}",
-                "success": False
-            }
-    except Exception as e:
-        logger.error(f"Error executing kubectl command: {e}")
+        # Log the generated command
+        logger.info(f"Generated kubectl command: {command}")
+        
+        # Execute the command
+        try:
+            result = execute_command(command)
+            success = True
+        except Exception as e:
+            logger.error(f"Error executing command: {e}")
+            result = f"Error executing command: {str(e)}"
+            success = False
+        
+        # Return the result
         return {
-            "command": kubectl_cmd,
-            "result": f"Error: {str(e)}",
+            "command": command,
+            "result": result,
+            "success": success
+        }
+    except Exception as e:
+        logger.error(f"Error processing query: {e}")
+        return {
+            "command": "",
+            "result": f"Error processing query: {str(e)}",
             "success": False
         }
 
-def _translate_query_to_kubectl(query: str) -> str:
+def parse_query(query: str) -> str:
     """
-    Translate a natural language query to a kubectl command.
-    
-    This is a simple mapping for testing purposes. A real implementation
-    would use NLP techniques or an LLM to generate proper kubectl commands.
+    Parse a natural language query and convert it to a kubectl command.
     
     Args:
-        query: The natural language query
+        query: The natural language query to parse
         
     Returns:
-        The kubectl command as a string
+        The kubectl command to execute
     """
-    query_lower = query.lower().strip()
+    # Normalize the query
+    query = query.lower().strip()
     
-    # Simple mapping of common patterns
-    if "get pods" in query_lower or "list pods" in query_lower or "show pods" in query_lower:
-        if "namespace" in query_lower and "all" not in query_lower:
-            # Try to extract namespace
-            parts = query_lower.split("namespace")
-            if len(parts) > 1:
-                namespace = parts[1].strip().split()[0]
-                return f"kubectl get pods -n {namespace}"
-        return "kubectl get pods"
+    # Check for keyword patterns
+    if re.search(r"get\s+pod", query) or re.search(r"list\s+pod", query):
+        namespace = extract_namespace(query)
+        if namespace:
+            return f"kubectl get pods -n {namespace}"
+        else:
+            return "kubectl get pods"
     
-    elif "get deployments" in query_lower or "list deployments" in query_lower:
-        return "kubectl get deployments"
+    if re.search(r"get\s+all", query) or re.search(r"list\s+all", query):
+        namespace = extract_namespace(query)
+        if namespace:
+            return f"kubectl get all -n {namespace}"
+        else:
+            return "kubectl get all"
     
-    elif "get services" in query_lower or "list services" in query_lower:
-        return "kubectl get services"
+    if re.search(r"get\s+deployment", query) or re.search(r"list\s+deployment", query):
+        namespace = extract_namespace(query)
+        if namespace:
+            return f"kubectl get deployments -n {namespace}"
+        else:
+            return "kubectl get deployments"
     
-    elif "get nodes" in query_lower or "list nodes" in query_lower:
-        return "kubectl get nodes"
+    if re.search(r"get\s+service", query) or re.search(r"list\s+service", query):
+        namespace = extract_namespace(query)
+        if namespace:
+            return f"kubectl get services -n {namespace}"
+        else:
+            return "kubectl get services"
     
-    elif "get namespaces" in query_lower or "list namespaces" in query_lower:
-        return "kubectl get namespaces"
-    
-    elif "describe pod" in query_lower:
-        # Try to extract pod name
-        parts = query_lower.split("describe pod")
-        if len(parts) > 1:
-            pod_name = parts[1].strip().split()[0]
+    if re.search(r"describe\s+pod", query):
+        pod_name = extract_pod_name(query)
+        namespace = extract_namespace(query)
+        if pod_name and namespace:
+            return f"kubectl describe pod {pod_name} -n {namespace}"
+        elif pod_name:
             return f"kubectl describe pod {pod_name}"
-        return "kubectl get pods"
+        else:
+            return "kubectl get pods"
     
-    elif "current namespace" in query_lower or "which namespace" in query_lower:
-        return "kubectl config view --minify --output 'jsonpath={..namespace}'"
+    if re.search(r"get\s+log", query) or re.search(r"show\s+log", query):
+        pod_name = extract_pod_name(query)
+        namespace = extract_namespace(query)
+        if pod_name and namespace:
+            return f"kubectl logs {pod_name} -n {namespace}"
+        elif pod_name:
+            return f"kubectl logs {pod_name}"
+        else:
+            return "kubectl get pods"
     
-    # If no pattern matches, return a generic command or help
+    if re.search(r"delete\s+pod", query):
+        pod_name = extract_pod_name(query)
+        namespace = extract_namespace(query)
+        if pod_name and namespace:
+            return f"kubectl delete pod {pod_name} -n {namespace}"
+        elif pod_name:
+            return f"kubectl delete pod {pod_name}"
+        else:
+            return "kubectl get pods"
+    
+    # Default: just do a get all
     return "kubectl get all"
 
-def _mock_process_query(query: str) -> Dict[str, Any]:
+def extract_namespace(query: str) -> Optional[str]:
     """
-    Process a query in mock mode for testing.
+    Extract namespace from a query.
     
     Args:
-        query: The natural language query
+        query: The query to extract the namespace from
         
     Returns:
-        Dict containing mock response data
+        The namespace or None if not found
     """
-    kubectl_cmd = _translate_query_to_kubectl(query)
+    namespace_match = re.search(r"(?:in|from|namespace|ns)\s+(\w+)", query)
+    if namespace_match:
+        return namespace_match.group(1)
+    return None
+
+def extract_pod_name(query: str) -> Optional[str]:
+    """
+    Extract pod name from a query.
     
-    # Return mock data based on command
-    if "get pods" in kubectl_cmd:
-        return {
-            "command": kubectl_cmd,
-            "result": """NAME                                READY   STATUS    RESTARTS   AGE
-nginx-deployment-66b6c48dd5-4nsjt   1/1     Running   0          24h
-nginx-deployment-66b6c48dd5-87vpb   1/1     Running   0          24h
-nginx-deployment-66b6c48dd5-f4m7b   1/1     Running   0          24h""",
-            "success": True
-        }
+    Args:
+        query: The query to extract the pod name from
+        
+    Returns:
+        The pod name or None if not found
+    """
+    pod_match = re.search(r"pod\s+(\w+[\w\-]*)", query)
+    if pod_match:
+        return pod_match.group(1)
+    return None
+
+def execute_command(command: str) -> str:
+    """
+    Execute a kubectl command and return the output.
     
-    elif "get deployments" in kubectl_cmd:
-        return {
-            "command": kubectl_cmd,
-            "result": """NAME               READY   UP-TO-DATE   AVAILABLE   AGE
-nginx-deployment   3/3     3            3           24h""",
-            "success": True
-        }
-    
-    elif "get services" in kubectl_cmd:
-        return {
-            "command": kubectl_cmd,
-            "result": """NAME         TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)   AGE
-kubernetes   ClusterIP   10.96.0.1       <none>        443/TCP   48h""",
-            "success": True
-        }
-    
-    elif "get nodes" in kubectl_cmd:
-        return {
-            "command": kubectl_cmd,
-            "result": """NAME       STATUS   ROLES           AGE   VERSION
-minikube   Ready    control-plane   48h   v1.29.1""",
-            "success": True
-        }
-    
-    elif "get namespaces" in kubectl_cmd:
-        return {
-            "command": kubectl_cmd,
-            "result": """NAME              STATUS   AGE
-default           Active   48h
-kube-node-lease   Active   48h
-kube-public       Active   48h
-kube-system       Active   48h""",
-            "success": True
-        }
-    
-    else:
-        return {
-            "command": kubectl_cmd,
-            "result": "Mock data not available for this command",
-            "success": True
-        }
+    Args:
+        command: The kubectl command to execute
+        
+    Returns:
+        The command output
+    """
+    try:
+        # For enhanced safety, handle the case where kubeconfig doesn't exist
+        kubeconfig = os.environ.get('KUBECONFIG', os.path.expanduser('~/.kube/config'))
+        if not os.path.exists(kubeconfig):
+            logger.warning(f"Kubeconfig not found at {kubeconfig}")
+            return f"Warning: Kubernetes config not found at {kubeconfig}. Please configure kubectl."
+        
+        # Try to run the command with a timeout for safety
+        result = subprocess.run(
+            command,
+            shell=True,
+            check=False,  # Don't raise exception on non-zero exit
+            capture_output=True,
+            text=True,
+            timeout=10  # Timeout after 10 seconds
+        )
+        
+        # Check for errors
+        if result.returncode != 0:
+            error_msg = result.stderr.strip() if result.stderr else "Unknown error"
+            logger.warning(f"Command failed with exit code {result.returncode}: {error_msg}")
+            return f"Command failed: {error_msg}\n\nCommand: {command}"
+        
+        return result.stdout if result.stdout else "Command completed successfully with no output"
+    except subprocess.TimeoutExpired:
+        logger.error(f"Command timed out: {command}")
+        return "Command timed out after 10 seconds"
+    except Exception as e:
+        logger.error(f"Error executing command: {e}")
+        return f"Error: {str(e)}"

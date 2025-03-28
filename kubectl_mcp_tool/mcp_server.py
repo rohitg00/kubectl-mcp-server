@@ -11,23 +11,17 @@ import os
 from typing import Dict, Any, List, Optional, Callable, Awaitable
 
 try:
-    # Import the official MCP SDK
-    from mcp.server import Server
-    from mcp.server import stdio, sse
-    import mcp.types as types
-    from mcp.server.models import InitializationOptions
+    # Import the official MCP SDK with FastMCP
+    from mcp.server.fastmcp import FastMCP
 except ImportError:
     logging.error("MCP SDK not found. Installing...")
     import subprocess
     try:
         subprocess.check_call([
             sys.executable, "-m", "pip", "install", 
-            "git+https://github.com/modelcontextprotocol/python-sdk.git"
+            "mcp>=1.5.0"
         ])
-        from mcp.server import Server
-        from mcp.server import stdio, sse
-        import mcp.types as types
-        from mcp.server.models import InitializationOptions
+        from mcp.server.fastmcp import FastMCP
     except Exception as e:
         logging.error(f"Failed to install MCP SDK: {e}")
         raise
@@ -44,182 +38,17 @@ class MCPServer:
     def __init__(self, name: str):
         """Initialize the MCP server."""
         self.name = name
-        # Create a new server instance using the MCP SDK
-        self.server = Server(name=name, version="0.1.0")
+        # Create a new server instance using the FastMCP API
+        self.server = FastMCP(name=name)
         
-        # Register tools using the correct API
+        # Register tools using the new FastMCP API
         self.setup_tools()
     
     def setup_tools(self):
         """Set up the tools for the MCP server."""
-        # Define tools
-        tools = [
-            {
-                "name": "process_natural_language",
-                "description": "Process natural language query for kubectl",
-                "parameters": {
-                    "type": "object",
-                    "properties": {
-                        "query": {
-                            "type": "string",
-                            "description": "The natural language query to process"
-                        }
-                    },
-                    "required": ["query"]
-                }
-            },
-            {
-                "name": "get_pods",
-                "description": "Get all pods in the specified namespace",
-                "parameters": {
-                    "type": "object",
-                    "properties": {
-                        "namespace": {
-                            "type": "string",
-                            "description": "The Kubernetes namespace (optional)"
-                        }
-                    }
-                }
-            },
-            {
-                "name": "get_namespaces",
-                "description": "Get all Kubernetes namespaces",
-                "parameters": {
-                    "type": "object",
-                    "properties": {}
-                }
-            },
-            {
-                "name": "create_deployment",
-                "description": "Create a new deployment",
-                "parameters": {
-                    "type": "object",
-                    "properties": {
-                        "name": {
-                            "type": "string",
-                            "description": "Name of the deployment"
-                        },
-                        "image": {
-                            "type": "string",
-                            "description": "Container image to use"
-                        },
-                        "replicas": {
-                            "type": "integer",
-                            "description": "Number of replicas"
-                        },
-                        "namespace": {
-                            "type": "string",
-                            "description": "Target namespace"
-                        }
-                    },
-                    "required": ["name", "image", "replicas"]
-                }
-            },
-            {
-                "name": "delete_resource",
-                "description": "Delete a Kubernetes resource",
-                "parameters": {
-                    "type": "object",
-                    "properties": {
-                        "resource_type": {
-                            "type": "string",
-                            "description": "Type of resource (pod, deployment, service, etc.)"
-                        },
-                        "name": {
-                            "type": "string",
-                            "description": "Name of the resource"
-                        },
-                        "namespace": {
-                            "type": "string",
-                            "description": "Resource namespace"
-                        }
-                    },
-                    "required": ["resource_type", "name"]
-                }
-            },
-            {
-                "name": "get_logs",
-                "description": "Get logs from a pod",
-                "parameters": {
-                    "type": "object",
-                    "properties": {
-                        "pod_name": {
-                            "type": "string",
-                            "description": "Name of the pod"
-                        },
-                        "namespace": {
-                            "type": "string",
-                            "description": "Pod namespace"
-                        },
-                        "container": {
-                            "type": "string",
-                            "description": "Container name (if pod has multiple containers)"
-                        },
-                        "tail": {
-                            "type": "integer",
-                            "description": "Number of lines to tail"
-                        }
-                    },
-                    "required": ["pod_name"]
-                }
-            },
-            {
-                "name": "port_forward",
-                "description": "Forward local port to pod port",
-                "parameters": {
-                    "type": "object",
-                    "properties": {
-                        "pod_name": {
-                            "type": "string",
-                            "description": "Name of the pod"
-                        },
-                        "local_port": {
-                            "type": "integer",
-                            "description": "Local port to forward from"
-                        },
-                        "pod_port": {
-                            "type": "integer",
-                            "description": "Pod port to forward to"
-                        },
-                        "namespace": {
-                            "type": "string",
-                            "description": "Pod namespace"
-                        }
-                    },
-                    "required": ["pod_name", "local_port", "pod_port"]
-                }
-            },
-            {
-                "name": "scale_deployment",
-                "description": "Scale a deployment",
-                "parameters": {
-                    "type": "object",
-                    "properties": {
-                        "name": {
-                            "type": "string",
-                            "description": "Name of the deployment"
-                        },
-                        "replicas": {
-                            "type": "integer",
-                            "description": "Number of desired replicas"
-                        },
-                        "namespace": {
-                            "type": "string",
-                            "description": "Deployment namespace"
-                        }
-                    },
-                    "required": ["name", "replicas"]
-                }
-            }
-        ]
         
-        # Register tools with the server
-        for tool in tools:
-            self.server.tools.append(tool)
-        
-        # Register tool handlers
-        @self.server.on_tool_call("process_natural_language")
-        async def process_natural_language(query: str) -> Dict[str, Any]:
+        @self.server.tool()
+        def process_natural_language(query: str) -> Dict[str, Any]:
             """Process natural language query for kubectl."""
             try:
                 result = process_query(query)
@@ -228,8 +57,8 @@ class MCPServer:
                 logger.error(f"Error processing query: {e}")
                 return {"success": False, "error": str(e)}
         
-        @self.server.on_tool_call("get_pods")
-        async def get_pods(namespace: Optional[str] = None) -> Dict[str, Any]:
+        @self.server.tool()
+        def get_pods(namespace: Optional[str] = None) -> Dict[str, Any]:
             """Get all pods in the specified namespace."""
             try:
                 from kubernetes import client, config
@@ -257,8 +86,8 @@ class MCPServer:
                 logger.error(f"Error getting pods: {e}")
                 return {"success": False, "error": str(e)}
         
-        @self.server.on_tool_call("get_namespaces")
-        async def get_namespaces() -> Dict[str, Any]:
+        @self.server.tool()
+        def get_namespaces() -> Dict[str, Any]:
             """Get all Kubernetes namespaces."""
             try:
                 from kubernetes import client, config
@@ -274,8 +103,8 @@ class MCPServer:
                 logger.error(f"Error getting namespaces: {e}")
                 return {"success": False, "error": str(e)}
         
-        @self.server.on_tool_call("create_deployment")
-        async def create_deployment(name: str, image: str, replicas: int, namespace: Optional[str] = "default") -> Dict[str, Any]:
+        @self.server.tool()
+        def create_deployment(name: str, image: str, replicas: int, namespace: Optional[str] = "default") -> Dict[str, Any]:
             """Create a new deployment."""
             try:
                 from kubernetes import client, config
@@ -318,8 +147,8 @@ class MCPServer:
                 logger.error(f"Error creating deployment: {e}")
                 return {"success": False, "error": str(e)}
         
-        @self.server.on_tool_call("delete_resource")
-        async def delete_resource(resource_type: str, name: str, namespace: Optional[str] = "default") -> Dict[str, Any]:
+        @self.server.tool()
+        def delete_resource(resource_type: str, name: str, namespace: Optional[str] = "default") -> Dict[str, Any]:
             """Delete a Kubernetes resource."""
             try:
                 from kubernetes import client, config
@@ -345,8 +174,8 @@ class MCPServer:
                 logger.error(f"Error deleting resource: {e}")
                 return {"success": False, "error": str(e)}
         
-        @self.server.on_tool_call("get_logs")
-        async def get_logs(pod_name: str, namespace: Optional[str] = "default", container: Optional[str] = None, tail: Optional[int] = None) -> Dict[str, Any]:
+        @self.server.tool()
+        def get_logs(pod_name: str, namespace: Optional[str] = "default", container: Optional[str] = None, tail: Optional[int] = None) -> Dict[str, Any]:
             """Get logs from a pod."""
             try:
                 from kubernetes import client, config
@@ -368,8 +197,8 @@ class MCPServer:
                 logger.error(f"Error getting logs: {e}")
                 return {"success": False, "error": str(e)}
         
-        @self.server.on_tool_call("port_forward")
-        async def port_forward(pod_name: str, local_port: int, pod_port: int, namespace: Optional[str] = "default") -> Dict[str, Any]:
+        @self.server.tool()
+        def port_forward(pod_name: str, local_port: int, pod_port: int, namespace: Optional[str] = "default") -> Dict[str, Any]:
             """Forward local port to pod port."""
             try:
                 import subprocess
@@ -396,8 +225,8 @@ class MCPServer:
                 logger.error(f"Error setting up port forward: {e}")
                 return {"success": False, "error": str(e)}
         
-        @self.server.on_tool_call("scale_deployment")
-        async def scale_deployment(name: str, replicas: int, namespace: Optional[str] = "default") -> Dict[str, Any]:
+        @self.server.tool()
+        def scale_deployment(name: str, replicas: int, namespace: Optional[str] = "default") -> Dict[str, Any]:
             """Scale a deployment."""
             try:
                 from kubernetes import client, config
@@ -430,10 +259,25 @@ class MCPServer:
     
     async def serve_stdio(self):
         """Serve the MCP server over stdio transport."""
-        logger.info("Serving MCP server over stdio")
-        await stdio.serve(self.server)
+        # Add detailed logging for debugging Cursor integration
+        logger.info("Starting MCP server with stdio transport")
+        logger.info(f"Working directory: {os.getcwd()}")
+        logger.info(f"Python executable: {sys.executable}")
+        logger.info(f"Python version: {sys.version}")
+        
+        # Log Kubernetes configuration
+        kube_config = os.environ.get('KUBECONFIG', '~/.kube/config')
+        expanded_path = os.path.expanduser(kube_config)
+        logger.info(f"KUBECONFIG: {kube_config} (expanded: {expanded_path})")
+        if os.path.exists(expanded_path):
+            logger.info(f"Kubernetes config file exists at {expanded_path}")
+        else:
+            logger.warning(f"Kubernetes config file does not exist at {expanded_path}")
+        
+        # Continue with normal server startup
+        await self.server.run_stdio_async()
     
     async def serve_sse(self, port: int):
         """Serve the MCP server over SSE transport."""
-        logger.info(f"Serving MCP server over SSE on port {port}")
-        await sse.serve(self.server, port=port)
+        logger.info(f"Starting MCP server with SSE transport on port {port}")
+        await self.server.run_sse_async(port=port)

@@ -38,6 +38,56 @@ This guide explains how to integrate the kubectl-mcp-tool with Claude AI for nat
    - When using Claude in a web interface or API, you can provide the URL of your MCP server
    - For Claude in Cursor, follow the [Cursor Integration Guide](../cursor/cursor_integration.md)
 
+### Step 3: Configure Claude Desktop
+
+To configure Claude Desktop to use the `kubectl-mcp-tool` MCP server:
+
+1. Open or create the MCP configuration file at `~/.config/claude/mcp.json` (Windows: `%APPDATA%\Claude\mcp.json`)
+2. Add the following configuration:
+
+```json
+{
+  "mcpServers": {
+    "kubernetes": {
+      "command": "python",
+      "args": ["-m", "kubectl_mcp_tool.minimal_wrapper"],
+      "env": {
+        "KUBECONFIG": "/path/to/your/.kube/config"
+      }
+    }
+  }
+}
+```
+
+3. Replace `/path/to/your/.kube/config` with the actual path to your kubeconfig file (usually `~/.kube/config`)
+4. Save the file and restart Claude Desktop.
+
+Note: This configuration uses the minimal wrapper approach which has better compatibility with different MCP SDK versions.
+
+### Step 4: Automated Setup
+
+For an automated setup, you can run the installation script:
+
+```bash
+bash install.sh
+```
+
+This script will:
+1. Install all required dependencies
+2. Create the correct configuration file for Claude Desktop
+3. Set up the environment variables properly
+4. Verify kubectl access
+
+### Step 5: Testing the Integration
+
+You can test the integration by:
+
+1. Start Claude Desktop
+2. Ask a Kubernetes-related question like:
+   - "List all pods in the default namespace"
+   - "What deployments are running in my cluster?"
+   - "Show me the services in the kube-system namespace"
+
 ## Using kubectl-mcp-tool with Claude
 
 Claude can interact with kubectl-mcp-tool using natural language commands. Here are some examples:

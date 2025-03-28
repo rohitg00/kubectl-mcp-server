@@ -31,35 +31,59 @@ For Windsurf integration, you need to start the kubectl-mcp-tool MCP server with
 python -m kubectl_mcp_tool.cli serve --transport sse --port 8080
 ```
 
-### 3. Configure Windsurf
+### 3. Configure WindSurf
 
-1. Open Windsurf and go to Settings
-2. Navigate to the "Tools" or "Extensions" section
-3. Click "Add Tool" or "Add Custom Tool"
-4. Enter the following configuration:
+To configure WindSurf to use the kubectl-mcp-tool:
+
+1. Open or create the MCP configuration file for WindSurf:
+   - macOS: `~/.config/windsurf/mcp.json`
+   - Windows: `%APPDATA%\WindSurf\mcp.json`
+   - Linux: `~/.config/windsurf/mcp.json`
+
+2. Add the following configuration:
 
 ```json
 {
-  "Servers": {
-    "mcp-server-kubectl-mcp-tool": {
-      "name": "kubectl-mcp-tool", 
-      "description": "Kubernetes operations using natural language",
-      "command": "python3 windsurf_compatible_mcp_server.py",
-      "transport": "sse"
+  "mcpServers": {
+    "kubernetes": {
+      "command": "python",
+      "args": ["-m", "kubectl_mcp_tool.minimal_wrapper"],
+      "env": {
+        "KUBECONFIG": "/path/to/your/.kube/config"
+      }
     }
   }
 }
 ```
 
-Note: The MCP server will be started automatically by Windsurf using the command specified in the configuration.
+3. Replace `/path/to/your/.kube/config` with the actual path to your kubeconfig file (usually `~/.kube/config`)
+4. Save the file and restart WindSurf.
 
-### 4. Test the Integration
+Note: This configuration uses the minimal wrapper approach which has better compatibility with different MCP SDK versions.
 
-1. Open a new chat in Windsurf
-2. Type a natural language kubectl command, such as:
-   - "Get all pods in the default namespace"
-   - "Show me all deployments"
-   - "Switch to the kube-system namespace"
+### 4. Automated Setup
+
+For an automated setup, you can run the installation script:
+
+```bash
+bash install.sh
+```
+
+This script will:
+1. Install all required dependencies
+2. Create the correct configuration file for WindSurf
+3. Set up the environment variables properly
+4. Verify kubectl access
+
+### 5. Test the Integration
+
+You can test the integration by:
+
+1. Start WindSurf
+2. Ask a Kubernetes-related question like:
+   - "List all pods in the default namespace"
+   - "What deployments are running in my cluster?"
+   - "Show me the services in the kube-system namespace"
 
 3. Windsurf should execute the command using the kubectl-mcp-tool and display the results
 

@@ -119,10 +119,10 @@ pip install kubectl-mcp-tool
 For a specific version:
 
 ```bash
-pip install kubectl-mcp-tool==1.0.0
+pip install kubectl-mcp-tool==1.1.0
 ```
 
-The package is available on PyPI: [https://pypi.org/project/kubectl-mcp-tool/1.0.0/](https://pypi.org/project/kubectl-mcp-tool/1.0.0/)
+The package is available on PyPI: [https://pypi.org/project/kubectl-mcp-tool/1.1.0/](https://pypi.org/project/kubectl-mcp-tool/1.1.0/)
 
 ### Prerequisites
 
@@ -159,23 +159,25 @@ After installation, verify the tool is working correctly:
 ```bash
 # Check CLI mode
 kubectl-mcp --help
-
-# Test connection to Kubernetes
-kubectl-mcp get pods
 ```
+
+Note: This tool is designed to work as an MCP server that AI assistants connect to, not as a direct kubectl replacement. The primary command available is `kubectl-mcp serve` which starts the MCP server.
 
 ## Usage with AI Assistants
 
 ### Claude Desktop
 
-Add the following to your Claude Desktop configuration:
+Add the following to your Claude Desktop configuration at `~/.config/claude/mcp.json` (Windows: `%APPDATA%\Claude\mcp.json`):
 
 ```json
 {
   "mcpServers": {
     "kubernetes": {
       "command": "python",
-      "args": ["-m", "kubectl_mcp_tool.cli"]
+      "args": ["-m", "kubectl_mcp_tool.minimal_wrapper"],
+      "env": {
+        "KUBECONFIG": "/path/to/your/.kube/config"
+      }
     }
   }
 }
@@ -190,30 +192,51 @@ Add the following to your Cursor AI settings under MCP by adding a new global MC
   "mcpServers": {
     "kubernetes": {
       "command": "python",
-      "args": ["-m", "kubectl_mcp_tool.cli"]
+      "args": ["-m", "kubectl_mcp_tool.minimal_wrapper"],
+      "env": {
+        "KUBECONFIG": "/path/to/your/.kube/config",
+        "PATH": "/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin"
+      }
     }
   }
 }
 ```
 
+Save this configuration to `~/.cursor/mcp.json` for global settings.
+
+> **Note**: Replace `/path/to/your/.kube/config` with the actual path to your kubeconfig file. On most systems, this is `~/.kube/config`.
+
 ### Windsurf
 
-Add the following to your Windsurf configuration:
+Add the following to your Windsurf configuration at `~/.config/windsurf/mcp.json` (Windows: `%APPDATA%\WindSurf\mcp.json`):
 
 ```json
 {
-  "extensions": [
-    {
-      "name": "kubectl-mcp",
-      "description": "Kubernetes operations using MCP",
-      "exec": {
-        "command": "python",
-        "args": ["-m", "kubectl_mcp_tool.cli"]
+  "mcpServers": {
+    "kubernetes": {
+      "command": "python",
+      "args": ["-m", "kubectl_mcp_tool.minimal_wrapper"],
+      "env": {
+        "KUBECONFIG": "/path/to/your/.kube/config"
       }
     }
-  ]
+  }
 }
 ```
+
+### Automatic Configuration
+
+For automatic configuration of all supported AI assistants, run the provided installation script:
+
+```bash
+bash install.sh
+```
+
+This script will:
+1. Install the required dependencies
+2. Create configuration files for Claude, Cursor, and WindSurf
+3. Set up the correct paths and environment variables
+4. Test your Kubernetes connection
 
 ## Prerequisites
 

@@ -35,30 +35,56 @@ python cursor_compatible_mcp_server.py
 
 1. Open Cursor and go to Settings
 2. Navigate to the "AI & Copilot" section
-3. Scroll down to "Tools" or "Extensions"
-4. Click "Add Tool" or "Add Custom Tool"
-5. Enter the following configuration:
+3. Scroll down to the "MCP" section
+4. Click "Add new global MCP server"
+5. Enter the following configuration in `~/.cursor/mcp.json`:
 
 ```json
 {
-  "name": "kubectl-mcp-tool",
-  "description": "Kubernetes operations using natural language",
-  "command": "python /path/to/kubectl-mcp-tool/cursor_compatible_mcp_server.py",
-  "transport": "stdio"
+  "mcpServers": {
+    "kubernetes": {
+      "command": "python",
+      "args": ["-m", "kubectl_mcp_tool.minimal_wrapper"],
+      "env": {
+        "KUBECONFIG": "/path/to/your/.kube/config", 
+        "PATH": "/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin"
+      }
+    }
+  }
 }
 ```
 
-Replace `/path/to/kubectl-mcp-tool/` with the actual path to your kubectl-mcp-tool installation.
+Replace `/path/to/your/.kube/config` with the actual path to your kubeconfig file. 
+On most systems, this is `~/.kube/config`.
+
+Save this configuration to `~/.cursor/mcp.json` for global settings.
+
+Note: This configuration uses the minimal wrapper approach which has better compatibility with different MCP SDK versions.
 
 ### 4. Test the Integration
 
-1. Open a new chat in Cursor
-2. Type a natural language kubectl command, such as:
-   - "Get all pods in the default namespace"
-   - "Show me all deployments"
-   - "Switch to the kube-system namespace"
+You can test the integration by:
 
-3. Cursor should execute the command using the kubectl-mcp-tool and display the results
+1. Start Cursor
+2. Open a new file or project
+3. Ask a Kubernetes-related question like:
+   - "List all pods in the default namespace"
+   - "What deployments are running in my cluster?"
+   - "Show me the services in the kube-system namespace"
+
+### 5. Automated Setup
+
+For an automated setup, you can run the installation script:
+
+```bash
+bash install.sh
+```
+
+This script will:
+1. Install all required dependencies
+2. Create the correct configuration file for Cursor
+3. Set up the environment variables properly
+4. Verify kubectl access
 
 ## Example Commands
 
