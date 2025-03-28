@@ -9,6 +9,20 @@ A Model Context Protocol (MCP) server for Kubernetes that enables AI assistants 
 [![PyPI version](https://badge.fury.io/py/kubectl-mcp-tool.svg)](https://pypi.org/project/kubectl-mcp-tool/)
 [![PyPI - Python Version](https://img.shields.io/pypi/pyversions/kubectl-mcp-tool)](https://pypi.org/project/kubectl-mcp-tool/)
 
+## ⚠️ Known Issues
+
+We are currently experiencing JSON parsing issues on our server. This has led to difficulties running MCP in:
+
+- **Claude**
+- **Cursor**
+- **Windsurf**
+
+I am actively working on resolving these issues. Given I'm handling the troubleshooting process independently, resolution may take some time as I'm conducting detailed tests for each service individually. If you can debug those issues, feel free to submit a [Pull Request](https://github.com/rohitg00/kubectl-mcp-server/pulls).
+
+Your patience and continued support during this period are greatly appreciated. 🙏
+
+**Thank you for understanding!**
+
 ## Features
 
 ### Core Kubernetes Operations
