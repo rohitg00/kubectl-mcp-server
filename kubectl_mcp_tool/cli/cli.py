@@ -74,6 +74,11 @@ def main():
         console_handler.setLevel(logging.DEBUG)
         logger.info("Debug mode enabled")
     
+    # Set dry-run mode if requested (for mutating commands)
+    if args.command == "serve" and args.dry_run:
+        os.environ["KUBECTL_MCP_DRY_RUN"] = "1"
+        logger.info("Dry-run mode enabled: Mutating operations will be simulated")
+    
     exit_code = 0
     
     try:
