@@ -108,7 +108,33 @@ class MCPServer:
         
         # Get the tool name and input
         tool_name = params.get("name", "")
-        tool_input = params.get("input", {})
+        tool_input = {}
+        raw_str = params.get("input", "{}")
+        try:
+            if isinstance(raw_str, str):
+                tool_input = json.loads(raw_str)
+            elif isinstance(raw_str, dict):
+                tool_input = raw_str
+            else:
+                logger.error(f"Invalid input of type: {type(raw_str)}")
+                return {
+                    "jsonrpc": "2.0",
+                    "id": message_id,
+                    "error": {
+                        "code": -32602,
+                        "message": f"Invalid input of type: {type(raw_str)}"
+                    }
+                }
+        except json.JSONDecodeError as e:
+            logger.error(f"Invalid JSON input: {e}")
+            return {
+                "jsonrpc": "2.0",
+                "id": message_id,
+                "error": {
+                    "code": -32602,
+                    "message": f"Invalid JSON input: {str(e)}"
+                }
+            }
         
         # Check if the tool exists
         if tool_name not in self.tools:
