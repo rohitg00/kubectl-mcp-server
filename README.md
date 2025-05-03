@@ -1,3 +1,5 @@
+[![MseeP.ai Security Assessment Badge](https://mseep.net/pr/rohitg00-kubectl-mcp-server-badge.png)](https://mseep.ai/app/rohitg00-kubectl-mcp-server)
+
 # Kubectl MCP Tool
 
 A Model Context Protocol (MCP) server for Kubernetes that enables AI assistants like Claude, Cursor, and others to interact with Kubernetes clusters through natural language.
