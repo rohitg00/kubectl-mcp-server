@@ -368,3 +368,5 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+[![Verified on MseeP](https://mseep.ai/badge.svg)](https://mseep.ai/app/06a3ea67-5b09-48cf-910c-7a5285088821)
