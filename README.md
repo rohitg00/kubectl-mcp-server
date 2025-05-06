@@ -137,10 +137,10 @@ pip install kubectl-mcp-tool
 For a specific version:
 
 ```bash
-pip install kubectl-mcp-tool==1.1.0
+pip install kubectl-mcp-tool==1.1.1
 ```
 
-The package is available on PyPI: [https://pypi.org/project/kubectl-mcp-tool/1.1.0/](https://pypi.org/project/kubectl-mcp-tool/1.1.0/)
+The package is available on PyPI: [https://pypi.org/project/kubectl-mcp-tool/1.1.1/](https://pypi.org/project/kubectl-mcp-tool/1.1.1/)
 
 ### Prerequisites
 
@@ -182,6 +182,42 @@ kubectl-mcp --help
 Note: This tool is designed to work as an MCP server that AI assistants connect to, not as a direct kubectl replacement. The primary command available is `kubectl-mcp serve` which starts the MCP server.
 
 ## Usage with AI Assistants
+
+### Using the Minimal Wrapper
+
+The minimal wrapper (`kubectl_mcp_tool.minimal_wrapper`) is a simplified MCP server implementation that provides better compatibility across different AI assistants and addresses common issues:
+
+1. **Direct Configuration**
+   ```json
+   {
+     "mcpServers": {
+       "kubernetes": {
+         "command": "python",
+         "args": ["-m", "kubectl_mcp_tool.minimal_wrapper"],
+         "env": {
+           "KUBECONFIG": "/path/to/your/.kube/config",
+           "PATH": "/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin",
+           "MCP_LOG_FILE": "/path/to/logs/debug.log",
+           "MCP_DEBUG": "1"
+         }
+       }
+     }
+   }
+   ```
+
+2. **Key Environment Variables**
+   - `MCP_LOG_FILE`: Path to log file (recommended to avoid stdout pollution)
+   - `MCP_DEBUG`: Set to "1" for verbose logging
+   - `MCP_TEST_MOCK_MODE`: Set to "1" to use mock data instead of real cluster
+   - `KUBECONFIG`: Path to your Kubernetes config file
+   - `KUBECTL_MCP_LOG_LEVEL`: Set to "DEBUG", "INFO", "WARNING", or "ERROR"
+
+3. **Testing the Minimal Wrapper**
+   You can test if the wrapper is working correctly with:
+   ```bash
+   python -m kubectl_mcp_tool.simple_ping
+   ```
+   This will attempt to connect to the server and execute a ping command.
 
 ### Claude Desktop
 

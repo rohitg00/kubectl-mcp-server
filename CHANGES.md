@@ -1,5 +1,30 @@
 # Changes to kubectl-mcp-tool Configuration
 
+## Version 1.1.1 (Latest)
+
+### Key Fixes and Improvements
+1. **Fixed JSON RPC Communication Issues**
+   - Resolved "Unexpected non-whitespace character after JSON at position 4" error
+   - Properly configured logging to use stderr or log files instead of stdout
+   - Added comprehensive JSON validation and sanitization
+   - Improved handling of special characters and BOM in JSON responses
+
+2. **Enhanced Logging Configuration**
+   - Added support for MCP_LOG_FILE environment variable
+   - Implemented proper log file rotation
+   - Prevented log output from corrupting JSON-RPC communication
+   - Improved debug logging for troubleshooting
+
+3. **Added ping utility for server validation**
+   - Created simple_ping.py utility for validating server connections
+   - Implemented better error detection and debugging
+   - Added detailed diagnostic information for connection issues
+
+4. **Improved shutdown handling**
+   - Better signal handling for graceful shutdown
+   - Fixed memory leaks during server restart
+   - Enhanced server resilience during connection failures
+   
 ## Key Improvements
 
 1. **Simplified MCP Server Implementation**

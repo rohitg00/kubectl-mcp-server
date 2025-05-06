@@ -14,6 +14,10 @@ This document provides detailed instructions for installing the kubectl-mcp-tool
 - [Troubleshooting](#troubleshooting)
 - [Upgrading](#upgrading)
 - [Uninstallation](#uninstallation)
+- [Recommended Configuration](#recommended-configuration)
+  - [Using the Minimal Wrapper (Recommended)](#using-the-minimal-wrapper-recommended)
+  - [Key Environment Variables](#key-environment-variables)
+  - [Testing the Minimal Wrapper](#testing-the-minimal-wrapper)
 
 ## PyPI Installation
 
@@ -26,10 +30,10 @@ pip install kubectl-mcp-tool
 For a specific version:
 
 ```bash
-pip install kubectl-mcp-tool==1.0.0
+pip install kubectl-mcp-tool==1.1.1
 ```
 
-The package is available on PyPI: [https://pypi.org/project/kubectl-mcp-tool/1.0.0/](https://pypi.org/project/kubectl-mcp-tool/1.0.0/)
+The package is available on PyPI: [https://pypi.org/project/kubectl-mcp-tool/1.1.1/](https://pypi.org/project/kubectl-mcp-tool/1.1.1/)
 
 ## Prerequisites
 
@@ -120,6 +124,49 @@ docker pull rohitg00/kubectl-mcp-tool:latest
 docker run -it --rm \
   -v ~/.kube:/root/.kube \
   rohitg00/kubectl-mcp-tool:latest
+```
+
+## Recommended Configuration
+
+### Using the Minimal Wrapper (Recommended)
+
+For best compatibility with AI assistants, we strongly recommend using the minimal wrapper provided in the package. This approach resolves many common issues including JSON RPC errors and logging problems:
+
+```json
+{
+  "mcpServers": {
+    "kubernetes": {
+      "command": "python",
+      "args": ["-m", "kubectl_mcp_tool.minimal_wrapper"],
+      "env": {
+        "KUBECONFIG": "/path/to/your/.kube/config",
+        "PATH": "/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin",
+        "MCP_LOG_FILE": "/path/to/logs/debug.log",
+        "MCP_DEBUG": "1"
+      }
+    }
+  }
+}
+```
+
+### Key Environment Variables
+
+- `MCP_LOG_FILE`: Path to log file (recommended to avoid stdout pollution)
+- `MCP_DEBUG`: Set to "1" for verbose logging
+- `MCP_TEST_MOCK_MODE`: Set to "1" to use mock data instead of real cluster
+- `KUBECONFIG`: Path to your Kubernetes config file
+- `KUBECTL_MCP_LOG_LEVEL`: Set to "DEBUG", "INFO", "WARNING", or "ERROR"
+
+### Testing the Minimal Wrapper
+
+You can verify that the minimal wrapper is working correctly:
+
+```bash
+# Test directly
+python -m kubectl_mcp_tool.minimal_wrapper
+
+# Use the ping utility to test connectivity
+python -m kubectl_mcp_tool.simple_ping
 ```
 
 ## Verifying Installation
