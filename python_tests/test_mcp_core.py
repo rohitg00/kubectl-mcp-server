@@ -28,7 +28,8 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Configuration
-MCP_SERVER_CMD = ["python", "-m", "kubectl_mcp_tool.mcp_server"]
+import sys
+MCP_SERVER_CMD = [sys.executable, "-I", "-m", "kubectl_mcp_tool.mcp_server"]
 
 class TestMCPCore:
     """

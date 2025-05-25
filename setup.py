@@ -5,7 +5,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setup(
     name="kubectl-mcp-tool",
-    version="1.1.1",
+    version="1.2.0",
     author="Rohit Ghumare",
     author_email="ghumare64@gmail.com",
     description="A Model Context Protocol (MCP) server for Kubernetes",
@@ -31,7 +31,7 @@ setup(
     ],
     entry_points={
         "console_scripts": [
-            "kubectl-mcp=kubectl_mcp_tool.minimal_wrapper:main",
+            "kubectl-mcp=kubectl_mcp_tool.__main__:main",
         ],
     },
     classifiers=[

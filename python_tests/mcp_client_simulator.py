@@ -56,22 +56,56 @@ class MCPClientSimulator:
     
     def _start_server_process(self):
         """Start the server process for stdio transport."""
+        import copy
+        import sys
+        import os
+        import re
+
+        # Always use sys.executable and -I for full isolation
+        if self.stdio_cmd and self.stdio_cmd[0] == "python":
+            self.stdio_cmd = [sys.executable, "-I"] + self.stdio_cmd[1:]
+        
+        # Handle the PYTHONPATH for module import
+        project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+        logger.info(f"Project root: {project_root}")
+        
         logger.info(f"Starting MCP server process: {' '.join(self.stdio_cmd)}")
+        logger.info(f"Working directory: {os.getcwd()}")
+        
+        # Sanitize environment to avoid sys.modules import collision bug
+        env = copy.deepcopy(os.environ)
+        # Add project root to PYTHONPATH for the subprocess
+        env["PYTHONPATH"] = project_root
+        env["PYTHONNOUSERSITE"] = "1"
+        
+        logger.info(f"Environment: PYTHONPATH={env.get('PYTHONPATH')}, PYTHONNOUSERSITE={env.get('PYTHONNOUSERSITE')}")
+
         self.server_process = subprocess.Popen(
             self.stdio_cmd,
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             text=True,
-            bufsize=1  # Line buffered
+            bufsize=1,  # Line buffered
+            env=env
         )
         
         # Wait a moment for the server to initialize
+        import time
         time.sleep(1)
         
         if self.server_process.poll() is not None:
+            stdout = self.server_process.stdout.read()
             stderr = self.server_process.stderr.read()
-            raise RuntimeError(f"Failed to start MCP server process: {stderr}")
+            msg = (
+                f"Failed to start MCP server process!\n"
+                f"Command: {' '.join(self.stdio_cmd)}\n"
+                f"CWD: {os.getcwd()}\n"
+                f"PYTHONPATH: {env.get('PYTHONPATH')}\n"
+                f"STDOUT:\n{stdout}\n"
+                f"STDERR:\n{stderr}\n"
+            )
+            raise RuntimeError(msg)
     
     def _send_stdio_request(self, request: Dict[str, Any]) -> Dict[str, Any]:
         """

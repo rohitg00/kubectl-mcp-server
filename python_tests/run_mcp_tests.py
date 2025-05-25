@@ -20,17 +20,79 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+def _ensure_kubectl_available() -> bool:
+    """Return True if a usable `kubectl` is on PATH.
+
+    If `kubectl` is missing but `minikube` is present and functional, create a
+    temporary wrapper script named `kubectl` that forwards all invocations to
+    `minikube kubectl --`.  The wrapper directory is prepended to the current
+    process's PATH so that any child process (pytest, helper scripts, etc.)
+    automatically uses it without code changes elsewhere.
+    """
+    import shutil
+    import tempfile
+    import os
+    import subprocess
+    import stat
+
+    # Fast-path: real kubectl already present
+    if shutil.which("kubectl"):
+        return True
+
+    # Fallback: use `minikube kubectl --` if available
+    if shutil.which("minikube"):
+        try:
+            subprocess.run(
+                ["minikube", "kubectl", "--", "version", "--client"],
+                capture_output=True,
+                check=True,
+            )
+        except subprocess.CalledProcessError:
+            return False
+
+        temp_dir = tempfile.mkdtemp(prefix="kubectl_wrapper_")
+        wrapper_path = os.path.join(temp_dir, "kubectl")
+        with open(wrapper_path, "w", encoding="utf-8") as fh:
+            fh.write("#!/usr/bin/env bash\nexec minikube kubectl -- \"$@\"\n")
+        os.chmod(wrapper_path, stat.S_IRWXU)
+        # Prepend to PATH
+        os.environ["PATH"] = f"{temp_dir}:{os.environ.get('PATH', '')}"
+        logger.info("Using minikube kubectl wrapper at %s", wrapper_path)
+        return True
+
+    # Neither kubectl nor minikube available
+    return False
+
 def check_dependencies(mock_mode=False):
     """Check if all required dependencies are installed."""
-    required_commands = ["kubectl", "python"] if not mock_mode else ["python"]
-    
+    # Ensure kubectl (or a wrapper) is available when not in mock mode
+    if not mock_mode:
+        if not _ensure_kubectl_available():
+            logger.error("kubectl not found and minikube fallback failed")
+            return False
+
+    required_commands = ["python"] if mock_mode else ["python"]  # kubectl handled separately
+
     for cmd in required_commands:
         try:
             subprocess.run([cmd, "--version"], capture_output=True, check=True)
         except (subprocess.CalledProcessError, FileNotFoundError):
             logger.error(f"Required command '{cmd}' not found or not working")
             return False
-    
+
+    # Additional kubectl validation when not in mock mode
+    if not mock_mode:
+        try:
+            subprocess.run(
+                ["kubectl", "version", "--client"],
+                capture_output=True,
+                check=True,
+                text=True,
+            )
+        except (subprocess.CalledProcessError, FileNotFoundError):
+            logger.error("kubectl command failed even after wrapper setup")
+            return False
+
     # Check Python packages
     required_packages = ["pytest", "requests"]
     for package in required_packages:

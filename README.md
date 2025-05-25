@@ -7,7 +7,6 @@ A Model Context Protocol (MCP) server for Kubernetes that enables AI assistants 
 [![Kubernetes](https://img.shields.io/badge/kubernetes-%23326ce5.svg?style=flat&logo=kubernetes&logoColor=white)](https://kubernetes.io/)
 [![MCP](https://img.shields.io/badge/MCP-compatible-green.svg)](https://github.com/modelcontextprotocol/modelcontextprotocol)
 [![PyPI version](https://badge.fury.io/py/kubectl-mcp-tool.svg)](https://pypi.org/project/kubectl-mcp-tool/)
-[![PyPI - Python Version](https://img.shields.io/pypi/pyversions/kubectl-mcp-tool)](https://pypi.org/project/kubectl-mcp-tool/)
 
 ## 🎥 Live Demo - Watch `kubectl-mcp-tool` in Action with Claude!
 ![Claude MCP](./docs/claude/claude-mcp.gif)
@@ -174,9 +173,11 @@ Note: This tool is designed to work as an MCP server that AI assistants connect 
 
 ## Usage with AI Assistants
 
-### Using the Minimal Wrapper
+### Using the MCP Server
 
-The minimal wrapper (`kubectl_mcp_tool.minimal_wrapper`) is a simplified MCP server implementation that provides better compatibility across different AI assistants and addresses common issues:
+The MCP Server (`kubectl_mcp_tool.mcp_server`) is a robust implementation built on the FastMCP SDK that provides enhanced compatibility across different AI assistants:
+
+> **Note**: If you encounter any errors with the MCP Server implementation, you can fall back to using the minimal wrapper by replacing `kubectl_mcp_tool.mcp_server` with `kubectl_mcp_tool.minimal_wrapper` in your configuration. The minimal wrapper provides basic capabilities with simpler implementation.
 
 1. **Direct Configuration**
    ```json
@@ -184,7 +185,7 @@ The minimal wrapper (`kubectl_mcp_tool.minimal_wrapper`) is a simplified MCP ser
      "mcpServers": {
        "kubernetes": {
          "command": "python",
-         "args": ["-m", "kubectl_mcp_tool.minimal_wrapper"],
+         "args": ["-m", "kubectl_mcp_tool.mcp_server"],
          "env": {
            "KUBECONFIG": "/path/to/your/.kube/config",
            "PATH": "/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin",
@@ -203,12 +204,17 @@ The minimal wrapper (`kubectl_mcp_tool.minimal_wrapper`) is a simplified MCP ser
    - `KUBECONFIG`: Path to your Kubernetes config file
    - `KUBECTL_MCP_LOG_LEVEL`: Set to "DEBUG", "INFO", "WARNING", or "ERROR"
 
-3. **Testing the Minimal Wrapper**
-   You can test if the wrapper is working correctly with:
+3. **Testing the MCP Server**
+   You can test if the server is working correctly with:
    ```bash
    python -m kubectl_mcp_tool.simple_ping
    ```
    This will attempt to connect to the server and execute a ping command.
+
+   Alternatively, you can directly run the server with:
+   ```bash
+   python -m kubectl_mcp_tool
+   ```
 
 ### Claude Desktop
 
@@ -219,7 +225,7 @@ Add the following to your Claude Desktop configuration at `~/.config/claude/mcp.
   "mcpServers": {
     "kubernetes": {
       "command": "python",
-      "args": ["-m", "kubectl_mcp_tool.minimal_wrapper"],
+      "args": ["-m", "kubectl_mcp_tool.mcp_server"],
       "env": {
         "KUBECONFIG": "/path/to/your/.kube/config"
       }
@@ -237,7 +243,7 @@ Add the following to your Cursor AI settings under MCP by adding a new global MC
   "mcpServers": {
     "kubernetes": {
       "command": "python",
-      "args": ["-m", "kubectl_mcp_tool.minimal_wrapper"],
+      "args": ["-m", "kubectl_mcp_tool.mcp_server"],
       "env": {
         "KUBECONFIG": "/path/to/your/.kube/config",
         "PATH": "/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin"
@@ -260,7 +266,7 @@ Add the following to your Windsurf configuration at `~/.config/windsurf/mcp.json
   "mcpServers": {
     "kubernetes": {
       "command": "python",
-      "args": ["-m", "kubectl_mcp_tool.minimal_wrapper"],
+      "args": ["-m", "kubectl_mcp_tool.mcp_server"],
       "env": {
         "KUBECONFIG": "/path/to/your/.kube/config"
       }
@@ -329,8 +335,11 @@ pip install -r requirements.txt
 # Install in development mode
 pip install -e .
 
+# Run the MCP server
+python -m kubectl_mcp_tool
+
 # Run tests
-python -m python_tests.test_all_features
+python -m python_tests.run_mcp_tests
 ```
 
 ## Project Structure
@@ -338,6 +347,7 @@ python -m python_tests.test_all_features
 ```
 ├── kubectl_mcp_tool/         # Main package
 │   ├── __init__.py           # Package initialization
+│   ├── __main__.py           # Package entry point
 │   ├── cli.py                # CLI entry point
 │   ├── mcp_server.py         # MCP server implementation
 │   ├── mcp_kubectl_tool.py   # Main kubectl MCP tool implementation
@@ -374,6 +384,8 @@ python -m python_tests.test_all_features
 ├── setup.py                  # Package setup script
 ├── pyproject.toml            # Project configuration
 ├── MANIFEST.in               # Package manifest
+├── mcp_config.json           # Sample MCP configuration
+├── run_server.py             # Server runner script
 ├── LICENSE                   # MIT License
 ├── CHANGELOG.md              # Version history
 ├── .gitignore                # Git ignore file
