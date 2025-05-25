@@ -394,6 +394,48 @@ python -m python_tests.run_mcp_tests
 └── start_mcp_server.sh       # Server startup script
 ```
 
+## MCP Server Tools
+
+The MCP Server implementation (`kubectl_mcp_tool.mcp_server`) provides a comprehensive set of 26 tools that can be used by AI assistants to interact with Kubernetes clusters:
+
+### Core Kubernetes Resource Management
+- **get_pods** - Get all pods in the specified namespace
+- **get_namespaces** - Get all Kubernetes namespaces
+- **get_services** - Get all services in the specified namespace
+- **get_nodes** - Get all nodes in the cluster
+- **get_configmaps** - Get all ConfigMaps in the specified namespace
+- **get_secrets** - Get all Secrets in the specified namespace
+- **get_deployments** - Get all deployments in the specified namespace
+- **create_deployment** - Create a new deployment
+- **delete_resource** - Delete a Kubernetes resource
+- **get_api_resources** - List Kubernetes API resources
+- **kubectl_explain** - Explain a Kubernetes resource using kubectl explain
+
+### Helm Operations
+- **install_helm_chart** - Install a Helm chart
+- **upgrade_helm_chart** - Upgrade a Helm release
+- **uninstall_helm_chart** - Uninstall a Helm release
+
+### Security Operations
+- **get_rbac_roles** - Get all RBAC roles in the specified namespace
+- **get_cluster_roles** - Get all cluster-wide RBAC roles
+
+### Monitoring and Diagnostics
+- **get_events** - Get all events in the specified namespace
+- **get_resource_usage** - Get resource usage statistics via kubectl top
+- **health_check** - Check cluster health by pinging the API server
+- **get_pod_events** - Get events for a specific pod
+- **check_pod_health** - Check the health status of a pod
+- **get_logs** - Get logs from a pod
+
+### Cluster Management
+- **switch_context** - Switch current kubeconfig context
+- **get_current_context** - Get current kubeconfig context
+- **port_forward** - Forward local port to pod port
+- **scale_deployment** - Scale a deployment
+
+All tools return structured data with success/error information and relevant details, making it easy for AI assistants to process and understand the responses.
+
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
