@@ -17,6 +17,8 @@ A Model Context Protocol (MCP) server for Kubernetes that enables AI assistants 
 ## 🎥 Live Demo - Watch `kubectl-mcp-tool` in Action with Windsurf!
 ![Windsurf MCP](./docs/windsurf/windsurf-mcp.gif)
 
+<!-- GitAds-Verify: TB2V63Q9TRINQGAA7Q5C6LWVP64XQID6 -->
+
 ## Features
 
 ### Core Kubernetes Operations
