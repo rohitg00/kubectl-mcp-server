@@ -1,4 +1,4 @@
-# Kubectl MCP Tool
+# Kubectl MCP Server
 
 A Model Context Protocol (MCP) server for Kubernetes that enables AI assistants like Claude, Cursor, and others to interact with Kubernetes clusters through natural language.
 
