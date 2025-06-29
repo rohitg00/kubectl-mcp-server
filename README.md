@@ -166,11 +166,51 @@ pip install -e .
 After installation, verify the tool is working correctly:
 
 ```bash
-# Check CLI mode
 kubectl-mcp --help
 ```
 
 Note: This tool is designed to work as an MCP server that AI assistants connect to, not as a direct kubectl replacement. The primary command available is `kubectl-mcp serve` which starts the MCP server.
+
+## Docker Image
+
+If you prefer using Docker, a pre-built image is available on Docker Hub:
+
+```bash
+# Pull the latest image
+docker pull rohitghumare64/kubectl-mcp-server:latest
+```
+
+### Running the image
+
+The server inside the container listens on port **8000**. Bind any free host port to 8000 and mount your kubeconfig:
+
+```bash
+# Replace 8081 with any free port on your host
+# Mount your local ~/.kube directory for cluster credentials
+
+docker run -p 8081:8000 \
+           -v $HOME/.kube:/root/.kube \
+           rohitghumare64/kubectl-mcp-server:latest
+```
+
+* `-p 8081:8000` maps host port 8081 → container port 8000.
+* `-v $HOME/.kube:/root/.kube` mounts your kubeconfig so the server can reach the cluster.
+
+### Building the image locally
+
+To build the image from source instead of pulling from Docker Hub:
+
+```bash
+git clone https://github.com/rohitg00/kubectl-mcp-server.git
+cd kubectl-mcp-server
+
+docker build -t kubectl-mcp-server .
+
+# Run the locally-built image (same run flags as above)
+docker run -p 8081:8000 -v $HOME/.kube:/root/.kube kubectl-mcp-server
+```
+
+This yields identical functionality but lets you modify the codebase before building.
 
 ## Usage with AI Assistants
 
@@ -283,172 +323,3 @@ For automatic configuration of all supported AI assistants, run the provided ins
 ```bash
 bash install.sh
 ```
-
-This script will:
-1. Install the required dependencies
-2. Create configuration files for Claude, Cursor, and WindSurf
-3. Set up the correct paths and environment variables
-4. Test your Kubernetes connection
-
-## Prerequisites
-
-1. kubectl installed and in your PATH
-2. A valid kubeconfig file
-3. Access to a Kubernetes cluster
-4. Helm v3 (optional, for Helm operations)
-
-## Examples
-
-### List Pods
-
-```
-List all pods in the default namespace
-```
-
-### Deploy an Application
-
-```
-Create a deployment named nginx-test with 3 replicas using the nginx:latest image
-```
-
-### Check Pod Logs
-
-```
-Get logs from the nginx-test pod
-```
-
-### Port Forwarding
-
-```
-Forward local port 8080 to port 80 on the nginx-test pod
-```
-
-## Development
-
-```bash
-# Clone the repository
-git clone https://github.com/rohitg00/kubectl-mcp-server.git
-cd kubectl-mcp-server
-
-# Install dependencies
-pip install -r requirements.txt
-
-# Install in development mode
-pip install -e .
-
-# Run the MCP server
-python -m kubectl_mcp_tool
-
-# Run tests
-python -m python_tests.run_mcp_tests
-```
-
-## Project Structure
-
-```
-├── kubectl_mcp_tool/         # Main package
-│   ├── __init__.py           # Package initialization
-│   ├── __main__.py           # Package entry point
-│   ├── cli.py                # CLI entry point
-│   ├── mcp_server.py         # MCP server implementation
-│   ├── mcp_kubectl_tool.py   # Main kubectl MCP tool implementation
-│   ├── natural_language.py   # Natural language processing
-│   ├── diagnostics.py        # Diagnostics functionality
-│   ├── core/                 # Core functionality 
-│   ├── security/             # Security operations
-│   ├── monitoring/           # Monitoring functionality
-│   ├── utils/                # Utility functions
-│   └── cli/                  # CLI functionality components
-├── python_tests/             # Test suite
-│   ├── run_mcp_tests.py      # Test runner script
-│   ├── mcp_client_simulator.py # MCP client simulator for mock testing
-│   ├── test_utils.py         # Test utilities
-│   ├── test_mcp_core.py      # Core MCP tests
-│   ├── test_mcp_security.py  # Security tests
-│   ├── test_mcp_monitoring.py # Monitoring tests
-│   ├── test_mcp_nlp.py       # Natural language tests
-│   ├── test_mcp_diagnostics.py # Diagnostics tests
-│   └── mcp_test_strategy.md  # Test strategy documentation
-├── docs/                     # Documentation
-│   ├── README.md             # Documentation overview
-│   ├── INSTALLATION.md       # Installation guide
-│   ├── integration_guide.md  # Integration guide
-│   ├── cursor/               # Cursor integration docs
-│   ├── windsurf/             # Windsurf integration docs
-│   └── claude/               # Claude integration docs
-├── compatible_servers/       # Compatible MCP server implementations
-│   ├── cursor/               # Cursor-compatible servers
-│   ├── windsurf/             # Windsurf-compatible servers
-│   ├── minimal/              # Minimal server implementations
-│   └── generic/              # Generic MCP servers
-├── requirements.txt          # Python dependencies
-├── setup.py                  # Package setup script
-├── pyproject.toml            # Project configuration
-├── MANIFEST.in               # Package manifest
-├── mcp_config.json           # Sample MCP configuration
-├── run_server.py             # Server runner script
-├── LICENSE                   # MIT License
-├── CHANGELOG.md              # Version history
-├── .gitignore                # Git ignore file
-├── install.sh                # Installation script
-├── publish.sh                # PyPI publishing script
-└── start_mcp_server.sh       # Server startup script
-```
-
-## MCP Server Tools
-
-The MCP Server implementation (`kubectl_mcp_tool.mcp_server`) provides a comprehensive set of 26 tools that can be used by AI assistants to interact with Kubernetes clusters:
-
-### Core Kubernetes Resource Management
-- **get_pods** - Get all pods in the specified namespace
-- **get_namespaces** - Get all Kubernetes namespaces
-- **get_services** - Get all services in the specified namespace
-- **get_nodes** - Get all nodes in the cluster
-- **get_configmaps** - Get all ConfigMaps in the specified namespace
-- **get_secrets** - Get all Secrets in the specified namespace
-- **get_deployments** - Get all deployments in the specified namespace
-- **create_deployment** - Create a new deployment
-- **delete_resource** - Delete a Kubernetes resource
-- **get_api_resources** - List Kubernetes API resources
-- **kubectl_explain** - Explain a Kubernetes resource using kubectl explain
-
-### Helm Operations
-- **install_helm_chart** - Install a Helm chart
-- **upgrade_helm_chart** - Upgrade a Helm release
-- **uninstall_helm_chart** - Uninstall a Helm release
-
-### Security Operations
-- **get_rbac_roles** - Get all RBAC roles in the specified namespace
-- **get_cluster_roles** - Get all cluster-wide RBAC roles
-
-### Monitoring and Diagnostics
-- **get_events** - Get all events in the specified namespace
-- **get_resource_usage** - Get resource usage statistics via kubectl top
-- **health_check** - Check cluster health by pinging the API server
-- **get_pod_events** - Get events for a specific pod
-- **check_pod_health** - Check the health status of a pod
-- **get_logs** - Get logs from a pod
-
-### Cluster Management
-- **switch_context** - Switch current kubeconfig context
-- **get_current_context** - Get current kubeconfig context
-- **port_forward** - Forward local port to pod port
-- **scale_deployment** - Scale a deployment
-
-All tools return structured data with success/error information and relevant details, making it easy for AI assistants to process and understand the responses.
-
-## Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
-
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
-## License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-[![Verified on MseeP](https://mseep.ai/badge.svg)](https://mseep.ai/app/06a3ea67-5b09-48cf-910c-7a5285088821)

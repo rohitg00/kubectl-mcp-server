@@ -835,7 +835,17 @@ class MCPServer:
     async def serve_sse(self, port: int):
         """Serve the MCP server over SSE transport."""
         logger.info(f"Starting MCP server with SSE transport on port {port}")
-        await self.server.run_sse_async(port=port)
+
+        try:
+            # Newer versions of FastMCP expose a keyword argument for the port
+            await self.server.run_sse_async(port=port)
+        except TypeError:
+            # Fall back to the legacy signature that takes no parameters
+            logger.warning(
+                "FastMCP.run_sse_async() does not accept a 'port' parameter in this version. "
+                "Falling back to the default signature (using FastMCP's internal default port)."
+            )
+            await self.server.run_sse_async()
         
 if __name__ == "__main__":
     import asyncio
