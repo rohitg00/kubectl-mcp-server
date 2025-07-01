@@ -212,6 +212,29 @@ docker run -p 8081:8000 -v $HOME/.kube:/root/.kube kubectl-mcp-server
 
 This yields identical functionality but lets you modify the codebase before building.
 
+### Configuration
+
+The MCP server is allowed to access these paths to read your Kubernetes configuration:
+
+```yaml
+run:
+  volumes:
+    - '{{kubectl-mcp-server.kubeconfig}}:/root/.kube'
+config:
+  description: The MCP server is allowed to access this path
+  parameters:
+    type: object
+    properties:
+      kubeconfig:
+        type: string
+        default:
+          $HOME/.kube
+    required:
+      - kubeconfig
+```
+
+This configuration allows users to add their kubeconfig directory to the container, enabling the MCP server to authenticate with their Kubernetes cluster.
+
 ## Usage with AI Assistants
 
 ### Using the MCP Server
