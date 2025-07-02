@@ -29,10 +29,6 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Extract Git metadata
-        id: git
-        uses: rlespinasse/git-commit-data-action@v1
-
       - name: Build and push multi-arch image
         uses: docker/build-push-action@v5
         with:
@@ -41,4 +37,4 @@ jobs:
           platforms: linux/amd64,linux/arm64
           tags: |
             rohitghumare64/kubectl-mcp-server:latest
-            rohitghumare64/kubectl-mcp-server:${{ steps.git.outputs.short_sha }} 
+            rohitghumare64/kubectl-mcp-server:${{ github.sha }} 
