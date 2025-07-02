@@ -1,0 +1,16 @@
+# Kubectl MCP Server configuration file
+# Append additional settings as needed; this stub provides the kubeconfig volume mount
+
+run:
+  volumes:
+    - '{{kubectl-mcp-server.kubeconfig}}:/root/.kube'
+config:
+  description: The MCP server is allowed to access this path
+  parameters:
+    type: object
+    properties:
+      kubeconfig:
+        type: string
+        default: $HOME/.kube
+    required:
+      - kubeconfig 

@@ -1,4 +1,5 @@
-FROM python:3.11-slim
+FROM --platform=$TARGETPLATFORM python:3.11-slim
+ARG TARGETARCH
 
 # Install system dependencies and tools (curl, gz, gnupg, ca-certificates) and build essentials for some Python packages
 RUN apt-get update && \
@@ -13,7 +14,8 @@ RUN apt-get update && \
 # -----------------------------------------------------------------------------
 # Install kubectl (latest stable) and helm (v3)
 # -----------------------------------------------------------------------------
-RUN curl -sSL https://dl.k8s.io/release/$(curl -sSL https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl -o /usr/local/bin/kubectl && \
+RUN curl -sSL https://dl.k8s.io/release/$(curl -sSL https://dl.k8s.io/release/stable.txt)/bin/linux/${TARGETARCH}/kubectl \
+    -o /usr/local/bin/kubectl && \
     chmod +x /usr/local/bin/kubectl && \
     kubectl version --client --output=yaml
 

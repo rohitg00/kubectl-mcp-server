@@ -196,21 +196,25 @@ docker run -p 8081:8000 \
 * `-p 8081:8000` maps host port 8081 → container port 8000.
 * `-v $HOME/.kube:/root/.kube` mounts your kubeconfig so the server can reach the cluster.
 
-### Building the image locally
+### Building a multi-architecture image (AMD64 & ARM64)
 
-To build the image from source instead of pulling from Docker Hub:
+If you want to build and push a multi-arch image (so it runs on both x86_64 and Apple Silicon), use Docker Buildx:
 
 ```bash
-git clone https://github.com/rohitg00/kubectl-mcp-server.git
-cd kubectl-mcp-server
+# Ensure Buildx and QEMU are installed once per machine
+# docker buildx create --name multiarch --use
+# docker buildx inspect --bootstrap
 
-docker build -t kubectl-mcp-server .
+# Build and push for linux/amd64 and linux/arm64
+# (replace <your_username> if you're publishing to your own registry)
 
-# Run the locally-built image (same run flags as above)
-docker run -p 8081:8000 -v $HOME/.kube:/root/.kube kubectl-mcp-server
+docker buildx build \
+  --platform linux/amd64,linux/arm64 \
+  -t rohitghumare64/kubectl-mcp-server:latest \
+  --push .
 ```
 
-This yields identical functionality but lets you modify the codebase before building.
+The published image will contain a manifest list with both architectures, and Docker will automatically pull the correct variant on each machine.
 
 ### Configuration
 
