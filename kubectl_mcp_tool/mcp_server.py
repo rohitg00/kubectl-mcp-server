@@ -148,9 +148,12 @@ class MCPServer:
                                 )
                                 else "NotReady"
                             ),
-                            "addresses": [addr.address for addr in node.status.addresses]
-                        } for node in nodes.items
-                    ]
+                            "addresses": [
+                                addr.address for addr in node.status.addresses
+                            ],
+                        }
+                        for node in nodes.items
+                    ],
                 }
             except Exception as e:
                 logger.error(f"Error getting nodes: {e}")
