@@ -140,10 +140,20 @@ class MCPServer:
                     "nodes": [
                         {
                             "name": node.metadata.name,
-                            "status": node.status.conditions[-1].type if node.status.conditions else None,
-                            "addresses": [addr.address for addr in node.status.addresses]
-                        } for node in nodes.items
-                    ]
+                            "status": (
+                                "Ready"
+                                if any(
+                                    cond.type == "Ready" and cond.status == "True"
+                                    for cond in node.status.conditions
+                                )
+                                else "NotReady"
+                            ),
+                            "addresses": [
+                                addr.address for addr in node.status.addresses
+                            ],
+                        }
+                        for node in nodes.items
+                    ],
                 }
             except Exception as e:
                 logger.error(f"Error getting nodes: {e}")
