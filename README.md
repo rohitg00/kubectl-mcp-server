@@ -286,16 +286,16 @@ The MCP Server (`kubectl_mcp_tool.mcp_server`) is a robust implementation built 
 
 ### Claude Desktop
 
-Add the following to your Claude Desktop configuration at `~/.config/claude/mcp.json` (Windows: `%APPDATA%\Claude\mcp.json`):
+Add the following to your Claude Desktop configuration at `~/Library/Application\ Support/Claude/claude_desktop_config.json` (Windows: `%APPDATA%\Claude\mcp.json`):
 
 ```json
 {
   "mcpServers": {
     "kubernetes": {
       "command": "python",
-      "args": ["-m", "kubectl_mcp_tool.mcp_server"],
+      "args": ["-m", "kubectl_mcp_tool.mcp_server"], 
       "env": {
-        "KUBECONFIG": "/path/to/your/.kube/config"
+        "KUBECONFIG": "$HOME/.kube/config" // or whatever your path is for the config file
       }
     }
   }
