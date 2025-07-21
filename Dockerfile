@@ -42,5 +42,6 @@ EXPOSE 8000
 ENV TRANSPORT=sse \
     PORT=8000
 
-# Run the server (align with FastMCP default port 8000)
-CMD ["python", "run_server.py", "--transport", "sse", "--port", "8000"]
+# Run the server using environment variables
+# Default binds to 127.0.0.1, set LISTEN=true to bind to 0.0.0.0
+CMD ["python", "run_server.py", "--transport", "sse"]

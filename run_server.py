@@ -34,8 +34,21 @@ def main():
     parser.add_argument(
         "--port",
         type=int,
-        default=8080,
-        help="Port to use for SSE transport. Default: 8080.",
+        default=int(os.environ.get("PORT", 8080)),
+        help="Port to use for SSE transport. Default: 8080 (or PORT env var).",
+    )
+    # Handle LISTEN environment variable logic
+    listen_env = os.environ.get("LISTEN", "127.0.0.1")
+    if listen_env.lower() == "true":
+        listen_default = "0.0.0.0"
+    else:
+        listen_default = listen_env
+    
+    parser.add_argument(
+        "--listen",
+        type=str,
+        default=listen_default,
+        help="Host address to bind to for SSE transport. Use 0.0.0.0 to bind to all interfaces. Default: 127.0.0.1 (or set LISTEN=true for 0.0.0.0).",
     )
     args = parser.parse_args()
 
@@ -48,8 +61,8 @@ def main():
             logger.info(f"Starting {server_name} with stdio transport.")
             loop.run_until_complete(mcp_server.serve_stdio())
         elif args.transport == "sse":
-            logger.info(f"Starting {server_name} with SSE transport on port {args.port}.")
-            loop.run_until_complete(mcp_server.serve_sse(port=args.port))
+            logger.info(f"Starting {server_name} with SSE transport on {args.listen}:{args.port}.")
+            loop.run_until_complete(mcp_server.serve_sse(port=args.port, host=args.listen))
     except KeyboardInterrupt:
         logger.info("Server shutdown requested by user.")
     except Exception as e:

@@ -842,20 +842,24 @@ class MCPServer:
         # Continue with normal server startup
         await self.server.run_stdio_async()
     
-    async def serve_sse(self, port: int):
+    async def serve_sse(self, port: int, host: str = "127.0.0.1"):
         """Serve the MCP server over SSE transport."""
-        logger.info(f"Starting MCP server with SSE transport on port {port}")
+        logger.info(f"Starting MCP server with SSE transport on {host}:{port}")
 
         try:
-            # Newer versions of FastMCP expose a keyword argument for the port
-            await self.server.run_sse_async(port=port)
+            # Newer versions of FastMCP expose keyword arguments for port and host
+            await self.server.run_sse_async(port=port, host=host)
         except TypeError:
-            # Fall back to the legacy signature that takes no parameters
-            logger.warning(
-                "FastMCP.run_sse_async() does not accept a 'port' parameter in this version. "
-                "Falling back to the default signature (using FastMCP's internal default port)."
-            )
-            await self.server.run_sse_async()
+            try:
+                # Try with just port parameter
+                await self.server.run_sse_async(port=port)
+            except TypeError:
+                # Fall back to the legacy signature that takes no parameters
+                logger.warning(
+                    "FastMCP.run_sse_async() does not accept 'port' or 'host' parameters in this version. "
+                    "Falling back to the default signature (using FastMCP's internal defaults)."
+                )
+                await self.server.run_sse_async()
         
 if __name__ == "__main__":
     import asyncio
@@ -878,6 +882,20 @@ if __name__ == "__main__":
         default=8080,
         help="Port to use for SSE transport. Default: 8080.",
     )
+    # Handle LISTEN environment variable logic
+    import os
+    listen_env = os.environ.get("LISTEN", "127.0.0.1")
+    if listen_env.lower() == "true":
+        listen_default = "0.0.0.0"
+    else:
+        listen_default = listen_env
+    
+    parser.add_argument(
+        "--listen",
+        type=str,
+        default=listen_default,
+        help="Host address to bind to for SSE transport. Use 0.0.0.0 to bind to all interfaces. Default: 127.0.0.1 (or set LISTEN=true for 0.0.0.0).",
+    )
     args = parser.parse_args()
 
     server_name = "kubectl_mcp_server"
@@ -892,8 +910,8 @@ if __name__ == "__main__":
             logger.info(f"Starting {server_name} with stdio transport.")
             loop.run_until_complete(mcp_server.serve_stdio())
         elif args.transport == "sse":
-            logger.info(f"Starting {server_name} with SSE transport on port {args.port}.")
-            loop.run_until_complete(mcp_server.serve_sse(port=args.port))
+            logger.info(f"Starting {server_name} with SSE transport on {args.listen}:{args.port}.")
+            loop.run_until_complete(mcp_server.serve_sse(port=args.port, host=args.listen))
     except KeyboardInterrupt:
         logger.info("Server shutdown requested by user.")
     except Exception as e:

@@ -182,12 +182,16 @@ docker pull rohitghumare64/kubectl-mcp-server:latest
 
 ### Running the image
 
-The server inside the container listens on port **8000**. Bind any free host port to 8000 and mount your kubeconfig:
+The server inside the container listens on port **8000** and binds to **127.0.0.1** by default. For external access, you need to set `LISTEN=true` to bind to all interfaces (0.0.0.0):
 
 ```bash
-# Replace 8081 with any free port on your host
-# Mount your local ~/.kube directory for cluster credentials
+# For external access (bind to 0.0.0.0)
+docker run -p 8081:8000 \
+           -e LISTEN=true \
+           -v $HOME/.kube:/root/.kube \
+           rohitghumare64/kubectl-mcp-server:latest
 
+# For localhost only (default behavior)
 docker run -p 8081:8000 \
            -v $HOME/.kube:/root/.kube \
            rohitghumare64/kubectl-mcp-server:latest
@@ -195,6 +199,39 @@ docker run -p 8081:8000 \
 
 * `-p 8081:8000` maps host port 8081 → container port 8000.
 * `-v $HOME/.kube:/root/.kube` mounts your kubeconfig so the server can reach the cluster.
+* `-e LISTEN=true` binds to 0.0.0.0 for external access.
+
+### Environment Variables
+
+You can customize the server behavior using environment variables:
+
+```bash
+# Bind to all interfaces (0.0.0.0) for external access
+docker run -p 8000:8000 \
+           -e LISTEN=true \
+           -v $HOME/.kube:/root/.kube \
+           rohitghumare64/kubectl-mcp-server:latest
+
+# Custom port with external access
+docker run -p 9000:9000 \
+           -e PORT=9000 \
+           -e LISTEN=true \
+           -v $HOME/.kube:/root/.kube \
+           rohitghumare64/kubectl-mcp-server:latest
+
+# Use different transport (stdio for direct integration)
+docker run -e TRANSPORT=stdio \
+           -v $HOME/.kube:/root/.kube \
+           rohitghumare64/kubectl-mcp-server:latest
+```
+
+Available environment variables:
+- `TRANSPORT`: `sse` (default) or `stdio`
+- `PORT`: Port number (default: 8000)
+- `LISTEN`:
+  - Default: `127.0.0.1` (localhost only)
+  - `true`: Bind to 0.0.0.0 (all interfaces)
+  - Any IP address: Bind to specific address
 
 ### Building a multi-architecture image (AMD64 & ARM64)
 

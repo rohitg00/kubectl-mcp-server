@@ -32,11 +32,11 @@ async def serve_stdio():
     server = MCPServer("kubectl-mcp-tool")
     await server.serve_stdio()
 
-async def serve_sse(port: int):
+async def serve_sse(port: int, host: str = "127.0.0.1"):
     """Serve the MCP server over SSE transport."""
-    logger.info(f"Starting standard MCP server with SSE transport on port {port}")
+    logger.info(f"Starting standard MCP server with SSE transport on {host}:{port}")
     server = MCPServer("kubectl-mcp-tool")
-    await server.serve_sse(port)
+    await server.serve_sse(port, host)
 
 def main():
     """Main entry point for the CLI."""
@@ -49,6 +49,15 @@ def main():
                           help="Transport to use (stdio or sse)")
     serve_parser.add_argument("--port", type=int, default=8080,
                           help="Port to use for SSE transport")
+    # Handle LISTEN environment variable logic
+    listen_env = os.environ.get("LISTEN", "127.0.0.1")
+    if listen_env.lower() == "true":
+        listen_default = "0.0.0.0"
+    else:
+        listen_default = listen_env
+    
+    serve_parser.add_argument("--listen", type=str, default=listen_default,
+                          help="Host address to bind to for SSE transport. Use 0.0.0.0 to bind to all interfaces (or set LISTEN=true)")
     serve_parser.add_argument("--cursor", action="store_true",
                           help="Enable Cursor compatibility mode")
     serve_parser.add_argument("--debug", action="store_true",
@@ -88,7 +97,7 @@ def main():
                     if args.transport == "stdio":
                         asyncio.run(serve_stdio())
                     else:
-                        asyncio.run(serve_sse(args.port))
+                        asyncio.run(serve_sse(args.port, args.listen))
                 except Exception as e:
                     logger.error(f"Error starting standard MCP server: {e}")
                     if args.debug:
