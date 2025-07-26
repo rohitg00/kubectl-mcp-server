@@ -11,6 +11,9 @@ import os
 from typing import Dict, Any, List, Optional, Callable, Awaitable
 
 import warnings
+
+from kubectl_mcp_tool.utils.logging_util import set_logger_with_envs
+
 warnings.filterwarnings(
     "ignore",
     category=RuntimeWarning,
@@ -36,8 +39,8 @@ except ImportError:
 from .natural_language import process_query
 
 # Configure logging
-logging.basicConfig(level=logging.DEBUG, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 logger = logging.getLogger("mcp-server")
+set_logger_with_envs(logger)
 
 class MCPServer:
     """MCP server implementation."""
