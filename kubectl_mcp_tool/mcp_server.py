@@ -785,6 +785,29 @@ class MCPServer:
             except Exception as e:
                 logger.error(f"Error scaling deployment: {e}")
                 return {"success": False, "error": str(e)}
+
+        @self.server.tool()
+        def list_aws_machinepools(namespace: str = "default", label_selector: Optional[str] = None) -> Dict[str, Any]:
+            """List all AWSMachinePool resources with API version infrastructure.cluster.x-k8s.io/v1beta1."""
+            try:
+                from .core.kubernetes_ops import KubernetesOperations
+                k8s_ops = KubernetesOperations()
+                result = k8s_ops.list_aws_machinepools(namespace=namespace, label_selector=label_selector)
+                
+                if result["status"] == "success":
+                    return {
+                        "success": True,
+                        "aws_machinepools": result["items"],
+                        "count": result["count"]
+                    }
+                else:
+                    return {
+                        "success": False,
+                        "error": result["error"]
+                    }
+            except Exception as e:
+                logger.error(f"Error listing AWSMachinePools: {e}")
+                return {"success": False, "error": str(e)}
     
     def _check_dependencies(self) -> bool:
         """Check for required command-line tools."""

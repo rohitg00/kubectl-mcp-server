@@ -514,6 +514,90 @@ class KubernetesOperations:
                 "error": f"Failed to list namespaces: {e.reason}"
             }
             
+    def list_aws_machinepools(self, namespace: str = "default", label_selector: Optional[str] = None) -> Dict[str, Any]:
+        """List all AWSMachinePool resources with API version infrastructure.cluster.x-k8s.io/v1beta1."""
+        try:
+            # Build kubectl command to list AWSMachinePool resources
+            cmd = ["kubectl", "get", "awsmachinepools.infrastructure.cluster.x-k8s.io", 
+                   "-o", "json", "-n", namespace]
+            
+            if label_selector:
+                cmd.extend(["-l", label_selector])
+            
+            # Execute the command
+            result = self.run_command(cmd)
+            
+            # Check if the command returned an error
+            if result.startswith("Error:"):
+                return {
+                    "status": "error",
+                    "error": result
+                }
+            
+            # Parse the JSON output
+            try:
+                data = json.loads(result)
+            except json.JSONDecodeError as e:
+                return {
+                    "status": "error",
+                    "error": f"Failed to parse kubectl output: {str(e)}"
+                }
+            
+            # Extract and format the AWSMachinePool information
+            result_items = []
+            for item in data.get("items", []):
+                metadata = item.get("metadata", {})
+                spec = item.get("spec", {})
+                status = item.get("status", {})
+                
+                # Extract key information from the AWSMachinePool
+                machinepool_info = {
+                    "name": metadata.get("name", ""),
+                    "namespace": metadata.get("namespace", ""),
+                    "uid": metadata.get("uid", ""),
+                    "creation_timestamp": metadata.get("creationTimestamp", ""),
+                    "labels": metadata.get("labels", {}),
+                    "annotations": metadata.get("annotations", {}),
+                    "api_version": item.get("apiVersion", ""),
+                    "kind": item.get("kind", ""),
+                    "spec": {
+                        "cluster_name": spec.get("clusterName", ""),
+                        "min_size": spec.get("minSize", 0),
+                        "max_size": spec.get("maxSize", 0),
+                        "desired_size": spec.get("desiredSize", 0),
+                        "instance_type": spec.get("instanceType", ""),
+                        "ami_version": spec.get("amiVersion", ""),
+                        "subnet_ids": spec.get("subnetIDs", []),
+                        "additional_security_groups": spec.get("additionalSecurityGroups", []),
+                        "role_name": spec.get("roleName", ""),
+                        "user_data": spec.get("userData", ""),
+                        "tags": spec.get("additionalTags", {})
+                    },
+                    "status": {
+                        "ready": status.get("ready", False),
+                        "replicas": status.get("replicas", 0),
+                        "ready_replicas": status.get("readyReplicas", 0),
+                        "unavailable_replicas": status.get("unavailableReplicas", 0),
+                        "conditions": status.get("conditions", []),
+                        "infrastructure_machine_kind": status.get("infrastructureMachineKind", ""),
+                        "launch_template_id": status.get("launchTemplateID", ""),
+                        "launch_template_version": status.get("launchTemplateVersion", "")
+                    }
+                }
+                result_items.append(machinepool_info)
+            
+            return {
+                "status": "success",
+                "items": result_items,
+                "count": len(result_items)
+            }
+            
+        except Exception as e:
+            return {
+                "status": "error",
+                "error": f"Failed to list AWSMachinePools: {str(e)}"
+            }
+            
     # Helm Chart Support
     def install_helm_chart(self, name: str, chart: str, namespace: str, 
                           repo: Optional[str] = None, values: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
@@ -971,4 +1055,4 @@ class KubernetesOperations:
                 "Validate image tag format"
             ]
         }
-        return suggestions.get(error_type, ["Check pod logs and events for more details"]) 
+        return suggestions.get(error_type, ["Check pod logs and events for more details"])

@@ -9,6 +9,7 @@ RUN apt-get update && \
         curl \
         gnupg \
         ca-certificates \
+        unzip \
     && rm -rf /var/lib/apt/lists/*
 
 # -----------------------------------------------------------------------------
@@ -22,6 +23,19 @@ RUN curl -sSL https://dl.k8s.io/release/$(curl -sSL https://dl.k8s.io/release/st
 # Install Helm
 RUN curl -fsSL https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 | bash
 
+# Install kubelogin (OIDC plugin for kubectl)
+RUN KUBELOGIN_VERSION=1.25.3 && \
+    curl -LO "https://github.com/int128/kubelogin/releases/download/v${KUBELOGIN_VERSION}/kubelogin_linux_${TARGETARCH}.zip" && \
+    unzip kubelogin_linux_${TARGETARCH}.zip && \
+    mv kubelogin /usr/local/bin/kubelogin && \
+    chmod +x /usr/local/bin/kubelogin && \
+    rm kubelogin_linux_${TARGETARCH}.zip
+
+# Install AWS CLI (using apt to get the correct architecture)
+RUN apt-get update && apt-get install -y \
+    awscli \
+    && rm -rf /var/lib/apt/lists/*
+    
 # -----------------------------------------------------------------------------
 # Set up application
 # -----------------------------------------------------------------------------
