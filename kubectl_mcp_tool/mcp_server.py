@@ -1246,6 +1246,251 @@ class MCPServer:
                 logger.error(f"Error applying template: {e}")
                 return {"success": False, "error": str(e)}
 
+        @self.server.tool()
+        def kubectl_cp(source: str, destination: str, namespace: str = "default", container: Optional[str] = None) -> Dict[str, Any]:
+            """Copy files between local filesystem and pods.
+            
+            Use pod:path format for pod paths, e.g.:
+            - Local to pod: kubectl_cp("/tmp/file.txt", "mypod:/tmp/file.txt")
+            - Pod to local: kubectl_cp("mypod:/tmp/file.txt", "/tmp/file.txt")
+            """
+            try:
+                import subprocess
+                cmd = ["kubectl", "cp", source, destination, "-n", namespace]
+                if container:
+                    cmd.extend(["-c", container])
+                result = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
+                if result.returncode == 0:
+                    return {"success": True, "message": f"Copied {source} to {destination}"}
+                else:
+                    return {"success": False, "error": result.stderr.strip()}
+            except Exception as e:
+                logger.error(f"Error copying files: {e}")
+                return {"success": False, "error": str(e)}
+
+        @self.server.tool()
+        def list_kubeconfig_contexts() -> Dict[str, Any]:
+            """List all contexts from KUBECONFIG (supports multiple files)."""
+            try:
+                import subprocess
+                import os
+                kubeconfig = os.environ.get("KUBECONFIG", os.path.expanduser("~/.kube/config"))
+                result = subprocess.run(
+                    ["kubectl", "config", "get-contexts", "-o", "name"],
+                    capture_output=True, text=True, timeout=10,
+                    env={**os.environ, "KUBECONFIG": kubeconfig}
+                )
+                if result.returncode == 0:
+                    contexts = [c for c in result.stdout.strip().split("\n") if c]
+                    return {"success": True, "contexts": contexts, "kubeconfig": kubeconfig}
+                else:
+                    return {"success": False, "error": result.stderr.strip()}
+            except Exception as e:
+                logger.error(f"Error listing contexts: {e}")
+                return {"success": False, "error": str(e)}
+
+        @self.server.tool()
+        def analyze_pod_security(namespace: Optional[str] = None) -> Dict[str, Any]:
+            """Analyze pod security configurations and identify risks."""
+            try:
+                from kubernetes import client, config
+                config.load_kube_config()
+                v1 = client.CoreV1Api()
+                
+                if namespace:
+                    pods = v1.list_namespaced_pod(namespace)
+                else:
+                    pods = v1.list_pod_for_all_namespaces()
+                
+                issues = []
+                for pod in pods.items:
+                    pod_name = pod.metadata.name
+                    pod_ns = pod.metadata.namespace
+                    
+                    for container in pod.spec.containers:
+                        sc = container.security_context or pod.spec.security_context
+                        if sc:
+                            if getattr(sc, 'privileged', False):
+                                issues.append({"pod": pod_name, "namespace": pod_ns, "container": container.name, "issue": "privileged", "severity": "critical"})
+                            if getattr(sc, 'run_as_root', True) and not getattr(sc, 'run_as_non_root', False):
+                                issues.append({"pod": pod_name, "namespace": pod_ns, "container": container.name, "issue": "may_run_as_root", "severity": "warning"})
+                            if getattr(sc, 'allow_privilege_escalation', True):
+                                issues.append({"pod": pod_name, "namespace": pod_ns, "container": container.name, "issue": "privilege_escalation_allowed", "severity": "warning"})
+                        
+                        if not container.resources or not container.resources.limits:
+                            issues.append({"pod": pod_name, "namespace": pod_ns, "container": container.name, "issue": "no_resource_limits", "severity": "warning"})
+                
+                critical = len([i for i in issues if i["severity"] == "critical"])
+                warnings = len([i for i in issues if i["severity"] == "warning"])
+                
+                return {
+                    "success": True,
+                    "summary": {"critical": critical, "warnings": warnings, "total_pods": len(pods.items)},
+                    "issues": issues[:50]
+                }
+            except Exception as e:
+                logger.error(f"Error analyzing pod security: {e}")
+                return {"success": False, "error": str(e)}
+
+        @self.server.tool()
+        def analyze_network_policies(namespace: Optional[str] = None) -> Dict[str, Any]:
+            """Analyze network policies and identify pods without policies."""
+            try:
+                from kubernetes import client, config
+                config.load_kube_config()
+                v1 = client.CoreV1Api()
+                networking = client.NetworkingV1Api()
+                
+                if namespace:
+                    pods = v1.list_namespaced_pod(namespace)
+                    policies = networking.list_namespaced_network_policy(namespace)
+                else:
+                    pods = v1.list_pod_for_all_namespaces()
+                    policies = networking.list_network_policy_for_all_namespaces()
+                
+                policy_map = {}
+                for policy in policies.items:
+                    ns = policy.metadata.namespace
+                    if ns not in policy_map:
+                        policy_map[ns] = []
+                    policy_map[ns].append({
+                        "name": policy.metadata.name,
+                        "pod_selector": policy.spec.pod_selector.match_labels if policy.spec.pod_selector else {},
+                        "ingress_rules": len(policy.spec.ingress or []),
+                        "egress_rules": len(policy.spec.egress or [])
+                    })
+                
+                unprotected_pods = []
+                for pod in pods.items:
+                    ns = pod.metadata.namespace
+                    if ns not in policy_map:
+                        unprotected_pods.append({"name": pod.metadata.name, "namespace": ns, "reason": "no_policies_in_namespace"})
+                
+                return {
+                    "success": True,
+                    "summary": {
+                        "total_policies": len(policies.items),
+                        "namespaces_with_policies": len(policy_map),
+                        "unprotected_pods": len(unprotected_pods)
+                    },
+                    "policies": policy_map,
+                    "unprotected_pods": unprotected_pods[:20]
+                }
+            except Exception as e:
+                logger.error(f"Error analyzing network policies: {e}")
+                return {"success": False, "error": str(e)}
+
+        @self.server.tool()
+        def audit_rbac_permissions(namespace: Optional[str] = None, subject: Optional[str] = None) -> Dict[str, Any]:
+            """Audit RBAC permissions for service accounts and users."""
+            try:
+                from kubernetes import client, config
+                config.load_kube_config()
+                rbac = client.RbacAuthorizationV1Api()
+                
+                if namespace:
+                    role_bindings = rbac.list_namespaced_role_binding(namespace)
+                else:
+                    role_bindings = rbac.list_role_binding_for_all_namespaces()
+                
+                cluster_role_bindings = rbac.list_cluster_role_binding()
+                
+                bindings = []
+                high_privilege = []
+                
+                for rb in role_bindings.items:
+                    for subj in (rb.subjects or []):
+                        if subject and subject not in subj.name:
+                            continue
+                        binding = {
+                            "type": "RoleBinding",
+                            "name": rb.metadata.name,
+                            "namespace": rb.metadata.namespace,
+                            "role": rb.role_ref.name,
+                            "subject_kind": subj.kind,
+                            "subject_name": subj.name
+                        }
+                        bindings.append(binding)
+                
+                for crb in cluster_role_bindings.items:
+                    role_name = crb.role_ref.name
+                    for subj in (crb.subjects or []):
+                        if subject and subject not in subj.name:
+                            continue
+                        binding = {
+                            "type": "ClusterRoleBinding",
+                            "name": crb.metadata.name,
+                            "role": role_name,
+                            "subject_kind": subj.kind,
+                            "subject_name": subj.name
+                        }
+                        bindings.append(binding)
+                        if role_name in ["cluster-admin", "admin", "edit"]:
+                            high_privilege.append(binding)
+                
+                return {
+                    "success": True,
+                    "summary": {
+                        "total_bindings": len(bindings),
+                        "high_privilege_bindings": len(high_privilege)
+                    },
+                    "high_privilege": high_privilege,
+                    "all_bindings": bindings[:50]
+                }
+            except Exception as e:
+                logger.error(f"Error auditing RBAC: {e}")
+                return {"success": False, "error": str(e)}
+
+        @self.server.tool()
+        def check_secrets_security(namespace: Optional[str] = None) -> Dict[str, Any]:
+            """Check secrets for security best practices."""
+            try:
+                from kubernetes import client, config
+                config.load_kube_config()
+                v1 = client.CoreV1Api()
+                
+                if namespace:
+                    secrets = v1.list_namespaced_secret(namespace)
+                else:
+                    secrets = v1.list_secret_for_all_namespaces()
+                
+                findings = []
+                for secret in secrets.items:
+                    name = secret.metadata.name
+                    ns = secret.metadata.namespace
+                    secret_type = secret.type
+                    
+                    if secret_type == "Opaque" and secret.data:
+                        for key in secret.data.keys():
+                            if any(x in key.lower() for x in ["password", "token", "key", "secret"]):
+                                findings.append({
+                                    "secret": name,
+                                    "namespace": ns,
+                                    "finding": f"Sensitive key '{key}' in Opaque secret",
+                                    "severity": "info"
+                                })
+                    
+                    if not secret.metadata.annotations or "sealed-secrets" not in str(secret.metadata.annotations):
+                        if secret_type not in ["kubernetes.io/service-account-token", "kubernetes.io/dockerconfigjson"]:
+                            findings.append({
+                                "secret": name,
+                                "namespace": ns,
+                                "finding": "Secret not encrypted at rest (consider SealedSecrets or external secrets)",
+                                "severity": "warning"
+                            })
+                
+                return {
+                    "success": True,
+                    "summary": {
+                        "total_secrets": len(secrets.items),
+                        "findings": len(findings)
+                    },
+                    "findings": findings[:30]
+                }
+            except Exception as e:
+                logger.error(f"Error checking secrets: {e}")
+                return {"success": False, "error": str(e)}
+
     def _check_destructive(self) -> Optional[Dict[str, Any]]:
         """Check if destructive operations are allowed."""
         if self.non_destructive:

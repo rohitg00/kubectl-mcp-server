@@ -345,10 +345,10 @@ The MCP server provides 40+ tools for Kubernetes management:
 | **Pods** | `get_pods`, `get_logs`, `get_pod_events`, `check_pod_health`, `exec_in_pod`, `cleanup_pods` |
 | **Deployments** | `get_deployments`, `create_deployment`, `scale_deployment`, `kubectl_rollout` |
 | **Resources** | `get_services`, `get_nodes`, `get_namespaces`, `get_configmaps`, `get_secrets`, `get_events` |
-| **CRUD** | `kubectl_apply`, `kubectl_create`, `kubectl_describe`, `kubectl_patch`, `delete_resource` |
+| **CRUD** | `kubectl_apply`, `kubectl_create`, `kubectl_describe`, `kubectl_patch`, `delete_resource`, `kubectl_cp` |
 | **Helm** | `install_helm_chart`, `upgrade_helm_chart`, `uninstall_helm_chart`, `helm_template`, `helm_template_apply` |
-| **Cluster** | `get_current_context`, `switch_context`, `list_contexts`, `get_cluster_info`, `health_check` |
-| **Security** | `get_rbac_roles`, `get_cluster_roles`, `secrets_masking` |
+| **Cluster** | `get_current_context`, `switch_context`, `list_contexts`, `list_kubeconfig_contexts`, `get_cluster_info`, `health_check` |
+| **Security** | `analyze_pod_security`, `analyze_network_policies`, `audit_rbac_permissions`, `check_secrets_security`, `get_rbac_roles`, `get_cluster_roles` |
 | **Node Ops** | `node_management` (cordon, drain, uncordon) |
 | **Advanced** | `kubectl_generic`, `kubectl_explain`, `get_api_resources`, `port_forward`, `get_resource_usage` |
 

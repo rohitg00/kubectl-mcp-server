@@ -122,6 +122,18 @@ tools:
     description: Render Helm chart templates locally
   - name: helm_template_apply
     description: Render and apply Helm chart
+  - name: kubectl_cp
+    description: Copy files between local filesystem and pods
+  - name: list_kubeconfig_contexts
+    description: List all contexts from KUBECONFIG
+  - name: analyze_pod_security
+    description: Analyze pod security configurations and identify risks
+  - name: analyze_network_policies
+    description: Analyze network policies and identify unprotected pods
+  - name: audit_rbac_permissions
+    description: Audit RBAC permissions for service accounts and users
+  - name: check_secrets_security
+    description: Check secrets for security best practices
 
 # Categories for catalog discovery
 categories:
