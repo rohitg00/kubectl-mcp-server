@@ -1,6 +1,8 @@
 name: Publish to PyPI
 
 on:
+  push:
+    tags: ['v*']
   release:
     types: [published]
 
@@ -9,18 +11,26 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
+    
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
         python-version: '3.9'
+    
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
         pip install build twine
-    - name: Build and publish
+    
+    - name: Extract version from tag
+      if: startsWith(github.ref, 'refs/tags/v')
+      run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_ENV
+    
+    - name: Build package
+      run: python -m build
+    
+    - name: Publish to PyPI
       env:
         TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
         TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
-      run: |
-        python -m build
-        twine upload dist/*
+      run: twine upload dist/*
