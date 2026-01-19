@@ -1,7 +1,7 @@
 FROM --platform=$TARGETPLATFORM python:3.11-slim
 ARG TARGETARCH
 
-# Install system dependencies and tools (curl, gz, gnupg, ca-certificates) and build essentials for some Python packages
+# Install system dependencies and tools
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
         build-essential \
@@ -35,18 +35,29 @@ RUN pip install --no-cache-dir --upgrade pip && \
 # Copy the rest of the codebase
 COPY . .
 
-# Expose server port
+# Install the package
+RUN pip install --no-cache-dir -e .
+
+# Expose server port (for SSE/HTTP modes)
 EXPOSE 8000
 
 # Environment variables (can be overridden)
-# TRANSPORT: Transport mode - "sse", "http", "streamable-http", or "stdio"
-# HOST: Bind address - use "0.0.0.0" for Docker to allow external connections
-# PORT: Port number for SSE/HTTP transports
-ENV TRANSPORT=sse \
+# TRANSPORT: "stdio" (default for Docker MCP Toolkit), "sse", "http", "streamable-http"
+# HOST: Bind address for network transports
+# PORT: Port for network transports
+ENV TRANSPORT=stdio \
     HOST=0.0.0.0 \
-    PORT=8000
+    PORT=8000 \
+    PYTHONUNBUFFERED=1
 
-# Run the server
-# Note: --host 0.0.0.0 is REQUIRED for Docker to accept external connections.
-# The container binds to all interfaces so that port mapping (-p) works correctly.
-CMD ["python", "run_server.py", "--transport", "sse", "--host", "0.0.0.0", "--port", "8000"]
+# Health check for network modes
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD if [ "$TRANSPORT" != "stdio" ]; then curl -f http://localhost:${PORT}/health || exit 1; else exit 0; fi
+
+# Default entrypoint for Docker MCP Toolkit compatibility (stdio transport)
+# For SSE/HTTP modes, override with: --transport sse --host 0.0.0.0 --port 8000
+ENTRYPOINT ["python", "-m", "kubectl_mcp_tool.mcp_server"]
+
+# Default to stdio for Docker MCP Toolkit compatibility
+# Override with: docker run ... <image> --transport sse --port 8000
+CMD ["--transport", "stdio"]

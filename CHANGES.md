@@ -28,12 +28,20 @@
    - Added Claude Code configuration examples to README
 
 ### Bug Fixes
-1. **Fixed Docker Container Binding (Issue #26)**
+1. **Fixed Docker MCP Toolkit Compatibility (Issue #35)**
+   - Fixed "failed to connect: context canceled" error with Docker MCP Toolkit
+   - Changed default transport to `stdio` for Docker container
+   - Fixed logging to use stderr instead of stdout (prevents MCP protocol pollution)
+   - Added ENTRYPOINT/CMD split for flexible transport mode selection
+   - Added proper health check for network transports
+   - Updated `server.yaml` with full Docker MCP Toolkit configuration
+
+2. **Fixed Docker Container Binding (Issue #26)**
    - Container now properly binds to `0.0.0.0` to accept external connections
    - Added `--host` parameter to control bind address
    - Updated Dockerfile with proper host configuration
 
-2. **Fixed Port Configuration Inconsistency (Issue #20)**
+3. **Fixed Port Configuration Inconsistency (Issue #20)**
    - Standardized default port to `8000` across all components
    - Dockerfile, run_server.py, and mcp_server.py now use consistent defaults
 

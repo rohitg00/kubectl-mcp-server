@@ -182,21 +182,56 @@ If you prefer using Docker, a pre-built image is available on Docker Hub:
 docker pull rohitghumare64/kubectl-mcp-server:latest
 ```
 
-### Running the image
+### Docker MCP Toolkit Integration
 
-The server inside the container listens on port **8000**. Bind any free host port to 8000 and mount your kubeconfig:
+This image is compatible with [Docker MCP Toolkit](https://docs.docker.com/ai/mcp-catalog-and-toolkit/toolkit/). The Toolkit provides a streamlined way to run MCP servers with Claude, Cursor, and other AI assistants.
+
+**Quick Setup with Docker MCP Toolkit:**
+
+1. **Add the server to Docker MCP Toolkit:**
+   ```bash
+   docker mcp server add kubectl-mcp-server rohitghumare64/kubectl-mcp-server:latest
+   ```
+
+2. **Configure kubeconfig access:**
+   ```bash
+   docker mcp server configure kubectl-mcp-server --volume "$HOME/.kube:/root/.kube:ro"
+   ```
+
+3. **Enable the server:**
+   ```bash
+   docker mcp server enable kubectl-mcp-server
+   ```
+
+4. **Connect your AI client** (e.g., Claude Desktop):
+   ```bash
+   docker mcp client connect claude
+   ```
+
+The server uses **stdio transport** by default for Docker MCP Toolkit compatibility.
+
+### Running the image (Standalone)
+
+For SSE/HTTP transport (without Docker MCP Toolkit):
 
 ```bash
-# Replace 8081 with any free port on your host
-# Mount your local ~/.kube directory for cluster credentials
-
+# SSE transport on port 8000
 docker run -p 8081:8000 \
-           -v $HOME/.kube:/root/.kube \
+           -v $HOME/.kube:/root/.kube:ro \
+           rohitghumare64/kubectl-mcp-server:latest \
+           --transport sse --host 0.0.0.0 --port 8000
+```
+
+For stdio transport (for direct MCP client connections):
+
+```bash
+docker run -i \
+           -v $HOME/.kube:/root/.kube:ro \
            rohitghumare64/kubectl-mcp-server:latest
 ```
 
-* `-p 8081:8000` maps host port 8081 → container port 8000.
-* `-v $HOME/.kube:/root/.kube` mounts your kubeconfig so the server can reach the cluster.
+* `-i` enables interactive mode for stdio transport
+* `-v $HOME/.kube:/root/.kube:ro` mounts kubeconfig as read-only
 
 ### Building a multi-architecture image (AMD64 & ARM64)
 

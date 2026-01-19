@@ -1,6 +1,12 @@
 #!/usr/bin/env python3
 """
 MCP server implementation for kubectl-mcp-tool.
+
+Compatible with:
+- Claude Desktop
+- Cursor AI
+- Windsurf
+- Docker MCP Toolkit (https://docs.docker.com/ai/mcp-catalog-and-toolkit/toolkit/)
 """
 
 import json
@@ -17,27 +23,53 @@ warnings.filterwarnings(
     message=r".*found in sys.modules after import of package.*"
 )
 
+# Configure logging BEFORE any other imports
+# CRITICAL: For MCP stdio transport, logs MUST go to stderr, never stdout
+# Docker MCP Toolkit and other clients use stdout for the JSON-RPC protocol
+_log_file = os.environ.get("MCP_LOG_FILE")
+_log_level = logging.DEBUG if os.environ.get("MCP_DEBUG", "").lower() in ("1", "true") else logging.INFO
+
+_handlers: List[logging.Handler] = []
+if _log_file:
+    try:
+        os.makedirs(os.path.dirname(_log_file), exist_ok=True)
+        _handlers.append(logging.FileHandler(_log_file))
+    except (OSError, ValueError):
+        _handlers.append(logging.StreamHandler(sys.stderr))
+else:
+    # ALWAYS use stderr for console logging to avoid polluting MCP protocol
+    _handlers.append(logging.StreamHandler(sys.stderr))
+
+logging.basicConfig(
+    level=_log_level,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    handlers=_handlers
+)
+logger = logging.getLogger("mcp-server")
+
+# Ensure no handlers write to stdout
+for handler in logging.root.handlers[:]:
+    if isinstance(handler, logging.StreamHandler) and handler.stream == sys.stdout:
+        logging.root.removeHandler(handler)
+
 try:
     # Import the official MCP SDK with FastMCP
     from mcp.server.fastmcp import FastMCP
 except ImportError:
-    logging.error("MCP SDK not found. Installing...")
+    logger.error("MCP SDK not found. Installing...")
     import subprocess
     try:
-        subprocess.check_call([
-            sys.executable, "-m", "pip", "install", 
-            "mcp>=1.5.0"
-        ])
+        subprocess.check_call(
+            [sys.executable, "-m", "pip", "install", "mcp>=1.5.0"],
+            stdout=subprocess.DEVNULL,  # Don't pollute stdout
+            stderr=subprocess.DEVNULL
+        )
         from mcp.server.fastmcp import FastMCP
     except Exception as e:
-        logging.error(f"Failed to install MCP SDK: {e}")
+        logger.error(f"Failed to install MCP SDK: {e}")
         raise
 
 from .natural_language import process_query
-
-# Configure logging
-logging.basicConfig(level=logging.DEBUG, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
-logger = logging.getLogger("mcp-server")
 
 class MCPServer:
     """MCP server implementation."""
@@ -939,26 +971,35 @@ class MCPServer:
         return self._check_tool_availability("helm")
     
     async def serve_stdio(self):
-        """Serve the MCP server over stdio transport."""
-        # Add detailed logging for debugging Cursor integration
-        logger.info("Starting MCP server with stdio transport")
-        logger.info(f"Working directory: {os.getcwd()}")
-        logger.info(f"Python executable: {sys.executable}")
-        logger.info(f"Python version: {sys.version}")
+        """
+        Serve the MCP server over stdio transport.
         
-        # Log Kubernetes configuration
-        kube_config = os.environ.get('KUBECONFIG', '~/.kube/config')
-        expanded_path = os.path.expanduser(kube_config)
-        logger.info(f"KUBECONFIG: {kube_config} (expanded: {expanded_path})")
-        if os.path.exists(expanded_path):
-            logger.info(f"Kubernetes config file exists at {expanded_path}")
-        else:
-            logger.warning(f"Kubernetes config file does not exist at {expanded_path}")
+        Compatible with:
+        - Docker MCP Toolkit (https://docs.docker.com/ai/mcp-catalog-and-toolkit/toolkit/)
+        - Claude Desktop
+        - Cursor AI
+        - Windsurf
+        """
+        # Only log debug info if MCP_DEBUG is enabled
+        # This keeps stdout clean for the MCP JSON-RPC protocol
+        if os.environ.get("MCP_DEBUG", "").lower() in ("1", "true"):
+            logger.debug("Starting MCP server with stdio transport")
+            logger.debug(f"Working directory: {os.getcwd()}")
+            logger.debug(f"Python executable: {sys.executable}")
+            
+            # Log Kubernetes configuration
+            kube_config = os.environ.get('KUBECONFIG', '~/.kube/config')
+            expanded_path = os.path.expanduser(kube_config)
+            logger.debug(f"KUBECONFIG: {kube_config} (expanded: {expanded_path})")
+            if os.path.exists(expanded_path):
+                logger.debug(f"Kubernetes config file exists at {expanded_path}")
+            else:
+                logger.warning(f"Kubernetes config file does not exist at {expanded_path}")
+            
+            logger.debug(f"Dependencies: {'All available' if self.dependencies_available else 'Some missing'}")
         
-        # Log dependency check results
-        logger.info(f"Dependencies check result: {'All available' if self.dependencies_available else 'Some missing'}")
-        
-        # Continue with normal server startup
+        # Run the stdio server
+        # IMPORTANT: No output to stdout before this point to avoid breaking MCP protocol
         await self.server.run_stdio_async()
     
     async def serve_sse(self, host: str = "0.0.0.0", port: int = 8000):
