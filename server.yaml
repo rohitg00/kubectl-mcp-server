@@ -76,6 +76,14 @@ tools:
     description: Check cluster health
   - name: get_resource_usage
     description: Get CPU/memory usage statistics
+  - name: get_api_resources
+    description: List available API resources
+  - name: kubectl_explain
+    description: Explain a Kubernetes resource
+  - name: kubectl_describe
+    description: Describe a resource in detail
+  - name: kubectl_generic
+    description: Run any kubectl command
   - name: list_contexts
     description: List all available kubeconfig contexts
   - name: switch_context
@@ -88,18 +96,26 @@ tools:
     description: Upgrade a Helm release
   - name: uninstall_helm_chart
     description: Uninstall a Helm release
+  - name: kubectl_apply
+    description: Apply a YAML manifest to the cluster
+  - name: kubectl_patch
+    description: Patch a resource
   - name: create_deployment
     description: Create a new deployment
   - name: scale_deployment
     description: Scale a deployment
   - name: delete_resource
     description: Delete a Kubernetes resource
+  - name: kubectl_rollout
+    description: Manage rollouts
+  - name: exec_in_pod
+    description: Execute a command inside a pod
   - name: port_forward
     description: Forward a local port to a pod
-  - name: kubectl_explain
-    description: Explain a Kubernetes resource
-  - name: get_api_resources
-    description: List available API resources
+  - name: cleanup_pods
+    description: Clean up pods in problematic states
+  - name: node_management
+    description: Cordon, uncordon, or drain nodes
 
 # Categories for catalog discovery
 categories:
