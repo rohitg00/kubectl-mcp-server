@@ -1,16 +1,122 @@
-# Kubectl MCP Server configuration file
-# Append additional settings as needed; this stub provides the kubeconfig volume mount
+# Kubectl MCP Server configuration for Docker MCP Toolkit
+# https://docs.docker.com/ai/mcp-catalog-and-toolkit/toolkit/
 
+name: kubectl-mcp-server
+description: |
+  A Model Context Protocol (MCP) server for Kubernetes that enables AI assistants 
+  to interact with Kubernetes clusters through natural language commands.
+  
+  Features:
+  - List and manage pods, services, deployments, and nodes
+  - Helm chart operations (install, upgrade, uninstall)
+  - Multi-cluster support with context switching
+  - Resource monitoring and diagnostics
+  - RBAC and security operations
+
+version: "1.2.0"
+author: Rohit Ghumare
+repository: https://github.com/rohitg00/kubectl-mcp-server
+license: MIT
+
+# Docker image configuration
+image: rohitghumare64/kubectl-mcp-server:latest
+
+# Runtime configuration
 run:
+  # Mount kubeconfig for cluster access
   volumes:
-    - '{{kubectl-mcp-server.kubeconfig}}:/root/.kube'
+    - "{{kubectl-mcp-server.kubeconfig}}:/root/.kube:ro"
+  
+  # Environment variables
+  environment:
+    KUBECONFIG: /root/.kube/config
+    # Disable debug logging for cleaner MCP protocol
+    MCP_DEBUG: "0"
+  
+  # Resource limits (Docker MCP Toolkit defaults)
+  resources:
+    limits:
+      cpus: "1"
+      memory: "2g"
+
+# User-configurable parameters
 config:
-  description: The MCP server is allowed to access this path
+  description: Configuration for kubectl-mcp-server
   parameters:
     type: object
     properties:
       kubeconfig:
         type: string
-        default: $HOME/.kube
+        description: Path to your kubeconfig directory
+        default: "$HOME/.kube"
     required:
-      - kubeconfig 
+      - kubeconfig
+
+# Available tools
+tools:
+  - name: get_pods
+    description: Get all pods in a namespace or all namespaces
+  - name: get_namespaces
+    description: List all Kubernetes namespaces
+  - name: get_services
+    description: Get all services in a namespace
+  - name: get_deployments
+    description: Get all deployments in a namespace
+  - name: get_nodes
+    description: Get all cluster nodes
+  - name: get_configmaps
+    description: Get ConfigMaps in a namespace
+  - name: get_secrets
+    description: Get Secrets metadata in a namespace
+  - name: get_logs
+    description: Get logs from a pod
+  - name: get_events
+    description: Get cluster events
+  - name: health_check
+    description: Check cluster health
+  - name: get_resource_usage
+    description: Get CPU/memory usage statistics
+  - name: list_contexts
+    description: List all available kubeconfig contexts
+  - name: switch_context
+    description: Switch to a different cluster context
+  - name: get_context_details
+    description: Get details about a specific context
+  - name: install_helm_chart
+    description: Install a Helm chart
+  - name: upgrade_helm_chart
+    description: Upgrade a Helm release
+  - name: uninstall_helm_chart
+    description: Uninstall a Helm release
+  - name: create_deployment
+    description: Create a new deployment
+  - name: scale_deployment
+    description: Scale a deployment
+  - name: delete_resource
+    description: Delete a Kubernetes resource
+  - name: port_forward
+    description: Forward a local port to a pod
+  - name: kubectl_explain
+    description: Explain a Kubernetes resource
+  - name: get_api_resources
+    description: List available API resources
+
+# Categories for catalog discovery
+categories:
+  - kubernetes
+  - devops
+  - infrastructure
+  - containers
+  - orchestration
+
+# Tags for search
+tags:
+  - kubernetes
+  - kubectl
+  - k8s
+  - helm
+  - devops
+  - cloud-native
+  - containers
+  - orchestration
+  - mcp

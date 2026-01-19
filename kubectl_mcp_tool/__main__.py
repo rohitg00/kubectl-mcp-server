@@ -6,10 +6,19 @@ Main entry point for the kubectl MCP tool.
 import asyncio
 import argparse
 import logging
+import sys
+import platform
+
+if platform.system() == "Windows":
+    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+
 from .mcp_server import MCPServer
 
-# Configure logging
-logging.basicConfig(level=logging.DEBUG, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+logging.basicConfig(
+    level=logging.DEBUG,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    handlers=[logging.StreamHandler(sys.stderr)]
+)
 logger = logging.getLogger("mcp-server-main")
 
 def main():

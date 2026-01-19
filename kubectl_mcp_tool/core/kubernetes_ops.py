@@ -20,14 +20,38 @@ class KubernetesOperations:
     
     def __init__(self):
         """Initialize Kubernetes client."""
-        try:
-            config.load_kube_config()
-            self.core_v1 = client.CoreV1Api()
-            self.apps_v1 = client.AppsV1Api()
-            self.networking_v1 = client.NetworkingV1Api()
-        except Exception as e:
-            logger.error(f"Failed to initialize Kubernetes client: {e}")
-            raise
+        self._core_v1 = None
+        self._apps_v1 = None
+        self._networking_v1 = None
+        self._initialized = False
+    
+    def _ensure_initialized(self):
+        """Initialize K8s clients on first use."""
+        if not self._initialized:
+            try:
+                config.load_kube_config()
+                self._core_v1 = client.CoreV1Api()
+                self._apps_v1 = client.AppsV1Api()
+                self._networking_v1 = client.NetworkingV1Api()
+                self._initialized = True
+            except Exception as e:
+                logger.error(f"Failed to initialize Kubernetes client: {e}")
+                raise
+    
+    @property
+    def core_v1(self):
+        self._ensure_initialized()
+        return self._core_v1
+    
+    @property
+    def apps_v1(self):
+        self._ensure_initialized()
+        return self._apps_v1
+    
+    @property
+    def networking_v1(self):
+        self._ensure_initialized()
+        return self._networking_v1
 
     def run_command(self, cmd: List[str]) -> str:
         """Run a kubectl command and return the output."""
