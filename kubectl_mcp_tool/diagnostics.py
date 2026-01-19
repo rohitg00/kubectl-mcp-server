@@ -233,4 +233,123 @@ class KubernetesDiagnostics:
             "namespace": namespace,
             "container": container,
             "analysis": analysis
-        } 
+        }
+
+
+# Convenience functions for direct import
+_diagnostics = KubernetesDiagnostics()
+
+
+def check_kubectl_installation() -> Dict[str, Any]:
+    """Check if kubectl is installed and accessible."""
+    try:
+        import shutil
+        kubectl_path = shutil.which("kubectl")
+        if not kubectl_path:
+            return {
+                "installed": False,
+                "error": "kubectl not found in PATH"
+            }
+        
+        import subprocess
+        result = subprocess.run(
+            ["kubectl", "version", "--client", "-o", "json"],
+            capture_output=True,
+            text=True,
+            timeout=10
+        )
+        
+        if result.returncode != 0:
+            return {
+                "installed": True,
+                "path": kubectl_path,
+                "error": result.stderr
+            }
+        
+        import json
+        version_info = json.loads(result.stdout)
+        return {
+            "installed": True,
+            "path": kubectl_path,
+            "version": version_info.get("clientVersion", {})
+        }
+    except Exception as e:
+        return {
+            "installed": False,
+            "error": str(e)
+        }
+
+
+def check_cluster_connection() -> Dict[str, Any]:
+    """Check if we can connect to a Kubernetes cluster."""
+    try:
+        import subprocess
+        result = subprocess.run(
+            ["kubectl", "cluster-info"],
+            capture_output=True,
+            text=True,
+            timeout=10
+        )
+        
+        if result.returncode != 0:
+            return {
+                "connected": False,
+                "error": result.stderr
+            }
+        
+        return {
+            "connected": True,
+            "cluster_info": result.stdout.strip()
+        }
+    except Exception as e:
+        return {
+            "connected": False,
+            "error": str(e)
+        }
+
+
+def run_diagnostics() -> Dict[str, Any]:
+    """Run comprehensive diagnostics."""
+    kubectl_check = check_kubectl_installation()
+    cluster_check = check_cluster_connection()
+    
+    diagnostics = {
+        "kubectl": kubectl_check,
+        "cluster": cluster_check,
+        "overall_status": "healthy" if (
+            kubectl_check.get("installed") and 
+            cluster_check.get("connected")
+        ) else "unhealthy"
+    }
+    
+    if diagnostics["overall_status"] == "healthy":
+        # Additional checks
+        try:
+            import subprocess
+            
+            # Check nodes
+            nodes_result = subprocess.run(
+                ["kubectl", "get", "nodes", "-o", "json"],
+                capture_output=True,
+                text=True,
+                timeout=10
+            )
+            if nodes_result.returncode == 0:
+                import json
+                nodes_data = json.loads(nodes_result.stdout)
+                nodes_count = len(nodes_data.get("items", []))
+                ready_nodes = sum(
+                    1 for node in nodes_data.get("items", [])
+                    if any(
+                        c.get("type") == "Ready" and c.get("status") == "True"
+                        for c in node.get("status", {}).get("conditions", [])
+                    )
+                )
+                diagnostics["nodes"] = {
+                    "total": nodes_count,
+                    "ready": ready_nodes
+                }
+        except Exception as e:
+            diagnostics["nodes_error"] = str(e)
+    
+    return diagnostics

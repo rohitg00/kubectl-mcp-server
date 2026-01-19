@@ -35,12 +35,18 @@ RUN pip install --no-cache-dir --upgrade pip && \
 # Copy the rest of the codebase
 COPY . .
 
-# Expose server port (FastMCP's default is 8000 when no port is specified)
+# Expose server port
 EXPOSE 8000
 
 # Environment variables (can be overridden)
+# TRANSPORT: Transport mode - "sse", "http", "streamable-http", or "stdio"
+# HOST: Bind address - use "0.0.0.0" for Docker to allow external connections
+# PORT: Port number for SSE/HTTP transports
 ENV TRANSPORT=sse \
+    HOST=0.0.0.0 \
     PORT=8000
 
-# Run the server (align with FastMCP default port 8000)
-CMD ["python", "run_server.py", "--transport", "sse", "--port", "8000"]
+# Run the server
+# Note: --host 0.0.0.0 is REQUIRED for Docker to accept external connections.
+# The container binds to all interfaces so that port mapping (-p) works correctly.
+CMD ["python", "run_server.py", "--transport", "sse", "--host", "0.0.0.0", "--port", "8000"]

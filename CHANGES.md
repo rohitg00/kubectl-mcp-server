@@ -1,6 +1,61 @@
 # Changes to kubectl-mcp-tool Configuration
 
-## Version 1.1.1 (Latest)
+## Version 1.2.0 (Latest)
+
+### Security Fixes
+1. **Fixed Command Injection Vulnerability (Issue #36)**
+   - Removed `shell=True` from subprocess calls in natural language processing
+   - Added input validation and sanitization for kubectl commands
+   - Implemented whitelist of allowed kubectl subcommands
+   - Added protection against dangerous characters and path traversal
+
+### New Features
+1. **HTTP/Streamable HTTP Transport Support (Issue #39)**
+   - Added `--transport http` and `--transport streamable-http` options
+   - Supports JSON-RPC over HTTP for clients that don't support SSE
+   - Falls back to custom HTTP implementation if FastMCP doesn't support it
+
+2. **Multi-Cluster Support (Issue #19)**
+   - Added `list_contexts` tool to list all available kubeconfig contexts
+   - Added `get_context_details` tool for detailed context information
+   - Added `set_namespace_for_context` tool to set default namespace
+   - Added `get_cluster_info` tool for cluster information
+   - Enhanced `switch_context` for seamless cluster switching
+
+3. **Claude Code Support (Issue #33)**
+   - Added comprehensive Claude Code integration documentation
+   - Created `docs/claude/claude_code_integration.md` guide
+   - Added Claude Code configuration examples to README
+
+### Bug Fixes
+1. **Fixed Docker Container Binding (Issue #26)**
+   - Container now properly binds to `0.0.0.0` to accept external connections
+   - Added `--host` parameter to control bind address
+   - Updated Dockerfile with proper host configuration
+
+2. **Fixed Port Configuration Inconsistency (Issue #20)**
+   - Standardized default port to `8000` across all components
+   - Dockerfile, run_server.py, and mcp_server.py now use consistent defaults
+
+### Documentation
+1. **Monitoring Features Documentation (Issue #17)**
+   - Created comprehensive `docs/monitoring.md` guide
+   - Documented all monitoring tools and their use cases
+   - Added common monitoring workflows
+
+### Command-Line Changes
+```bash
+# New transport modes
+python -m kubectl_mcp_tool.mcp_server --transport http --host 0.0.0.0 --port 8000
+python -m kubectl_mcp_tool.mcp_server --transport streamable-http --port 8000
+
+# Default port changed from 8080 to 8000
+python -m kubectl_mcp_tool.mcp_server --transport sse --port 8000
+```
+
+---
+
+## Version 1.1.1
 
 ### Key Fixes and Improvements
 1. **Fixed JSON RPC Communication Issues**
