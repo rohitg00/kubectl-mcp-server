@@ -53,16 +53,18 @@ for handler in logging.root.handlers[:]:
 
 try:
     from mcp.server.fastmcp import FastMCP
+    from mcp.types import ToolAnnotations
 except ImportError:
     logger.error("MCP SDK not found. Installing...")
     import subprocess
     try:
         subprocess.check_call(
-            [sys.executable, "-m", "pip", "install", "mcp>=1.5.0"],
+            [sys.executable, "-m", "pip", "install", "mcp>=1.8.0"],
             stdout=subprocess.DEVNULL,  # Don't pollute stdout
             stderr=subprocess.DEVNULL
         )
         from mcp.server.fastmcp import FastMCP
+        from mcp.types import ToolAnnotations
     except Exception as e:
         logger.error(f"Failed to install MCP SDK: {e}")
         raise
@@ -94,7 +96,12 @@ class MCPServer:
     
     def setup_tools(self):
         """Set up the tools for the MCP server."""
-        @self.server.tool()
+        @self.server.tool(
+            annotations=ToolAnnotations(
+                title="Get Pods",
+                readOnlyHint=True,
+            ),
+        )
         def get_pods(namespace: Optional[str] = None) -> Dict[str, Any]:
             """Get all pods in the specified namespace."""
             try:
@@ -123,7 +130,12 @@ class MCPServer:
                 logger.error(f"Error getting pods: {e}")
                 return {"success": False, "error": str(e)}
         
-        @self.server.tool()
+        @self.server.tool(
+            annotations=ToolAnnotations(
+                title="Get Namespaces",
+                readOnlyHint=True,
+            ),
+        )
         def get_namespaces() -> Dict[str, Any]:
             """Get all Kubernetes namespaces."""
             try:
@@ -139,7 +151,12 @@ class MCPServer:
                 logger.error(f"Error getting namespaces: {e}")
                 return {"success": False, "error": str(e)}
 
-        @self.server.tool()
+        @self.server.tool(
+            annotations=ToolAnnotations(
+                title="Get Services",
+                readOnlyHint=True,
+            ),
+        )
         def get_services(namespace: Optional[str] = None) -> Dict[str, Any]:
             """Get all services in the specified namespace."""
             try:
@@ -165,7 +182,12 @@ class MCPServer:
                 logger.error(f"Error getting services: {e}")
                 return {"success": False, "error": str(e)}
 
-        @self.server.tool()
+        @self.server.tool(
+            annotations=ToolAnnotations(
+                title="Get Nodes",
+                readOnlyHint=True,
+            ),
+        )
         def get_nodes() -> Dict[str, Any]:
             """Get all nodes in the cluster."""
             try:
@@ -197,7 +219,12 @@ class MCPServer:
                 logger.error(f"Error getting nodes: {e}")
                 return {"success": False, "error": str(e)}
 
-        @self.server.tool()
+        @self.server.tool(
+            annotations=ToolAnnotations(
+                title="Get ConfigMaps",
+                readOnlyHint=True,
+            ),
+        )
         def get_configmaps(namespace: Optional[str] = None) -> Dict[str, Any]:
             """Get all ConfigMaps in the specified namespace."""
             try:
@@ -222,7 +249,12 @@ class MCPServer:
                 logger.error(f"Error getting ConfigMaps: {e}")
                 return {"success": False, "error": str(e)}
 
-        @self.server.tool()
+        @self.server.tool(
+            annotations=ToolAnnotations(
+                title="Get Secrets",
+                readOnlyHint=True,
+            ),
+        )
         def get_secrets(namespace: Optional[str] = None) -> Dict[str, Any]:
             """Get all Secrets in the specified namespace."""
             try:
@@ -247,7 +279,12 @@ class MCPServer:
                 logger.error(f"Error getting Secrets: {e}")
                 return {"success": False, "error": str(e)}
 
-        @self.server.tool()
+        @self.server.tool(
+            annotations=ToolAnnotations(
+                title="Install Helm Chart",
+                destructiveHint=True,
+            ),
+        )
         def install_helm_chart(name: str, chart: str, namespace: str, repo: Optional[str] = None, values: Optional[dict] = None) -> Dict[str, Any]:
             """Install a Helm chart."""
             if self.non_destructive:
@@ -329,7 +366,12 @@ class MCPServer:
                 logger.error(f"Unexpected error installing Helm chart: {str(e)}")
                 return {"success": False, "error": f"Unexpected error: {str(e)}"}
 
-        @self.server.tool()
+        @self.server.tool(
+            annotations=ToolAnnotations(
+                title="Upgrade Helm Chart",
+                destructiveHint=True,
+            ),
+        )
         def upgrade_helm_chart(name: str, chart: str, namespace: str, repo: Optional[str] = None, values: Optional[dict] = None) -> Dict[str, Any]:
             """Upgrade a Helm release."""
             if self.non_destructive:
@@ -398,7 +440,12 @@ class MCPServer:
                 logger.error(f"Unexpected error upgrading Helm chart: {str(e)}")
                 return {"success": False, "error": f"Unexpected error: {str(e)}"}
 
-        @self.server.tool()
+        @self.server.tool(
+            annotations=ToolAnnotations(
+                title="Uninstall Helm Chart",
+                destructiveHint=True,
+            ),
+        )
         def uninstall_helm_chart(name: str, namespace: str) -> Dict[str, Any]:
             """Uninstall a Helm release."""
             if self.non_destructive:
@@ -426,7 +473,12 @@ class MCPServer:
                 logger.error(f"Unexpected error uninstalling Helm chart: {str(e)}")
                 return {"success": False, "error": f"Unexpected error: {str(e)}"}
 
-        @self.server.tool()
+        @self.server.tool(
+            annotations=ToolAnnotations(
+                title="Get RBAC Roles",
+                readOnlyHint=True,
+            ),
+        )
         def get_rbac_roles(namespace: Optional[str] = None) -> Dict[str, Any]:
             """Get all RBAC roles in the specified namespace."""
             try:
@@ -445,7 +497,12 @@ class MCPServer:
                 logger.error(f"Error getting RBAC roles: {e}")
                 return {"success": False, "error": str(e)}
 
-        @self.server.tool()
+        @self.server.tool(
+            annotations=ToolAnnotations(
+                title="Get Cluster Roles",
+                readOnlyHint=True,
+            ),
+        )
         def get_cluster_roles() -> Dict[str, Any]:
             """Get all cluster-wide RBAC roles."""
             try:
@@ -461,7 +518,12 @@ class MCPServer:
                 logger.error(f"Error getting cluster roles: {e}")
                 return {"success": False, "error": str(e)}
 
-        @self.server.tool()
+        @self.server.tool(
+            annotations=ToolAnnotations(
+                title="Get Events",
+                readOnlyHint=True,
+            ),
+        )
         def get_events(namespace: Optional[str] = None) -> Dict[str, Any]:
             """Get all events in the specified namespace."""
             try:
@@ -488,7 +550,12 @@ class MCPServer:
                 logger.error(f"Error getting events: {e}")
                 return {"success": False, "error": str(e)}
 
-        @self.server.tool()
+        @self.server.tool(
+            annotations=ToolAnnotations(
+                title="Get Resource Usage",
+                readOnlyHint=True,
+            ),
+        )
         def get_resource_usage(namespace: Optional[str] = None) -> Dict[str, Any]:
             """Get resource usage statistics via kubectl top."""
             if not self._check_kubectl_availability():
@@ -547,7 +614,12 @@ class MCPServer:
                 logger.error(f"Unexpected error getting resource usage: {str(e)}")
                 return {"success": False, "error": f"Unexpected error: {str(e)}"}
 
-        @self.server.tool()
+        @self.server.tool(
+            annotations=ToolAnnotations(
+                title="Switch Context",
+                destructiveHint=True,
+            ),
+        )
         def switch_context(context_name: str) -> Dict[str, Any]:
             """Switch current kubeconfig context."""
             try:
@@ -559,7 +631,12 @@ class MCPServer:
                 logger.error(f"Error switching context: {e}")
                 return {"success": False, "error": str(e)}
 
-        @self.server.tool()
+        @self.server.tool(
+            annotations=ToolAnnotations(
+                title="Get Current Context",
+                readOnlyHint=True,
+            ),
+        )
         def get_current_context() -> Dict[str, Any]:
             """Get current kubeconfig context."""
             try:
@@ -571,7 +648,12 @@ class MCPServer:
                 logger.error(f"Error getting current context: {e}")
                 return {"success": False, "error": str(e)}
 
-        @self.server.tool()
+        @self.server.tool(
+            annotations=ToolAnnotations(
+                title="List Contexts",
+                readOnlyHint=True,
+            ),
+        )
         def list_contexts() -> Dict[str, Any]:
             """List all available kubeconfig contexts for multi-cluster support."""
             try:
@@ -597,7 +679,12 @@ class MCPServer:
                 logger.error(f"Error listing contexts: {e}")
                 return {"success": False, "error": str(e)}
 
-        @self.server.tool()
+        @self.server.tool(
+            annotations=ToolAnnotations(
+                title="Get Context Details",
+                readOnlyHint=True,
+            ),
+        )
         def get_context_details(context_name: str) -> Dict[str, Any]:
             """Get detailed information about a specific kubeconfig context."""
             try:
@@ -642,7 +729,12 @@ class MCPServer:
                 logger.error(f"Error getting context details: {e}")
                 return {"success": False, "error": str(e)}
 
-        @self.server.tool()
+        @self.server.tool(
+            annotations=ToolAnnotations(
+                title="Set Namespace for Context",
+                destructiveHint=True,
+            ),
+        )
         def set_namespace_for_context(namespace: str, context_name: Optional[str] = None) -> Dict[str, Any]:
             """Set the default namespace for a context. If no context specified, uses current context."""
             try:
@@ -664,7 +756,12 @@ class MCPServer:
                 logger.error(f"Error setting namespace: {e}")
                 return {"success": False, "error": str(e)}
 
-        @self.server.tool()
+        @self.server.tool(
+            annotations=ToolAnnotations(
+                title="Get Cluster Info",
+                readOnlyHint=True,
+            ),
+        )
         def get_cluster_info() -> Dict[str, Any]:
             """Get detailed cluster information for the current context."""
             try:
@@ -690,7 +787,12 @@ class MCPServer:
                 logger.error(f"Error getting cluster info: {e}")
                 return {"success": False, "error": str(e)}
 
-        @self.server.tool()
+        @self.server.tool(
+            annotations=ToolAnnotations(
+                title="Kubectl Explain",
+                readOnlyHint=True,
+            ),
+        )
         def kubectl_explain(resource: str) -> Dict[str, Any]:
             """Explain a Kubernetes resource using kubectl explain."""
             try:
@@ -702,7 +804,12 @@ class MCPServer:
                 logger.error(f"Error explaining resource: {e}")
                 return {"success": False, "error": str(e)}
 
-        @self.server.tool()
+        @self.server.tool(
+            annotations=ToolAnnotations(
+                title="Get API Resources",
+                readOnlyHint=True,
+            ),
+        )
         def get_api_resources() -> Dict[str, Any]:
             """List Kubernetes API resources."""
             try:
@@ -714,7 +821,12 @@ class MCPServer:
                 logger.error(f"Error getting api-resources: {e}")
                 return {"success": False, "error": str(e)}
 
-        @self.server.tool()
+        @self.server.tool(
+            annotations=ToolAnnotations(
+                title="Health Check",
+                readOnlyHint=True,
+            ),
+        )
         def health_check() -> Dict[str, Any]:
             """Check cluster health by pinging the API server."""
             try:
@@ -727,7 +839,12 @@ class MCPServer:
                 logger.error(f"Cluster health check failed: {e}")
                 return {"success": False, "error": str(e)}
 
-        @self.server.tool()
+        @self.server.tool(
+            annotations=ToolAnnotations(
+                title="Get Pod Events",
+                readOnlyHint=True,
+            ),
+        )
         def get_pod_events(pod_name: str, namespace: str = "default") -> Dict[str, Any]:
             """Get events for a specific pod."""
             try:
@@ -752,7 +869,12 @@ class MCPServer:
                 logger.error(f"Error getting pod events: {e}")
                 return {"success": False, "error": str(e)}
 
-        @self.server.tool()
+        @self.server.tool(
+            annotations=ToolAnnotations(
+                title="Check Pod Health",
+                readOnlyHint=True,
+            ),
+        )
         def check_pod_health(pod_name: str, namespace: str = "default") -> Dict[str, Any]:
             """Check the health status of a pod."""
             try:
@@ -770,7 +892,12 @@ class MCPServer:
                 logger.error(f"Error checking pod health: {e}")
                 return {"success": False, "error": str(e)}
 
-        @self.server.tool()
+        @self.server.tool(
+            annotations=ToolAnnotations(
+                title="Get Deployments",
+                readOnlyHint=True,
+            ),
+        )
         def get_deployments(namespace: Optional[str] = None) -> Dict[str, Any]:
             """Get all deployments in the specified namespace."""
             try:
@@ -795,7 +922,12 @@ class MCPServer:
                 logger.error(f"Error getting deployments: {e}")
                 return {"success": False, "error": str(e)}
 
-        @self.server.tool()
+        @self.server.tool(
+            annotations=ToolAnnotations(
+                title="Create Deployment",
+                destructiveHint=True,
+            ),
+        )
         def create_deployment(name: str, image: str, replicas: int, namespace: Optional[str] = "default") -> Dict[str, Any]:
             """Create a new deployment."""
             if self.non_destructive:
@@ -841,7 +973,12 @@ class MCPServer:
                 logger.error(f"Error creating deployment: {e}")
                 return {"success": False, "error": str(e)}
 
-        @self.server.tool()
+        @self.server.tool(
+            annotations=ToolAnnotations(
+                title="Delete Resource",
+                destructiveHint=True,
+            ),
+        )
         def delete_resource(resource_type: str, name: str, namespace: Optional[str] = "default") -> Dict[str, Any]:
             """Delete a Kubernetes resource."""
             if self.non_destructive:
@@ -870,7 +1007,12 @@ class MCPServer:
                 logger.error(f"Error deleting resource: {e}")
                 return {"success": False, "error": str(e)}
 
-        @self.server.tool()
+        @self.server.tool(
+            annotations=ToolAnnotations(
+                title="Get Logs",
+                readOnlyHint=True,
+            ),
+        )
         def get_logs(pod_name: str, namespace: Optional[str] = "default", container: Optional[str] = None, tail: Optional[int] = None) -> Dict[str, Any]:
             """Get logs from a pod."""
             try:
@@ -893,7 +1035,12 @@ class MCPServer:
                 logger.error(f"Error getting logs: {e}")
                 return {"success": False, "error": str(e)}
 
-        @self.server.tool()
+        @self.server.tool(
+            annotations=ToolAnnotations(
+                title="Port Forward",
+                destructiveHint=True,
+            ),
+        )
         def port_forward(pod_name: str, local_port: int, pod_port: int, namespace: Optional[str] = "default") -> Dict[str, Any]:
             """Forward local port to pod port."""
             try:
@@ -921,7 +1068,12 @@ class MCPServer:
                 logger.error(f"Error setting up port forward: {e}")
                 return {"success": False, "error": str(e)}
 
-        @self.server.tool()
+        @self.server.tool(
+            annotations=ToolAnnotations(
+                title="Scale Deployment",
+                destructiveHint=True,
+            ),
+        )
         def scale_deployment(name: str, replicas: int, namespace: Optional[str] = "default") -> Dict[str, Any]:
             """Scale a deployment."""
             try:
@@ -953,7 +1105,12 @@ class MCPServer:
                 logger.error(f"Error scaling deployment: {e}")
                 return {"success": False, "error": str(e)}
 
-        @self.server.tool()
+        @self.server.tool(
+            annotations=ToolAnnotations(
+                title="Kubectl Apply",
+                destructiveHint=True,
+            ),
+        )
         def kubectl_apply(manifest: str, namespace: Optional[str] = "default") -> Dict[str, Any]:
             """Apply a YAML manifest to the cluster."""
             if self.non_destructive:
@@ -980,7 +1137,12 @@ class MCPServer:
                 logger.error(f"Error applying manifest: {e}")
                 return {"success": False, "error": str(e)}
 
-        @self.server.tool()
+        @self.server.tool(
+            annotations=ToolAnnotations(
+                title="Kubectl Describe",
+                readOnlyHint=True,
+            ),
+        )
         def kubectl_describe(resource_type: str, name: str, namespace: Optional[str] = "default") -> Dict[str, Any]:
             """Describe a Kubernetes resource in detail."""
             try:
@@ -996,7 +1158,12 @@ class MCPServer:
                 logger.error(f"Error describing resource: {e}")
                 return {"success": False, "error": str(e)}
 
-        @self.server.tool()
+        @self.server.tool(
+            annotations=ToolAnnotations(
+                title="Kubectl Generic",
+                readOnlyHint=True,
+            ),
+        )
         def kubectl_generic(command: str) -> Dict[str, Any]:
             """Execute any kubectl command. Use with caution."""
             try:
@@ -1036,7 +1203,12 @@ class MCPServer:
                 logger.error(f"Error running kubectl command: {e}")
                 return {"success": False, "error": str(e)}
 
-        @self.server.tool()
+        @self.server.tool(
+            annotations=ToolAnnotations(
+                title="Kubectl Patch",
+                destructiveHint=True,
+            ),
+        )
         def kubectl_patch(resource_type: str, name: str, patch: str, patch_type: str = "strategic", namespace: Optional[str] = "default") -> Dict[str, Any]:
             """Patch a Kubernetes resource."""
             try:
@@ -1064,7 +1236,12 @@ class MCPServer:
                 logger.error(f"Error patching resource: {e}")
                 return {"success": False, "error": str(e)}
 
-        @self.server.tool()
+        @self.server.tool(
+            annotations=ToolAnnotations(
+                title="Kubectl Rollout",
+                destructiveHint=True,
+            ),
+        )
         def kubectl_rollout(action: str, resource_type: str, name: str, namespace: Optional[str] = "default") -> Dict[str, Any]:
             """Manage rollouts (restart, status, history, undo, pause, resume)."""
             try:
@@ -1085,7 +1262,12 @@ class MCPServer:
                 logger.error(f"Error managing rollout: {e}")
                 return {"success": False, "error": str(e)}
 
-        @self.server.tool()
+        @self.server.tool(
+            annotations=ToolAnnotations(
+                title="Exec in Pod",
+                destructiveHint=True,
+            ),
+        )
         def exec_in_pod(pod_name: str, command: str, namespace: Optional[str] = "default", container: Optional[str] = None) -> Dict[str, Any]:
             """Execute a command inside a pod."""
             try:
@@ -1110,7 +1292,12 @@ class MCPServer:
                 logger.error(f"Error executing in pod: {e}")
                 return {"success": False, "error": str(e)}
 
-        @self.server.tool()
+        @self.server.tool(
+            annotations=ToolAnnotations(
+                title="Cleanup Pods",
+                destructiveHint=True,
+            ),
+        )
         def cleanup_pods(namespace: Optional[str] = None, states: Optional[List[str]] = None) -> Dict[str, Any]:
             """Clean up pods in problematic states (Evicted, Error, Completed, etc.)."""
             try:
@@ -1157,7 +1344,12 @@ class MCPServer:
                 logger.error(f"Error cleaning up pods: {e}")
                 return {"success": False, "error": str(e)}
 
-        @self.server.tool()
+        @self.server.tool(
+            annotations=ToolAnnotations(
+                title="Node Management",
+                destructiveHint=True,
+            ),
+        )
         def node_management(action: str, node_name: str, force: bool = False) -> Dict[str, Any]:
             """Manage nodes: cordon, uncordon, or drain."""
             try:
@@ -1183,7 +1375,12 @@ class MCPServer:
                 logger.error(f"Error managing node: {e}")
                 return {"success": False, "error": str(e)}
 
-        @self.server.tool()
+        @self.server.tool(
+            annotations=ToolAnnotations(
+                title="Kubectl Create",
+                destructiveHint=True,
+            ),
+        )
         def kubectl_create(resource_type: str, name: str, namespace: Optional[str] = "default", image: Optional[str] = None, **kwargs) -> Dict[str, Any]:
             """Create a Kubernetes resource."""
             if self.non_destructive:
@@ -1202,7 +1399,12 @@ class MCPServer:
                 logger.error(f"Error creating resource: {e}")
                 return {"success": False, "error": str(e)}
 
-        @self.server.tool()
+        @self.server.tool(
+            annotations=ToolAnnotations(
+                title="Helm Template",
+                readOnlyHint=True,
+            ),
+        )
         def helm_template(chart: str, name: str, namespace: str = "default", repo: Optional[str] = None, values: Optional[str] = None) -> Dict[str, Any]:
             """Render Helm chart templates locally without installing."""
             try:
@@ -1221,7 +1423,12 @@ class MCPServer:
                 logger.error(f"Error templating chart: {e}")
                 return {"success": False, "error": str(e)}
 
-        @self.server.tool()
+        @self.server.tool(
+            annotations=ToolAnnotations(
+                title="Helm Template Apply",
+                destructiveHint=True,
+            ),
+        )
         def helm_template_apply(chart: str, name: str, namespace: str = "default", repo: Optional[str] = None, values: Optional[str] = None) -> Dict[str, Any]:
             """Render and apply Helm chart (bypasses Tiller/auth issues)."""
             if self.non_destructive:
@@ -1246,7 +1453,12 @@ class MCPServer:
                 logger.error(f"Error applying template: {e}")
                 return {"success": False, "error": str(e)}
 
-        @self.server.tool()
+        @self.server.tool(
+            annotations=ToolAnnotations(
+                title="Kubectl Copy",
+                destructiveHint=True,
+            ),
+        )
         def kubectl_cp(source: str, destination: str, namespace: str = "default", container: Optional[str] = None) -> Dict[str, Any]:
             """Copy files between local filesystem and pods.
             
@@ -1268,7 +1480,12 @@ class MCPServer:
                 logger.error(f"Error copying files: {e}")
                 return {"success": False, "error": str(e)}
 
-        @self.server.tool()
+        @self.server.tool(
+            annotations=ToolAnnotations(
+                title="List Kubeconfig Contexts",
+                readOnlyHint=True,
+            ),
+        )
         def list_kubeconfig_contexts() -> Dict[str, Any]:
             """List all contexts from KUBECONFIG (supports multiple files)."""
             try:
@@ -1289,7 +1506,12 @@ class MCPServer:
                 logger.error(f"Error listing contexts: {e}")
                 return {"success": False, "error": str(e)}
 
-        @self.server.tool()
+        @self.server.tool(
+            annotations=ToolAnnotations(
+                title="Analyze Pod Security",
+                readOnlyHint=True,
+            ),
+        )
         def analyze_pod_security(namespace: Optional[str] = None) -> Dict[str, Any]:
             """Analyze pod security configurations and identify risks."""
             try:
@@ -1332,7 +1554,12 @@ class MCPServer:
                 logger.error(f"Error analyzing pod security: {e}")
                 return {"success": False, "error": str(e)}
 
-        @self.server.tool()
+        @self.server.tool(
+            annotations=ToolAnnotations(
+                title="Analyze Network Policies",
+                readOnlyHint=True,
+            ),
+        )
         def analyze_network_policies(namespace: Optional[str] = None) -> Dict[str, Any]:
             """Analyze network policies and identify pods without policies."""
             try:
@@ -1380,7 +1607,12 @@ class MCPServer:
                 logger.error(f"Error analyzing network policies: {e}")
                 return {"success": False, "error": str(e)}
 
-        @self.server.tool()
+        @self.server.tool(
+            annotations=ToolAnnotations(
+                title="Audit RBAC Permissions",
+                readOnlyHint=True,
+            ),
+        )
         def audit_rbac_permissions(namespace: Optional[str] = None, subject: Optional[str] = None) -> Dict[str, Any]:
             """Audit RBAC permissions for service accounts and users."""
             try:
@@ -1441,7 +1673,12 @@ class MCPServer:
                 logger.error(f"Error auditing RBAC: {e}")
                 return {"success": False, "error": str(e)}
 
-        @self.server.tool()
+        @self.server.tool(
+            annotations=ToolAnnotations(
+                title="Check Secrets Security",
+                readOnlyHint=True,
+            ),
+        )
         def check_secrets_security(namespace: Optional[str] = None) -> Dict[str, Any]:
             """Check secrets for security best practices."""
             try:
