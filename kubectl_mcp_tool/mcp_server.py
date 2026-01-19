@@ -14,7 +14,11 @@ import sys
 import logging
 import asyncio
 import os
+import platform
 from typing import Dict, Any, List, Optional, Callable, Awaitable
+
+if platform.system() == "Windows":
+    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
 import warnings
 warnings.filterwarnings(
@@ -23,9 +27,6 @@ warnings.filterwarnings(
     message=r".*found in sys.modules after import of package.*"
 )
 
-# Configure logging BEFORE any other imports
-# CRITICAL: For MCP stdio transport, logs MUST go to stderr, never stdout
-# Docker MCP Toolkit and other clients use stdout for the JSON-RPC protocol
 _log_file = os.environ.get("MCP_LOG_FILE")
 _log_level = logging.DEBUG if os.environ.get("MCP_DEBUG", "").lower() in ("1", "true") else logging.INFO
 
@@ -37,7 +38,6 @@ if _log_file:
     except (OSError, ValueError):
         _handlers.append(logging.StreamHandler(sys.stderr))
 else:
-    # ALWAYS use stderr for console logging to avoid polluting MCP protocol
     _handlers.append(logging.StreamHandler(sys.stderr))
 
 logging.basicConfig(
@@ -47,7 +47,6 @@ logging.basicConfig(
 )
 logger = logging.getLogger("mcp-server")
 
-# Ensure no handlers write to stdout
 for handler in logging.root.handlers[:]:
     if isinstance(handler, logging.StreamHandler) and handler.stream == sys.stdout:
         logging.root.removeHandler(handler)
@@ -77,14 +76,20 @@ class MCPServer:
     def __init__(self, name: str):
         """Initialize the MCP server."""
         self.name = name
-        # Create a new server instance using the FastMCP API
         self.server = FastMCP(name=name)
-        # Check for required dependencies
-        self.dependencies_available = self._check_dependencies()
-        if not self.dependencies_available:
-            logger.warning("Some dependencies are missing. Certain operations may not work correctly.")
-        # Register tools using the new FastMCP API
+        self._dependencies_checked = False
+        self._dependencies_available = None
         self.setup_tools()
+    
+    @property
+    def dependencies_available(self) -> bool:
+        """Lazy check for dependencies (only runs once, on first access)."""
+        if not self._dependencies_checked:
+            self._dependencies_available = self._check_dependencies()
+            self._dependencies_checked = True
+            if not self._dependencies_available:
+                logger.warning("Some dependencies are missing. Certain operations may not work correctly.")
+        return self._dependencies_available
     
     def setup_tools(self):
         """Set up the tools for the MCP server."""
@@ -950,16 +955,22 @@ class MCPServer:
         """Check if a specific tool is available."""
         try:
             import subprocess, shutil
-            # Use shutil.which for more reliable cross-platform checking
             if shutil.which(tool) is None:
                 return False
-            # Also verify it runs correctly
             if tool == "kubectl":
-                subprocess.check_output([tool, "version", "--client"], stderr=subprocess.PIPE)
+                subprocess.check_output(
+                    [tool, "version", "--client", "--output=json"],
+                    stderr=subprocess.PIPE,
+                    timeout=2
+                )
             elif tool == "helm":
-                subprocess.check_output([tool, "version"], stderr=subprocess.PIPE)
+                subprocess.check_output(
+                    [tool, "version", "--short"],
+                    stderr=subprocess.PIPE,
+                    timeout=2
+                )
             return True
-        except (subprocess.SubprocessError, FileNotFoundError):
+        except (subprocess.SubprocessError, subprocess.TimeoutExpired, FileNotFoundError):
             return False
     
     def _check_kubectl_availability(self) -> bool:
@@ -971,35 +982,15 @@ class MCPServer:
         return self._check_tool_availability("helm")
     
     async def serve_stdio(self):
-        """
-        Serve the MCP server over stdio transport.
-        
-        Compatible with:
-        - Docker MCP Toolkit (https://docs.docker.com/ai/mcp-catalog-and-toolkit/toolkit/)
-        - Claude Desktop
-        - Cursor AI
-        - Windsurf
-        """
-        # Only log debug info if MCP_DEBUG is enabled
-        # This keeps stdout clean for the MCP JSON-RPC protocol
+        """Serve the MCP server over stdio transport."""
         if os.environ.get("MCP_DEBUG", "").lower() in ("1", "true"):
             logger.debug("Starting MCP server with stdio transport")
             logger.debug(f"Working directory: {os.getcwd()}")
-            logger.debug(f"Python executable: {sys.executable}")
-            
-            # Log Kubernetes configuration
             kube_config = os.environ.get('KUBECONFIG', '~/.kube/config')
             expanded_path = os.path.expanduser(kube_config)
-            logger.debug(f"KUBECONFIG: {kube_config} (expanded: {expanded_path})")
-            if os.path.exists(expanded_path):
-                logger.debug(f"Kubernetes config file exists at {expanded_path}")
-            else:
-                logger.warning(f"Kubernetes config file does not exist at {expanded_path}")
-            
-            logger.debug(f"Dependencies: {'All available' if self.dependencies_available else 'Some missing'}")
+            logger.debug(f"KUBECONFIG: {expanded_path}")
+            logger.debug(f"Dependencies: {'available' if self.dependencies_available else 'missing'}")
         
-        # Run the stdio server
-        # IMPORTANT: No output to stdout before this point to avoid breaking MCP protocol
         await self.server.run_stdio_async()
     
     async def serve_sse(self, host: str = "0.0.0.0", port: int = 8000):

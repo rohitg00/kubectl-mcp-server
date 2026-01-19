@@ -14,13 +14,31 @@ class KubernetesSecurityOps:
     
     def __init__(self):
         """Initialize Kubernetes client."""
-        try:
-            config.load_kube_config()
-            self.rbac_v1 = client.RbacAuthorizationV1Api()
-            self.core_v1 = client.CoreV1Api()
-        except Exception as e:
-            logger.error(f"Failed to initialize Kubernetes client: {e}")
-            raise
+        self._rbac_v1 = None
+        self._core_v1 = None
+        self._initialized = False
+    
+    def _ensure_initialized(self):
+        """Initialize K8s clients on first use."""
+        if not self._initialized:
+            try:
+                config.load_kube_config()
+                self._rbac_v1 = client.RbacAuthorizationV1Api()
+                self._core_v1 = client.CoreV1Api()
+                self._initialized = True
+            except Exception as e:
+                logger.error(f"Failed to initialize Kubernetes client: {e}")
+                raise
+    
+    @property
+    def rbac_v1(self):
+        self._ensure_initialized()
+        return self._rbac_v1
+    
+    @property
+    def core_v1(self):
+        self._ensure_initialized()
+        return self._core_v1
 
     def create_role(self, name: str, rules: List[Dict[str, Any]], namespace: str = "default") -> Dict[str, Any]:
         """Create a Role with specified rules."""

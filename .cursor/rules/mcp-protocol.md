@@ -1,5 +1,41 @@
 # MCP Protocol Rules
 
+## Critical: Lazy Initialization
+
+**`tools/list` must work immediately without K8s connectivity!**
+
+See: https://github.com/rohitg00/kubectl-mcp-server/issues/24
+
+```python
+# BAD - Blocks during __init__
+class MyServer:
+    def __init__(self):
+        config.load_kube_config()  # ❌ Blocks if no kubeconfig
+        self.client = client.CoreV1Api()
+
+# GOOD - Lazy initialization
+class MyServer:
+    def __init__(self):
+        self._client = None
+        self._initialized = False
+    
+    def _ensure_initialized(self):
+        if not self._initialized:
+            config.load_kube_config()
+            self._client = client.CoreV1Api()
+            self._initialized = True
+    
+    @property
+    def client(self):
+        self._ensure_initialized()
+        return self._client
+```
+
+All subprocess calls during init must have timeouts:
+```python
+subprocess.check_output(cmd, timeout=2)  # 2 second max
+```
+
 ## Transport Modes
 
 | Transport | Use Case | Default Port |
