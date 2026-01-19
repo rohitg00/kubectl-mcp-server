@@ -7,6 +7,7 @@ A Model Context Protocol (MCP) server for Kubernetes that enables AI assistants 
 [![Kubernetes](https://img.shields.io/badge/kubernetes-%23326ce5.svg?style=flat&logo=kubernetes&logoColor=white)](https://kubernetes.io/)
 [![MCP](https://img.shields.io/badge/MCP-compatible-green.svg)](https://github.com/modelcontextprotocol/modelcontextprotocol)
 [![PyPI version](https://badge.fury.io/py/kubectl-mcp-tool.svg)](https://pypi.org/project/kubectl-mcp-tool/)
+[![Docker](https://img.shields.io/docker/pulls/mcp/kubectl-mcp-server.svg)](https://hub.docker.com/r/mcp/kubectl-mcp-server)
 
 ## 🎥 Live Demo - Watch `kubectl-mcp-tool` in Action with Claude!
 ![Claude MCP](./docs/claude/claude-mcp.gif)
@@ -93,6 +94,12 @@ A Model Context Protocol (MCP) server for Kubernetes that enables AI assistants 
 - [x] Error explanation with recovery suggestions
 - [x] Volume management and identification
 - [x] Command injection protection with input validation
+- [x] Non-destructive mode (`--non-destructive` flag)
+- [x] Secrets masking in output
+- [x] Helm template rendering and application
+- [x] Node management (cordon, drain, uncordon)
+- [x] Pod cleanup for failed/evicted pods
+- [x] Guided troubleshooting prompts
 
 ## Architecture
 
@@ -130,10 +137,10 @@ pip install kubectl-mcp-tool
 For a specific version:
 
 ```bash
-pip install kubectl-mcp-tool==1.1.1
+pip install kubectl-mcp-tool==1.3.0
 ```
 
-The package is available on PyPI: [https://pypi.org/project/kubectl-mcp-tool/1.1.1/](https://pypi.org/project/kubectl-mcp-tool/1.1.1/)
+The package is available on PyPI: [https://pypi.org/project/kubectl-mcp-tool/](https://pypi.org/project/kubectl-mcp-tool/)
 
 ### Prerequisites
 
@@ -175,11 +182,14 @@ Note: This tool is designed to work as an MCP server that AI assistants connect 
 
 ## Docker Image
 
-If you prefer using Docker, a pre-built image is available on Docker Hub:
+Pre-built images are available on Docker Hub:
 
 ```bash
 # Pull the latest image
-docker pull rohitghumare64/kubectl-mcp-server:latest
+docker pull rohitg00/kubectl-mcp-server:latest
+
+# Or use the official MCP catalog image
+docker pull mcp/kubectl-mcp-server:latest
 ```
 
 ### Docker MCP Toolkit Integration
@@ -190,7 +200,7 @@ This image is compatible with [Docker MCP Toolkit](https://docs.docker.com/ai/mc
 
 1. **Add the server to Docker MCP Toolkit:**
    ```bash
-   docker mcp server add kubectl-mcp-server rohitghumare64/kubectl-mcp-server:latest
+   docker mcp server add kubectl-mcp-server mcp/kubectl-mcp-server:latest
    ```
 
 2. **Configure kubeconfig access:**
@@ -304,6 +314,7 @@ python -m kubectl_mcp_tool.mcp_server --transport streamable-http --host 0.0.0.0
 - `--transport`: Transport mode (`stdio`, `sse`, `http`, `streamable-http`). Default: `stdio`
 - `--host`: Host to bind for network transports. Default: `0.0.0.0`
 - `--port`: Port for network transports. Default: `8000`
+- `--non-destructive`: Block destructive operations (delete, apply, create, etc.)
 
 ## Multi-Cluster Support
 
@@ -324,6 +335,22 @@ set_namespace_for_context --namespace kube-system --context_name production
 ```
 
 For detailed monitoring features documentation, see [Monitoring Guide](./docs/monitoring.md).
+
+## Available Tools
+
+The MCP server provides 40+ tools for Kubernetes management:
+
+| Category | Tools |
+|----------|-------|
+| **Pods** | `get_pods`, `get_logs`, `get_pod_events`, `check_pod_health`, `exec_in_pod`, `cleanup_pods` |
+| **Deployments** | `get_deployments`, `create_deployment`, `scale_deployment`, `kubectl_rollout` |
+| **Resources** | `get_services`, `get_nodes`, `get_namespaces`, `get_configmaps`, `get_secrets`, `get_events` |
+| **CRUD** | `kubectl_apply`, `kubectl_create`, `kubectl_describe`, `kubectl_patch`, `delete_resource` |
+| **Helm** | `install_helm_chart`, `upgrade_helm_chart`, `uninstall_helm_chart`, `helm_template`, `helm_template_apply` |
+| **Cluster** | `get_current_context`, `switch_context`, `list_contexts`, `get_cluster_info`, `health_check` |
+| **Security** | `get_rbac_roles`, `get_cluster_roles`, `secrets_masking` |
+| **Node Ops** | `node_management` (cordon, drain, uncordon) |
+| **Advanced** | `kubectl_generic`, `kubectl_explain`, `get_api_resources`, `port_forward`, `get_resource_usage` |
 
 ## Usage with AI Assistants
 
