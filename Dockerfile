@@ -12,15 +12,16 @@ RUN apt-get update && \
     && rm -rf /var/lib/apt/lists/*
 
 # -----------------------------------------------------------------------------
-# Install kubectl (latest stable) and helm (v3)
+# Install kubectl (pinned version for reliability) and helm (v3)
 # -----------------------------------------------------------------------------
-RUN curl -sSL https://dl.k8s.io/release/$(curl -sSL https://dl.k8s.io/release/stable.txt)/bin/linux/${TARGETARCH}/kubectl \
-    -o /usr/local/bin/kubectl && \
+ARG KUBECTL_VERSION=v1.32.0
+RUN curl -fsSL -o /usr/local/bin/kubectl \
+    "https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/${TARGETARCH}/kubectl" && \
     chmod +x /usr/local/bin/kubectl && \
     kubectl version --client --output=yaml
 
 # Install Helm
-RUN curl -fsSL https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 | bash
+RUN curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
 
 # -----------------------------------------------------------------------------
 # Set up application
