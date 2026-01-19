@@ -1,24 +1,38 @@
 """
 Kubectl MCP Tool - A Model Context Protocol server for Kubernetes.
+
+This package provides an MCP server that enables AI assistants to interact
+with Kubernetes clusters through natural language commands.
+
+For more information, see: https://github.com/rohitg00/kubectl-mcp-server
 """
 
-__version__ = "1.1.0"
+__version__ = "1.2.0"
 
-# Import implementations with correct FastMCP
-from .simple_server import KubectlServer, main
-from .mcp_server import MCPServer as _RootMCPServer
+# Core MCP server implementation
+from .mcp_server import MCPServer
 
-# Re-export key symbols for easier import paths in tests
-try:
-    from .core import KubernetesOperations, MCPServer  # type: ignore
-    __all__ = [
-        "KubectlServer",
-        "MCPServer",
-        "KubernetesOperations",
-        "main",
-    ]
-except ModuleNotFoundError:
-    # When the package is installed without the *core* package (unlikely)
-    # we at least expose the root‐level MCPServer implementation.
-    MCPServer = _RootMCPServer  # noqa: N816  (re-export for callers)
-    __all__ = ["KubectlServer", "MCPServer", "main"]
+# Natural language processing
+from .natural_language import process_query, parse_query, execute_command
+
+# Diagnostics
+from .diagnostics import (
+    run_diagnostics,
+    check_kubectl_installation,
+    check_cluster_connection,
+)
+
+__all__ = [
+    # Version
+    "__version__",
+    # Server
+    "MCPServer",
+    # Natural Language
+    "process_query",
+    "parse_query",
+    "execute_command",
+    # Diagnostics
+    "run_diagnostics",
+    "check_kubectl_installation",
+    "check_cluster_connection",
+]

@@ -528,6 +528,125 @@ class MCPServer:
                 return {"success": False, "error": str(e)}
 
         @self.server.tool()
+        def list_contexts() -> Dict[str, Any]:
+            """List all available kubeconfig contexts for multi-cluster support."""
+            try:
+                import subprocess
+                cmd = ["kubectl", "config", "get-contexts", "-o", "name"]
+                output = subprocess.check_output(cmd, text=True, stderr=subprocess.PIPE)
+                contexts = [ctx.strip() for ctx in output.strip().split('\n') if ctx.strip()]
+                
+                # Get current context
+                current_cmd = ["kubectl", "config", "current-context"]
+                try:
+                    current = subprocess.check_output(current_cmd, text=True, stderr=subprocess.PIPE).strip()
+                except subprocess.CalledProcessError:
+                    current = None
+                
+                return {
+                    "success": True,
+                    "contexts": contexts,
+                    "current_context": current,
+                    "total": len(contexts)
+                }
+            except Exception as e:
+                logger.error(f"Error listing contexts: {e}")
+                return {"success": False, "error": str(e)}
+
+        @self.server.tool()
+        def get_context_details(context_name: str) -> Dict[str, Any]:
+            """Get detailed information about a specific kubeconfig context."""
+            try:
+                import subprocess
+                import json as json_module
+                
+                # Get the context info using kubectl config view
+                cmd = ["kubectl", "config", "view", "-o", "json"]
+                output = subprocess.check_output(cmd, text=True, stderr=subprocess.PIPE)
+                config_data = json_module.loads(output)
+                
+                # Find the specific context
+                context_info = None
+                for ctx in config_data.get("contexts", []):
+                    if ctx.get("name") == context_name:
+                        context_info = ctx
+                        break
+                
+                if not context_info:
+                    return {"success": False, "error": f"Context '{context_name}' not found"}
+                
+                # Get cluster info
+                cluster_name = context_info.get("context", {}).get("cluster")
+                cluster_info = None
+                for cluster in config_data.get("clusters", []):
+                    if cluster.get("name") == cluster_name:
+                        cluster_info = cluster
+                        break
+                
+                # Get user info (without sensitive data)
+                user_name = context_info.get("context", {}).get("user")
+                
+                return {
+                    "success": True,
+                    "context_name": context_name,
+                    "cluster_name": cluster_name,
+                    "cluster_server": cluster_info.get("cluster", {}).get("server") if cluster_info else None,
+                    "namespace": context_info.get("context", {}).get("namespace", "default"),
+                    "user": user_name
+                }
+            except Exception as e:
+                logger.error(f"Error getting context details: {e}")
+                return {"success": False, "error": str(e)}
+
+        @self.server.tool()
+        def set_namespace_for_context(namespace: str, context_name: Optional[str] = None) -> Dict[str, Any]:
+            """Set the default namespace for a context. If no context specified, uses current context."""
+            try:
+                import subprocess
+                
+                # If no context specified, use current context
+                if not context_name:
+                    current_cmd = ["kubectl", "config", "current-context"]
+                    context_name = subprocess.check_output(current_cmd, text=True, stderr=subprocess.PIPE).strip()
+                
+                cmd = ["kubectl", "config", "set-context", context_name, "--namespace", namespace]
+                subprocess.check_output(cmd, text=True, stderr=subprocess.PIPE)
+                
+                return {
+                    "success": True,
+                    "message": f"Set namespace to '{namespace}' for context '{context_name}'"
+                }
+            except Exception as e:
+                logger.error(f"Error setting namespace: {e}")
+                return {"success": False, "error": str(e)}
+
+        @self.server.tool()
+        def get_cluster_info() -> Dict[str, Any]:
+            """Get detailed cluster information for the current context."""
+            try:
+                import subprocess
+                cmd = ["kubectl", "cluster-info"]
+                output = subprocess.check_output(cmd, text=True, stderr=subprocess.PIPE)
+                
+                # Get version info
+                version_cmd = ["kubectl", "version", "-o", "json"]
+                try:
+                    version_output = subprocess.check_output(version_cmd, text=True, stderr=subprocess.PIPE)
+                    import json as json_module
+                    version_data = json_module.loads(version_output)
+                except (subprocess.CalledProcessError, json.JSONDecodeError):
+                    version_data = None
+                
+                return {
+                    "success": True,
+                    "cluster_info": output,
+                    "version": version_data
+                }
+            except Exception as e:
+                logger.error(f"Error getting cluster info: {e}")
+                return {"success": False, "error": str(e)}
+
+        @self.server.tool()
         def kubectl_explain(resource: str) -> Dict[str, Any]:
             """Explain a Kubernetes resource using kubectl explain."""
             try:
@@ -842,49 +961,176 @@ class MCPServer:
         # Continue with normal server startup
         await self.server.run_stdio_async()
     
-    async def serve_sse(self, port: int):
+    async def serve_sse(self, host: str = "0.0.0.0", port: int = 8000):
         """Serve the MCP server over SSE transport."""
-        logger.info(f"Starting MCP server with SSE transport on port {port}")
+        logger.info(f"Starting MCP server with SSE transport on {host}:{port}")
 
         try:
-            # Newer versions of FastMCP expose a keyword argument for the port
-            await self.server.run_sse_async(port=port)
+            # Try newer FastMCP API with host and port
+            await self.server.run_sse_async(host=host, port=port)
         except TypeError:
-            # Fall back to the legacy signature that takes no parameters
-            logger.warning(
-                "FastMCP.run_sse_async() does not accept a 'port' parameter in this version. "
-                "Falling back to the default signature (using FastMCP's internal default port)."
-            )
-            await self.server.run_sse_async()
+            try:
+                # Try with just port parameter
+                await self.server.run_sse_async(port=port)
+            except TypeError:
+                # Fall back to the legacy signature that takes no parameters
+                logger.warning(
+                    "FastMCP.run_sse_async() does not accept host/port parameters in this version. "
+                    "Falling back to the default signature (using FastMCP's internal default port)."
+                )
+                await self.server.run_sse_async()
+    
+    async def serve_http(self, host: str = "0.0.0.0", port: int = 8000):
+        """
+        Serve the MCP server over HTTP transport (streamable HTTP).
+        This is an alternative to SSE that some clients prefer.
+        """
+        logger.info(f"Starting MCP server with HTTP transport on {host}:{port}")
+        
+        try:
+            # Check if FastMCP supports streamable HTTP
+            if hasattr(self.server, 'run_http_async'):
+                await self.server.run_http_async(host=host, port=port)
+            elif hasattr(self.server, 'run_streamable_http_async'):
+                await self.server.run_streamable_http_async(host=host, port=port)
+            else:
+                # Fall back to implementing HTTP transport manually using ASGI
+                logger.info("FastMCP does not have built-in HTTP support, using custom implementation")
+                await self._serve_http_custom(host=host, port=port)
+        except TypeError as e:
+            logger.warning(f"HTTP transport parameter issue: {e}. Trying alternative signatures...")
+            # Try without parameters
+            if hasattr(self.server, 'run_http_async'):
+                await self.server.run_http_async()
+            elif hasattr(self.server, 'run_streamable_http_async'):
+                await self.server.run_streamable_http_async()
+            else:
+                await self._serve_http_custom(host=host, port=port)
+    
+    async def _serve_http_custom(self, host: str = "0.0.0.0", port: int = 8000):
+        """
+        Custom HTTP server implementation using uvicorn and Starlette.
+        Provides HTTP/JSON-RPC transport for MCP.
+        """
+        try:
+            from starlette.applications import Starlette
+            from starlette.responses import JSONResponse
+            from starlette.routing import Route
+            import uvicorn
+        except ImportError:
+            logger.error("HTTP transport requires 'starlette' and 'uvicorn'. Install with: pip install starlette uvicorn")
+            raise ImportError("Missing dependencies for HTTP transport. Run: pip install starlette uvicorn")
+        
+        async def handle_mcp_request(request):
+            """Handle incoming MCP JSON-RPC requests."""
+            try:
+                body = await request.json()
+                logger.debug(f"Received MCP request: {body}")
+                
+                # Get the method and params from the JSON-RPC request
+                method = body.get("method", "")
+                params = body.get("params", {})
+                request_id = body.get("id")
+                
+                # Handle different MCP methods
+                if method == "initialize":
+                    result = {
+                        "protocolVersion": "2024-11-05",
+                        "capabilities": {
+                            "tools": {"listChanged": True},
+                            "resources": {"subscribe": False, "listChanged": True}
+                        },
+                        "serverInfo": {
+                            "name": self.name,
+                            "version": "1.2.0"
+                        }
+                    }
+                elif method == "tools/list":
+                    # Get list of tools from FastMCP
+                    tools = []
+                    if hasattr(self.server, '_tool_manager') and hasattr(self.server._tool_manager, 'tools'):
+                        for name, tool in self.server._tool_manager.tools.items():
+                            tools.append({
+                                "name": name,
+                                "description": tool.description if hasattr(tool, 'description') else "",
+                                "inputSchema": tool.parameters if hasattr(tool, 'parameters') else {}
+                            })
+                    result = {"tools": tools}
+                elif method == "tools/call":
+                    tool_name = params.get("name", "")
+                    tool_args = params.get("arguments", {})
+                    
+                    # Execute the tool
+                    if hasattr(self.server, '_tool_manager'):
+                        try:
+                            tool_result = await self.server._tool_manager.call_tool(tool_name, tool_args)
+                            result = {"content": [{"type": "text", "text": json.dumps(tool_result)}]}
+                        except Exception as e:
+                            result = {"content": [{"type": "text", "text": f"Error: {str(e)}"}], "isError": True}
+                    else:
+                        result = {"content": [{"type": "text", "text": "Tool manager not available"}], "isError": True}
+                elif method == "ping":
+                    result = {}
+                else:
+                    result = {"error": f"Unknown method: {method}"}
+                
+                response = {
+                    "jsonrpc": "2.0",
+                    "id": request_id,
+                    "result": result
+                }
+                return JSONResponse(response)
+            except Exception as e:
+                logger.error(f"Error handling MCP request: {e}")
+                return JSONResponse({
+                    "jsonrpc": "2.0",
+                    "id": None,
+                    "error": {"code": -32603, "message": str(e)}
+                }, status_code=500)
+        
+        async def health_check(request):
+            """Health check endpoint."""
+            return JSONResponse({"status": "healthy", "server": self.name})
+        
+        app = Starlette(
+            routes=[
+                Route("/", handle_mcp_request, methods=["POST"]),
+                Route("/mcp", handle_mcp_request, methods=["POST"]),
+                Route("/health", health_check, methods=["GET"]),
+            ]
+        )
+        
+        config = uvicorn.Config(app, host=host, port=port, log_level="info")
+        server = uvicorn.Server(config)
+        await server.serve()
         
 if __name__ == "__main__":
-    import asyncio
     import argparse
-    # Ensure that logging, os, sys, FastMCP, MCPServer, and the logger instance
-    # are imported or defined earlier in the file as needed.
-    # Based on our previous views, most of these should already be in place.
 
     parser = argparse.ArgumentParser(description="Run the Kubectl MCP Server.")
     parser.add_argument(
         "--transport",
         type=str,
-        choices=["stdio", "sse"],
+        choices=["stdio", "sse", "http", "streamable-http"],
         default="stdio",
-        help="Communication transport to use (stdio or sse). Default: stdio.",
+        help="Communication transport to use (stdio, sse, http, or streamable-http). Default: stdio.",
     )
     parser.add_argument(
         "--port",
         type=int,
-        default=8080,
-        help="Port to use for SSE transport. Default: 8080.",
+        default=8000,
+        help="Port to use for SSE/HTTP transport. Default: 8000.",
+    )
+    parser.add_argument(
+        "--host",
+        type=str,
+        default="0.0.0.0",
+        help="Host to bind to for SSE/HTTP transport. Default: 0.0.0.0.",
     )
     args = parser.parse_args()
 
     server_name = "kubectl_mcp_server"
-    # Ensure MCPServer class is defined above this block
-    mcp_server = MCPServer(name=server_name) 
-    # Ensure logger is defined at the module level
-    # logger = logging.getLogger(__name__) # Or however it's set up
+    mcp_server = MCPServer(name=server_name)
 
     loop = asyncio.get_event_loop()
     try:
@@ -892,8 +1138,11 @@ if __name__ == "__main__":
             logger.info(f"Starting {server_name} with stdio transport.")
             loop.run_until_complete(mcp_server.serve_stdio())
         elif args.transport == "sse":
-            logger.info(f"Starting {server_name} with SSE transport on port {args.port}.")
-            loop.run_until_complete(mcp_server.serve_sse(port=args.port))
+            logger.info(f"Starting {server_name} with SSE transport on {args.host}:{args.port}.")
+            loop.run_until_complete(mcp_server.serve_sse(host=args.host, port=args.port))
+        elif args.transport in ("http", "streamable-http"):
+            logger.info(f"Starting {server_name} with HTTP transport on {args.host}:{args.port}.")
+            loop.run_until_complete(mcp_server.serve_http(host=args.host, port=args.port))
     except KeyboardInterrupt:
         logger.info("Server shutdown requested by user.")
     except Exception as e:

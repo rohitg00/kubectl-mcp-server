@@ -1,8 +1,9 @@
 """
 CLI package for kubectl-mcp-tool.
+
+Provides command-line interface for managing the MCP server.
 """
 
-from . import __main__
+from .cli import main
 
-__all__ = ["__main__"]
-
+__all__ = ["main"]

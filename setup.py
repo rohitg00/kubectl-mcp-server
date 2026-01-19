@@ -18,6 +18,7 @@ setup(
         "pydantic>=2.0.0",
         "fastapi>=0.100.0",
         "uvicorn>=0.22.0",
+        "starlette>=0.27.0",
         "kubernetes>=28.1.0",
         "PyYAML>=6.0.1",
         "requests>=2.31.0",
@@ -32,14 +33,26 @@ setup(
     entry_points={
         "console_scripts": [
             "kubectl-mcp=kubectl_mcp_tool.__main__:main",
+            "kubectl-mcp-serve=kubectl_mcp_tool.cli:main",
         ],
     },
     classifiers=[
         "Programming Language :: Python :: 3",
         "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11",
+        "Programming Language :: Python :: 3.12",
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
+        "Topic :: System :: Systems Administration",
+        "Topic :: Software Development :: Libraries :: Python Modules",
+        "Intended Audience :: Developers",
+        "Intended Audience :: System Administrators",
     ],
     python_requires=">=3.9",
+    project_urls={
+        "Bug Tracker": "https://github.com/rohitg00/kubectl-mcp-server/issues",
+        "Documentation": "https://github.com/rohitg00/kubectl-mcp-server#readme",
+        "Source": "https://github.com/rohitg00/kubectl-mcp-server",
+    },
 ) 

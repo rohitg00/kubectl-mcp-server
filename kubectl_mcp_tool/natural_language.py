@@ -160,9 +160,76 @@ def extract_pod_name(query: str) -> Optional[str]:
         return pod_match.group(1)
     return None
 
+def sanitize_command_args(args: List[str]) -> List[str]:
+    """
+    Sanitize command arguments to prevent command injection.
+    
+    Args:
+        args: List of command arguments to sanitize
+        
+    Returns:
+        Sanitized list of arguments
+    """
+    # Characters that could be used for command injection
+    dangerous_chars = [';', '|', '&', '$', '`', '(', ')', '{', '}', '<', '>', '\n', '\r']
+    dangerous_patterns = ['../', '..\\', '/etc/', '/proc/', '/sys/']
+    
+    sanitized = []
+    for arg in args:
+        # Check for dangerous characters
+        for char in dangerous_chars:
+            if char in arg:
+                raise ValueError(f"Invalid character '{char}' in command argument: {arg}")
+        
+        # Check for dangerous patterns
+        for pattern in dangerous_patterns:
+            if pattern in arg.lower():
+                raise ValueError(f"Invalid pattern '{pattern}' in command argument: {arg}")
+        
+        sanitized.append(arg)
+    
+    return sanitized
+
+
+def validate_kubectl_command(command_parts: List[str]) -> bool:
+    """
+    Validate that the command is a legitimate kubectl command.
+    
+    Args:
+        command_parts: List of command parts
+        
+    Returns:
+        True if valid, raises ValueError otherwise
+    """
+    if not command_parts:
+        raise ValueError("Empty command")
+    
+    if command_parts[0] != "kubectl":
+        raise ValueError(f"Only kubectl commands are allowed, got: {command_parts[0]}")
+    
+    # List of allowed kubectl subcommands
+    allowed_subcommands = [
+        'get', 'describe', 'logs', 'delete', 'apply', 'create', 'patch',
+        'exec', 'port-forward', 'top', 'config', 'explain', 'api-resources',
+        'version', 'cluster-info', 'rollout', 'scale', 'label', 'annotate',
+        'auth', 'cordon', 'uncordon', 'drain', 'taint', 'edit'
+    ]
+    
+    if len(command_parts) > 1:
+        subcommand = command_parts[1]
+        if subcommand.startswith('-'):
+            # It's a flag, which is fine
+            return True
+        if subcommand not in allowed_subcommands:
+            raise ValueError(f"Disallowed kubectl subcommand: {subcommand}")
+    
+    return True
+
+
 def execute_command(command: str) -> str:
     """
     Execute a kubectl command and return the output.
+    Uses safe command execution without shell=True to prevent command injection.
     
     Args:
         command: The kubectl command to execute
@@ -177,14 +244,30 @@ def execute_command(command: str) -> str:
             logger.warning(f"Kubeconfig not found at {kubeconfig}")
             return f"Warning: Kubernetes config not found at {kubeconfig}. Please configure kubectl."
         
-        # Try to run the command with a timeout for safety
+        # Parse command into parts safely using shlex
+        import shlex
+        try:
+            command_parts = shlex.split(command)
+        except ValueError as e:
+            logger.error(f"Failed to parse command: {e}")
+            return f"Error: Invalid command syntax - {str(e)}"
+        
+        # Validate the command
+        try:
+            validate_kubectl_command(command_parts)
+            command_parts = sanitize_command_args(command_parts)
+        except ValueError as e:
+            logger.error(f"Command validation failed: {e}")
+            return f"Error: Command validation failed - {str(e)}"
+        
+        # Execute the command safely WITHOUT shell=True
         result = subprocess.run(
-            command,
-            shell=True,
+            command_parts,
+            shell=False,  # SECURITY: Never use shell=True with user input
             check=False,  # Don't raise exception on non-zero exit
             capture_output=True,
             text=True,
-            timeout=10  # Timeout after 10 seconds
+            timeout=30  # Increased timeout for larger clusters
         )
         
         # Check for errors
@@ -196,7 +279,7 @@ def execute_command(command: str) -> str:
         return result.stdout if result.stdout else "Command completed successfully with no output"
     except subprocess.TimeoutExpired:
         logger.error(f"Command timed out: {command}")
-        return "Command timed out after 10 seconds"
+        return "Command timed out after 30 seconds"
     except Exception as e:
         logger.error(f"Error executing command: {e}")
         return f"Error: {str(e)}"

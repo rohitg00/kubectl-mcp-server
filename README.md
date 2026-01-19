@@ -82,8 +82,9 @@ A Model Context Protocol (MCP) server for Kubernetes that enables AI assistants 
 - [x] Detailed liveness and readiness probe validation
 
 ### Advanced Features
-- [x] Multiple transport protocols support (stdio, SSE)
-- [x] Integration with multiple AI assistants
+- [x] Multiple transport protocols support (stdio, SSE, HTTP/streamable-http)
+- [x] Integration with multiple AI assistants (Claude Desktop, Claude Code, Cursor, Windsurf)
+- [x] Multi-cluster support with context switching
 - [x] Extensible tool framework
 - [x] Custom resource definition support
 - [x] Cross-namespace operations
@@ -91,6 +92,7 @@ A Model Context Protocol (MCP) server for Kubernetes that enables AI assistants 
 - [x] Intelligent resource relationship mapping
 - [x] Error explanation with recovery suggestions
 - [x] Volume management and identification
+- [x] Command injection protection with input validation
 
 ## Architecture
 
@@ -239,6 +241,55 @@ config:
 
 This configuration allows users to add their kubeconfig directory to the container, enabling the MCP server to authenticate with their Kubernetes cluster.
 
+## Transport Modes
+
+The MCP server supports multiple transport protocols:
+
+### stdio (default)
+Standard input/output transport, used by most MCP clients like Claude Desktop and Cursor:
+```bash
+python -m kubectl_mcp_tool.mcp_server --transport stdio
+```
+
+### SSE (Server-Sent Events)
+HTTP-based transport using Server-Sent Events:
+```bash
+python -m kubectl_mcp_tool.mcp_server --transport sse --host 0.0.0.0 --port 8000
+```
+
+### HTTP / Streamable HTTP
+Standard HTTP transport for clients that prefer JSON-RPC over HTTP:
+```bash
+python -m kubectl_mcp_tool.mcp_server --transport http --host 0.0.0.0 --port 8000
+# or
+python -m kubectl_mcp_tool.mcp_server --transport streamable-http --host 0.0.0.0 --port 8000
+```
+
+### Command-Line Options
+- `--transport`: Transport mode (`stdio`, `sse`, `http`, `streamable-http`). Default: `stdio`
+- `--host`: Host to bind for network transports. Default: `0.0.0.0`
+- `--port`: Port for network transports. Default: `8000`
+
+## Multi-Cluster Support
+
+The MCP server provides full multi-cluster support through context management:
+
+```bash
+# List all available contexts
+list_contexts
+
+# Switch to a different cluster
+switch_context --context_name production
+
+# Get details about a specific context
+get_context_details --context_name staging
+
+# Set default namespace for a context
+set_namespace_for_context --namespace kube-system --context_name production
+```
+
+For detailed monitoring features documentation, see [Monitoring Guide](./docs/monitoring.md).
+
 ## Usage with AI Assistants
 
 ### Using the MCP Server
@@ -301,6 +352,26 @@ Add the following to your Claude Desktop configuration at `~/Library/Application
   }
 }
 ```
+
+### Claude Code
+
+Claude Code is Anthropic's CLI tool for coding with Claude. Add the following to `~/.config/claude-code/mcp.json`:
+
+```json
+{
+  "mcpServers": {
+    "kubernetes": {
+      "command": "python",
+      "args": ["-m", "kubectl_mcp_tool.mcp_server"],
+      "env": {
+        "KUBECONFIG": "/path/to/your/.kube/config"
+      }
+    }
+  }
+}
+```
+
+For detailed Claude Code integration instructions, see [Claude Code Integration Guide](./docs/claude/claude_code_integration.md).
 
 ### Cursor AI
 
