@@ -7,7 +7,7 @@ A Model Context Protocol (MCP) server for Kubernetes that enables AI assistants 
 [![Kubernetes](https://img.shields.io/badge/kubernetes-%23326ce5.svg?style=flat&logo=kubernetes&logoColor=white)](https://kubernetes.io/)
 [![MCP](https://img.shields.io/badge/MCP-compatible-green.svg)](https://github.com/modelcontextprotocol/modelcontextprotocol)
 [![PyPI version](https://badge.fury.io/py/kubectl-mcp-tool.svg)](https://pypi.org/project/kubectl-mcp-tool/)
-[![Docker](https://img.shields.io/docker/pulls/mcp/kubectl-mcp-server.svg)](https://hub.docker.com/r/mcp/kubectl-mcp-server)
+[![Docker](https://img.shields.io/docker/pulls/rohitghumare64/kubectl-mcp-server.svg)](https://hub.docker.com/r/rohitghumare64/kubectl-mcp-server)
 
 ## 🎥 Live Demo - Watch `kubectl-mcp-tool` in Action with Claude!
 ![Claude MCP](./docs/claude/claude-mcp.gif)
@@ -186,7 +186,7 @@ Pre-built images are available on Docker Hub:
 
 ```bash
 # Pull the latest image
-docker pull rohitg00/kubectl-mcp-server:latest
+docker pull rohitghumare64/kubectl-mcp-server:latest
 
 # Or use the official MCP catalog image
 docker pull mcp/kubectl-mcp-server:latest
