@@ -10,12 +10,23 @@
    - Added protection against dangerous characters and path traversal
 
 ### New Features
-1. **HTTP/Streamable HTTP Transport Support (Issue #39)**
+1. **9 New kubectl Tools**
+   - `kubectl_apply` - Apply YAML manifests
+   - `kubectl_describe` - Describe resources in detail
+   - `kubectl_generic` - Run kubectl commands
+   - `kubectl_patch` - Patch resources
+   - `kubectl_rollout` - Manage rollouts
+   - `exec_in_pod` - Execute commands in pods
+   - `cleanup_pods` - Clean up problematic pods
+   - `node_management` - Cordon/drain/uncordon nodes
+   - Secret masking in output
+
+2. **HTTP/Streamable HTTP Transport Support (Issue #39)**
    - Added `--transport http` and `--transport streamable-http` options
    - Supports JSON-RPC over HTTP for clients that don't support SSE
    - Falls back to custom HTTP implementation if FastMCP doesn't support it
 
-2. **Multi-Cluster Support (Issue #19)**
+3. **Multi-Cluster Support (Issue #19)**
    - Added `list_contexts` tool to list all available kubeconfig contexts
    - Added `get_context_details` tool for detailed context information
    - Added `set_namespace_for_context` tool to set default namespace

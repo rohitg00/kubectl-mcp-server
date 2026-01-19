@@ -52,7 +52,6 @@ for handler in logging.root.handlers[:]:
         logging.root.removeHandler(handler)
 
 try:
-    # Import the official MCP SDK with FastMCP
     from mcp.server.fastmcp import FastMCP
 except ImportError:
     logger.error("MCP SDK not found. Installing...")
@@ -941,6 +940,243 @@ class MCPServer:
             except Exception as e:
                 logger.error(f"Error scaling deployment: {e}")
                 return {"success": False, "error": str(e)}
+
+        @self.server.tool()
+        def kubectl_apply(manifest: str, namespace: Optional[str] = "default") -> Dict[str, Any]:
+            """Apply a YAML manifest to the cluster."""
+            try:
+                import subprocess
+                import tempfile
+                
+                with tempfile.NamedTemporaryFile(mode='w', suffix='.yaml', delete=False) as f:
+                    f.write(manifest)
+                    temp_path = f.name
+                
+                cmd = ["kubectl", "apply", "-f", temp_path, "-n", namespace]
+                result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
+                
+                import os
+                os.unlink(temp_path)
+                
+                if result.returncode == 0:
+                    return {"success": True, "output": result.stdout.strip()}
+                else:
+                    return {"success": False, "error": result.stderr.strip()}
+            except Exception as e:
+                logger.error(f"Error applying manifest: {e}")
+                return {"success": False, "error": str(e)}
+
+        @self.server.tool()
+        def kubectl_describe(resource_type: str, name: str, namespace: Optional[str] = "default") -> Dict[str, Any]:
+            """Describe a Kubernetes resource in detail."""
+            try:
+                import subprocess
+                cmd = ["kubectl", "describe", resource_type, name, "-n", namespace]
+                result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
+                
+                if result.returncode == 0:
+                    return {"success": True, "description": result.stdout}
+                else:
+                    return {"success": False, "error": result.stderr.strip()}
+            except Exception as e:
+                logger.error(f"Error describing resource: {e}")
+                return {"success": False, "error": str(e)}
+
+        @self.server.tool()
+        def kubectl_generic(command: str) -> Dict[str, Any]:
+            """Execute any kubectl command. Use with caution."""
+            try:
+                import subprocess
+                import shlex
+                
+                # Security: validate command starts with allowed operations
+                allowed_prefixes = [
+                    "get", "describe", "logs", "top", "explain", "api-resources",
+                    "config", "version", "cluster-info", "auth"
+                ]
+                cmd_parts = shlex.split(command)
+                if not cmd_parts:
+                    return {"success": False, "error": "Empty command"}
+                
+                # Remove 'kubectl' prefix if present
+                if cmd_parts[0] == "kubectl":
+                    cmd_parts = cmd_parts[1:]
+                
+                if not cmd_parts or cmd_parts[0] not in allowed_prefixes:
+                    return {
+                        "success": False, 
+                        "error": f"Command not allowed. Allowed: {', '.join(allowed_prefixes)}"
+                    }
+                
+                full_cmd = ["kubectl"] + cmd_parts
+                result = subprocess.run(full_cmd, capture_output=True, text=True, timeout=60)
+                
+                output = self._mask_secrets(result.stdout) if "secret" in command.lower() else result.stdout
+                
+                return {
+                    "success": result.returncode == 0,
+                    "output": output,
+                    "error": result.stderr if result.returncode != 0 else None
+                }
+            except Exception as e:
+                logger.error(f"Error running kubectl command: {e}")
+                return {"success": False, "error": str(e)}
+
+        @self.server.tool()
+        def kubectl_patch(resource_type: str, name: str, patch: str, patch_type: str = "strategic", namespace: Optional[str] = "default") -> Dict[str, Any]:
+            """Patch a Kubernetes resource."""
+            try:
+                import subprocess
+                
+                type_flag = {
+                    "strategic": "strategic",
+                    "merge": "merge",
+                    "json": "json"
+                }.get(patch_type, "strategic")
+                
+                cmd = [
+                    "kubectl", "patch", resource_type, name,
+                    "-n", namespace,
+                    "--type", type_flag,
+                    "-p", patch
+                ]
+                result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
+                
+                if result.returncode == 0:
+                    return {"success": True, "output": result.stdout.strip()}
+                else:
+                    return {"success": False, "error": result.stderr.strip()}
+            except Exception as e:
+                logger.error(f"Error patching resource: {e}")
+                return {"success": False, "error": str(e)}
+
+        @self.server.tool()
+        def kubectl_rollout(action: str, resource_type: str, name: str, namespace: Optional[str] = "default") -> Dict[str, Any]:
+            """Manage rollouts (restart, status, history, undo, pause, resume)."""
+            try:
+                import subprocess
+                
+                allowed_actions = ["status", "history", "restart", "undo", "pause", "resume"]
+                if action not in allowed_actions:
+                    return {"success": False, "error": f"Invalid action. Allowed: {', '.join(allowed_actions)}"}
+                
+                cmd = ["kubectl", "rollout", action, f"{resource_type}/{name}", "-n", namespace]
+                result = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
+                
+                if result.returncode == 0:
+                    return {"success": True, "output": result.stdout.strip()}
+                else:
+                    return {"success": False, "error": result.stderr.strip()}
+            except Exception as e:
+                logger.error(f"Error managing rollout: {e}")
+                return {"success": False, "error": str(e)}
+
+        @self.server.tool()
+        def exec_in_pod(pod_name: str, command: str, namespace: Optional[str] = "default", container: Optional[str] = None) -> Dict[str, Any]:
+            """Execute a command inside a pod."""
+            try:
+                import subprocess
+                import shlex
+                
+                cmd = ["kubectl", "exec", pod_name, "-n", namespace]
+                if container:
+                    cmd.extend(["-c", container])
+                cmd.append("--")
+                cmd.extend(shlex.split(command))
+                
+                result = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
+                
+                return {
+                    "success": result.returncode == 0,
+                    "stdout": result.stdout,
+                    "stderr": result.stderr,
+                    "exit_code": result.returncode
+                }
+            except Exception as e:
+                logger.error(f"Error executing in pod: {e}")
+                return {"success": False, "error": str(e)}
+
+        @self.server.tool()
+        def cleanup_pods(namespace: Optional[str] = None, states: Optional[List[str]] = None) -> Dict[str, Any]:
+            """Clean up pods in problematic states (Evicted, Error, Completed, etc.)."""
+            try:
+                import subprocess
+                
+                if states is None:
+                    states = ["Evicted", "Error", "Completed", "ContainerStatusUnknown"]
+                
+                ns_flag = ["-n", namespace] if namespace else ["--all-namespaces"]
+                
+                deleted_pods = []
+                for state in states:
+                    # Get pods in this state
+                    cmd = ["kubectl", "get", "pods"] + ns_flag + [
+                        "--field-selector", f"status.phase={state}" if state not in ["Evicted", "ContainerStatusUnknown"] else "",
+                        "-o", "jsonpath={.items[*].metadata.name}"
+                    ]
+                    
+                    if state == "Evicted":
+                        cmd = ["kubectl", "get", "pods"] + ns_flag + [
+                            "-o", "json"
+                        ]
+                        result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
+                        if result.returncode == 0:
+                            import json
+                            try:
+                                pods = json.loads(result.stdout)
+                                for pod in pods.get("items", []):
+                                    if pod.get("status", {}).get("reason") == "Evicted":
+                                        pod_name = pod["metadata"]["name"]
+                                        pod_ns = pod["metadata"]["namespace"]
+                                        del_cmd = ["kubectl", "delete", "pod", pod_name, "-n", pod_ns]
+                                        subprocess.run(del_cmd, capture_output=True, timeout=10)
+                                        deleted_pods.append(f"{pod_ns}/{pod_name}")
+                            except json.JSONDecodeError:
+                                pass
+                
+                return {
+                    "success": True,
+                    "deleted_count": len(deleted_pods),
+                    "deleted_pods": deleted_pods[:20]  # Limit output
+                }
+            except Exception as e:
+                logger.error(f"Error cleaning up pods: {e}")
+                return {"success": False, "error": str(e)}
+
+        @self.server.tool()
+        def node_management(action: str, node_name: str, force: bool = False) -> Dict[str, Any]:
+            """Manage nodes: cordon, uncordon, or drain."""
+            try:
+                import subprocess
+                
+                allowed_actions = ["cordon", "uncordon", "drain"]
+                if action not in allowed_actions:
+                    return {"success": False, "error": f"Invalid action. Allowed: {', '.join(allowed_actions)}"}
+                
+                cmd = ["kubectl", action, node_name]
+                if action == "drain":
+                    cmd.extend(["--ignore-daemonsets", "--delete-emptydir-data"])
+                    if force:
+                        cmd.append("--force")
+                
+                result = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
+                
+                if result.returncode == 0:
+                    return {"success": True, "output": result.stdout.strip()}
+                else:
+                    return {"success": False, "error": result.stderr.strip()}
+            except Exception as e:
+                logger.error(f"Error managing node: {e}")
+                return {"success": False, "error": str(e)}
+
+    def _mask_secrets(self, text: str) -> str:
+        """Mask sensitive data in output."""
+        import re
+        # Mask base64-encoded data that looks like secrets
+        masked = re.sub(r'(data:\s*\n)(\s+\w+:\s*)([A-Za-z0-9+/=]{20,})', r'\1\2[MASKED]', text)
+        # Mask password-like fields
+        masked = re.sub(r'(password|secret|token|key|credential)(["\s:=]+)([^\s"\n]+)', r'\1\2[MASKED]', masked, flags=re.IGNORECASE)
+        return masked
     
     def _check_dependencies(self) -> bool:
         """Check for required command-line tools."""
