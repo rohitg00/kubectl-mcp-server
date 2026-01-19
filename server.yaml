@@ -116,6 +116,12 @@ tools:
     description: Clean up pods in problematic states
   - name: node_management
     description: Cordon, uncordon, or drain nodes
+  - name: kubectl_create
+    description: Create a Kubernetes resource
+  - name: helm_template
+    description: Render Helm chart templates locally
+  - name: helm_template_apply
+    description: Render and apply Helm chart
 
 # Categories for catalog discovery
 categories:

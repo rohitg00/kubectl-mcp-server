@@ -72,13 +72,15 @@ from .natural_language import process_query
 class MCPServer:
     """MCP server implementation."""
 
-    def __init__(self, name: str):
+    def __init__(self, name: str, non_destructive: bool = False):
         """Initialize the MCP server."""
         self.name = name
+        self.non_destructive = non_destructive
         self.server = FastMCP(name=name)
         self._dependencies_checked = False
         self._dependencies_available = None
         self.setup_tools()
+        self.setup_prompts()
     
     @property
     def dependencies_available(self) -> bool:
@@ -248,6 +250,8 @@ class MCPServer:
         @self.server.tool()
         def install_helm_chart(name: str, chart: str, namespace: str, repo: Optional[str] = None, values: Optional[dict] = None) -> Dict[str, Any]:
             """Install a Helm chart."""
+            if self.non_destructive:
+                return {"success": False, "error": "Blocked: non-destructive mode"}
             if not self._check_helm_availability():
                 return {"success": False, "error": "Helm is not available on this system"}
             
@@ -328,6 +332,8 @@ class MCPServer:
         @self.server.tool()
         def upgrade_helm_chart(name: str, chart: str, namespace: str, repo: Optional[str] = None, values: Optional[dict] = None) -> Dict[str, Any]:
             """Upgrade a Helm release."""
+            if self.non_destructive:
+                return {"success": False, "error": "Blocked: non-destructive mode"}
             if not self._check_helm_availability():
                 return {"success": False, "error": "Helm is not available on this system"}
             
@@ -395,6 +401,8 @@ class MCPServer:
         @self.server.tool()
         def uninstall_helm_chart(name: str, namespace: str) -> Dict[str, Any]:
             """Uninstall a Helm release."""
+            if self.non_destructive:
+                return {"success": False, "error": "Blocked: non-destructive mode"}
             if not self._check_helm_availability():
                 return {"success": False, "error": "Helm is not available on this system"}
                 
@@ -790,6 +798,8 @@ class MCPServer:
         @self.server.tool()
         def create_deployment(name: str, image: str, replicas: int, namespace: Optional[str] = "default") -> Dict[str, Any]:
             """Create a new deployment."""
+            if self.non_destructive:
+                return {"success": False, "error": "Blocked: non-destructive mode"}
             try:
                 from kubernetes import client, config
                 config.load_kube_config()
@@ -834,6 +844,8 @@ class MCPServer:
         @self.server.tool()
         def delete_resource(resource_type: str, name: str, namespace: Optional[str] = "default") -> Dict[str, Any]:
             """Delete a Kubernetes resource."""
+            if self.non_destructive:
+                return {"success": False, "error": "Blocked: non-destructive mode"}
             try:
                 from kubernetes import client, config
                 config.load_kube_config()
@@ -944,6 +956,8 @@ class MCPServer:
         @self.server.tool()
         def kubectl_apply(manifest: str, namespace: Optional[str] = "default") -> Dict[str, Any]:
             """Apply a YAML manifest to the cluster."""
+            if self.non_destructive:
+                return {"success": False, "error": "Blocked: non-destructive mode"}
             try:
                 import subprocess
                 import tempfile
@@ -1168,6 +1182,152 @@ class MCPServer:
             except Exception as e:
                 logger.error(f"Error managing node: {e}")
                 return {"success": False, "error": str(e)}
+
+        @self.server.tool()
+        def kubectl_create(resource_type: str, name: str, namespace: Optional[str] = "default", image: Optional[str] = None, **kwargs) -> Dict[str, Any]:
+            """Create a Kubernetes resource."""
+            if self.non_destructive:
+                return {"success": False, "error": "Operation blocked: non-destructive mode enabled"}
+            try:
+                import subprocess
+                cmd = ["kubectl", "create", resource_type, name, "-n", namespace]
+                if image and resource_type in ["deployment", "pod"]:
+                    cmd.extend(["--image", image])
+                result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
+                if result.returncode == 0:
+                    return {"success": True, "output": result.stdout.strip()}
+                else:
+                    return {"success": False, "error": result.stderr.strip()}
+            except Exception as e:
+                logger.error(f"Error creating resource: {e}")
+                return {"success": False, "error": str(e)}
+
+        @self.server.tool()
+        def helm_template(chart: str, name: str, namespace: str = "default", repo: Optional[str] = None, values: Optional[str] = None) -> Dict[str, Any]:
+            """Render Helm chart templates locally without installing."""
+            try:
+                import subprocess
+                cmd = ["helm", "template", name, chart, "-n", namespace]
+                if repo:
+                    cmd.extend(["--repo", repo])
+                if values:
+                    cmd.extend(["--set", values])
+                result = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
+                if result.returncode == 0:
+                    return {"success": True, "manifest": result.stdout}
+                else:
+                    return {"success": False, "error": result.stderr.strip()}
+            except Exception as e:
+                logger.error(f"Error templating chart: {e}")
+                return {"success": False, "error": str(e)}
+
+        @self.server.tool()
+        def helm_template_apply(chart: str, name: str, namespace: str = "default", repo: Optional[str] = None, values: Optional[str] = None) -> Dict[str, Any]:
+            """Render and apply Helm chart (bypasses Tiller/auth issues)."""
+            if self.non_destructive:
+                return {"success": False, "error": "Operation blocked: non-destructive mode enabled"}
+            try:
+                import subprocess
+                cmd = ["helm", "template", name, chart, "-n", namespace]
+                if repo:
+                    cmd.extend(["--repo", repo])
+                if values:
+                    cmd.extend(["--set", values])
+                template_result = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
+                if template_result.returncode != 0:
+                    return {"success": False, "error": template_result.stderr.strip()}
+                apply_cmd = ["kubectl", "apply", "-f", "-", "-n", namespace]
+                apply_result = subprocess.run(apply_cmd, input=template_result.stdout, capture_output=True, text=True, timeout=60)
+                if apply_result.returncode == 0:
+                    return {"success": True, "output": apply_result.stdout.strip()}
+                else:
+                    return {"success": False, "error": apply_result.stderr.strip()}
+            except Exception as e:
+                logger.error(f"Error applying template: {e}")
+                return {"success": False, "error": str(e)}
+
+    def _check_destructive(self) -> Optional[Dict[str, Any]]:
+        """Check if destructive operations are allowed."""
+        if self.non_destructive:
+            return {"success": False, "error": "Operation blocked: non-destructive mode enabled"}
+        return None
+
+    def setup_prompts(self):
+        """Set up MCP prompts."""
+        @self.server.prompt()
+        def troubleshoot_workload(workload: str, namespace: Optional[str] = None, resource_type: str = "pod") -> str:
+            """Comprehensive troubleshooting guide for Kubernetes workloads."""
+            ns_clause = f"-n {namespace}" if namespace else "--all-namespaces"
+            ns_text = f"in namespace '{namespace}'" if namespace else "across all namespaces"
+            return f"""# Kubernetes Troubleshooting: {workload}
+
+Target: {resource_type}s matching '{workload}' {ns_text}
+
+## Step 1: Discovery
+First, identify all relevant resources:
+- Use `get_pods` with namespace={namespace or 'None'} to list pods
+- Filter results for pods containing '{workload}' in the name
+- Note the status of each pod (Running, Pending, CrashLoopBackOff, etc.)
+
+## Step 2: Status Analysis
+For each pod found, check:
+- **Phase**: Is it Running, Pending, Failed, or Unknown?
+- **Ready**: Are all containers ready? (e.g., 1/1, 2/2)
+- **Restarts**: High restart count indicates crashes
+- **Age**: Recently created pods may still be starting
+
+### Common Status Issues:
+| Status | Likely Cause | First Check |
+|--------|--------------|-------------|
+| Pending | Scheduling issues | get_pod_events |
+| CrashLoopBackOff | App crash on start | get_logs |
+| ImagePullBackOff | Image not found | kubectl_describe |
+| OOMKilled | Memory limit exceeded | kubectl_describe |
+| CreateContainerError | Config issue | get_pod_events |
+
+## Step 3: Deep Inspection
+Use these tools in order:
+
+1. **Events** - `get_pod_events(pod_name, namespace)`
+   - Look for: FailedScheduling, FailedMount, Unhealthy
+   - Check timestamps for recent issues
+
+2. **Logs** - `get_logs(pod_name, namespace, tail=100)`
+   - Look for: exceptions, errors, stack traces
+   - If container crashed: use previous=true
+
+3. **Describe** - `kubectl_describe("pod", pod_name, namespace)`
+   - Check: resource requests/limits, node assignment
+   - Look at: conditions, volumes, container states
+
+## Step 4: Related Resources
+Check parent resources:
+- For Deployments: `kubectl_describe("deployment", name, namespace)`
+- For StatefulSets: `kubectl_describe("statefulset", name, namespace)`
+- For DaemonSets: `kubectl_describe("daemonset", name, namespace)`
+
+Check dependencies:
+- Services: `get_services(namespace)` 
+- ConfigMaps/Secrets: referenced in pod spec
+- PVCs: `kubectl_describe("pvc", name, namespace)` if storage issues
+
+## Step 5: Resolution Checklist
+For each issue, provide:
+
+1. **Root Cause**: What is actually wrong
+2. **Evidence**: Specific log line or event message
+3. **Fix Command**: Exact kubectl command or manifest change
+4. **Verification**: How to confirm the fix worked
+5. **Prevention**: Configuration to prevent recurrence
+
+## Common Fixes Reference:
+- **OOMKilled**: Increase memory limits in deployment spec
+- **CrashLoopBackOff**: Fix application error, check logs
+- **Pending (no nodes)**: Check node capacity, add nodes
+- **ImagePullBackOff**: Verify image name, check imagePullSecrets
+- **Mount failures**: Check PVC status, storage class
+
+Start the investigation now."""
 
     def _mask_secrets(self, text: str) -> str:
         """Mask sensitive data in output."""

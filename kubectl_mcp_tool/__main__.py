@@ -43,10 +43,15 @@ def main():
         default="0.0.0.0",
         help="Host to bind to for SSE/HTTP transport. Default: 0.0.0.0.",
     )
+    parser.add_argument(
+        "--non-destructive",
+        action="store_true",
+        help="Block destructive operations (delete, apply, create, etc.).",
+    )
     args = parser.parse_args()
 
     server_name = "kubernetes"
-    mcp_server = MCPServer(name=server_name)
+    mcp_server = MCPServer(name=server_name, non_destructive=args.non_destructive)
 
     loop = asyncio.get_event_loop()
     try:
