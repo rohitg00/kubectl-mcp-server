@@ -3,7 +3,6 @@ name: Build & Publish Multi-Arch Docker Image
 on:
   push:
     branches: [main]
-    tags: ['v*']
   release:
     types: [published]
 
