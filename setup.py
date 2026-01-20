@@ -14,7 +14,7 @@ setup(
     url="https://github.com/rohitg00/kubectl-mcp-server",
     packages=find_packages(),
     install_requires=[
-        "mcp>=1.5.0",
+        "mcp>=1.8.0",
         "pydantic>=2.0.0",
         "fastapi>=0.100.0",
         "uvicorn>=0.22.0",
