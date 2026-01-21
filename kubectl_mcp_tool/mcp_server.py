@@ -69,7 +69,7 @@ except ImportError:
     import subprocess
     try:
         subprocess.check_call(
-            [sys.executable, "-m", "pip", "install", "fastmcp>=3.0.0"],
+            [sys.executable, "-m", "pip", "install", "fastmcp>=3.0.0b1"],
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL
         )
@@ -90,6 +90,7 @@ class MCPServer:
         self._dependencies_checked = False
         self._dependencies_available = None
         self.setup_tools()
+        self.setup_resources()
         self.setup_prompts()
     
     @property
@@ -1389,7 +1390,7 @@ class MCPServer:
                 destructiveHint=True,
             ),
         )
-        def kubectl_create(resource_type: str, name: str, namespace: Optional[str] = "default", image: Optional[str] = None, **kwargs) -> Dict[str, Any]:
+        def kubectl_create(resource_type: str, name: str, namespace: Optional[str] = "default", image: Optional[str] = None) -> Dict[str, Any]:
             """Create a Kubernetes resource."""
             if self.non_destructive:
                 return {"success": False, "error": "Operation blocked: non-destructive mode enabled"}
@@ -4660,6 +4661,302 @@ class MCPServer:
             return {"success": False, "error": "Operation blocked: non-destructive mode enabled"}
         return None
 
+    def setup_resources(self):
+        """Set up MCP resources for Kubernetes data exposure."""
+
+        @self.server.resource("kubeconfig://contexts")
+        def get_kubeconfig_contexts() -> str:
+            """List all available kubectl contexts."""
+            try:
+                from kubernetes import config
+                contexts, active_context = config.list_kube_config_contexts()
+                result = {
+                    "active_context": active_context.get("name") if active_context else None,
+                    "contexts": [
+                        {
+                            "name": ctx.get("name"),
+                            "cluster": ctx.get("context", {}).get("cluster"),
+                            "user": ctx.get("context", {}).get("user"),
+                            "namespace": ctx.get("context", {}).get("namespace", "default")
+                        }
+                        for ctx in contexts
+                    ]
+                }
+                return json.dumps(result, indent=2)
+            except Exception as e:
+                return json.dumps({"error": str(e)})
+
+        @self.server.resource("kubeconfig://current-context")
+        def get_current_context() -> str:
+            """Get the current active kubectl context."""
+            try:
+                from kubernetes import config
+                _, active_context = config.list_kube_config_contexts()
+                if active_context:
+                    result = {
+                        "name": active_context.get("name"),
+                        "cluster": active_context.get("context", {}).get("cluster"),
+                        "user": active_context.get("context", {}).get("user"),
+                        "namespace": active_context.get("context", {}).get("namespace", "default")
+                    }
+                else:
+                    result = {"error": "No active context found"}
+                return json.dumps(result, indent=2)
+            except Exception as e:
+                return json.dumps({"error": str(e)})
+
+        @self.server.resource("namespace://current")
+        def get_current_namespace() -> str:
+            """Get the current namespace from kubectl context."""
+            try:
+                from kubernetes import config
+                _, active_context = config.list_kube_config_contexts()
+                namespace = "default"
+                if active_context:
+                    namespace = active_context.get("context", {}).get("namespace", "default")
+                return json.dumps({"namespace": namespace}, indent=2)
+            except Exception as e:
+                return json.dumps({"error": str(e)})
+
+        @self.server.resource("namespace://list")
+        def list_all_namespaces() -> str:
+            """List all namespaces in the cluster."""
+            try:
+                from kubernetes import client, config
+                config.load_kube_config()
+                v1 = client.CoreV1Api()
+                namespaces = v1.list_namespace()
+                result = {
+                    "namespaces": [
+                        {
+                            "name": ns.metadata.name,
+                            "status": ns.status.phase,
+                            "created": ns.metadata.creation_timestamp.isoformat() if ns.metadata.creation_timestamp else None,
+                            "labels": ns.metadata.labels or {}
+                        }
+                        for ns in namespaces.items
+                    ]
+                }
+                return json.dumps(result, indent=2, default=str)
+            except Exception as e:
+                return json.dumps({"error": str(e)})
+
+        @self.server.resource("cluster://info")
+        def get_cluster_info() -> str:
+            """Get cluster information including version and nodes."""
+            try:
+                from kubernetes import client, config
+                config.load_kube_config()
+                v1 = client.CoreV1Api()
+                version_api = client.VersionApi()
+
+                version_info = version_api.get_code()
+                nodes = v1.list_node()
+
+                result = {
+                    "version": {
+                        "git_version": version_info.git_version,
+                        "platform": version_info.platform,
+                        "go_version": version_info.go_version
+                    },
+                    "nodes": {
+                        "count": len(nodes.items),
+                        "ready": sum(1 for n in nodes.items if any(
+                            c.type == "Ready" and c.status == "True"
+                            for c in n.status.conditions
+                        ))
+                    }
+                }
+                return json.dumps(result, indent=2)
+            except Exception as e:
+                return json.dumps({"error": str(e)})
+
+        @self.server.resource("cluster://nodes")
+        def get_cluster_nodes() -> str:
+            """Get detailed information about all cluster nodes."""
+            try:
+                from kubernetes import client, config
+                config.load_kube_config()
+                v1 = client.CoreV1Api()
+                nodes = v1.list_node()
+
+                result = {
+                    "nodes": [
+                        {
+                            "name": node.metadata.name,
+                            "status": next(
+                                (c.status for c in node.status.conditions if c.type == "Ready"),
+                                "Unknown"
+                            ),
+                            "roles": [
+                                k.replace("node-role.kubernetes.io/", "")
+                                for k in (node.metadata.labels or {}).keys()
+                                if k.startswith("node-role.kubernetes.io/")
+                            ] or ["worker"],
+                            "kubernetes_version": node.status.node_info.kubelet_version,
+                            "os": node.status.node_info.os_image,
+                            "architecture": node.status.node_info.architecture,
+                            "capacity": {
+                                "cpu": node.status.capacity.get("cpu"),
+                                "memory": node.status.capacity.get("memory"),
+                                "pods": node.status.capacity.get("pods")
+                            },
+                            "allocatable": {
+                                "cpu": node.status.allocatable.get("cpu"),
+                                "memory": node.status.allocatable.get("memory"),
+                                "pods": node.status.allocatable.get("pods")
+                            }
+                        }
+                        for node in nodes.items
+                    ]
+                }
+                return json.dumps(result, indent=2)
+            except Exception as e:
+                return json.dumps({"error": str(e)})
+
+        @self.server.resource("cluster://version")
+        def get_cluster_version() -> str:
+            """Get Kubernetes cluster version."""
+            try:
+                from kubernetes import client, config
+                config.load_kube_config()
+                version_api = client.VersionApi()
+                version_info = version_api.get_code()
+
+                result = {
+                    "git_version": version_info.git_version,
+                    "major": version_info.major,
+                    "minor": version_info.minor,
+                    "platform": version_info.platform,
+                    "build_date": version_info.build_date,
+                    "go_version": version_info.go_version,
+                    "compiler": version_info.compiler
+                }
+                return json.dumps(result, indent=2)
+            except Exception as e:
+                return json.dumps({"error": str(e)})
+
+        @self.server.resource("cluster://api-resources")
+        def get_api_resources() -> str:
+            """Get available API resources in the cluster."""
+            try:
+                import subprocess
+                result = subprocess.run(
+                    ["kubectl", "api-resources", "--output=wide"],
+                    capture_output=True, text=True, timeout=30
+                )
+                if result.returncode == 0:
+                    lines = result.stdout.strip().split("\n")
+                    if len(lines) > 1:
+                        headers = lines[0].lower().split()
+                        resources = []
+                        for line in lines[1:]:
+                            parts = line.split()
+                            if len(parts) >= 4:
+                                resources.append({
+                                    "name": parts[0],
+                                    "shortnames": parts[1] if len(parts) > 4 else "",
+                                    "apigroup": parts[-4] if len(parts) > 4 else "",
+                                    "namespaced": parts[-3] if len(parts) > 4 else parts[-2],
+                                    "kind": parts[-2] if len(parts) > 4 else parts[-1]
+                                })
+                        return json.dumps({"resources": resources}, indent=2)
+                return json.dumps({"error": result.stderr or "Failed to get API resources"})
+            except Exception as e:
+                return json.dumps({"error": str(e)})
+
+        @self.server.resource("manifest://deployments/{namespace}/{name}")
+        def get_deployment_manifest(namespace: str, name: str) -> str:
+            """Get YAML manifest for a specific deployment."""
+            try:
+                from kubernetes import client, config
+                import yaml
+                config.load_kube_config()
+                apps_v1 = client.AppsV1Api()
+
+                deployment = apps_v1.read_namespaced_deployment(name, namespace)
+                manifest = client.ApiClient().sanitize_for_serialization(deployment)
+                return yaml.dump(manifest, default_flow_style=False)
+            except Exception as e:
+                return f"# Error: {str(e)}"
+
+        @self.server.resource("manifest://services/{namespace}/{name}")
+        def get_service_manifest(namespace: str, name: str) -> str:
+            """Get YAML manifest for a specific service."""
+            try:
+                from kubernetes import client, config
+                import yaml
+                config.load_kube_config()
+                v1 = client.CoreV1Api()
+
+                service = v1.read_namespaced_service(name, namespace)
+                manifest = client.ApiClient().sanitize_for_serialization(service)
+                return yaml.dump(manifest, default_flow_style=False)
+            except Exception as e:
+                return f"# Error: {str(e)}"
+
+        @self.server.resource("manifest://configmaps/{namespace}/{name}")
+        def get_configmap_manifest(namespace: str, name: str) -> str:
+            """Get YAML manifest for a specific ConfigMap."""
+            try:
+                from kubernetes import client, config
+                import yaml
+                config.load_kube_config()
+                v1 = client.CoreV1Api()
+
+                configmap = v1.read_namespaced_config_map(name, namespace)
+                manifest = client.ApiClient().sanitize_for_serialization(configmap)
+                return yaml.dump(manifest, default_flow_style=False)
+            except Exception as e:
+                return f"# Error: {str(e)}"
+
+        @self.server.resource("manifest://pods/{namespace}/{name}")
+        def get_pod_manifest(namespace: str, name: str) -> str:
+            """Get YAML manifest for a specific pod."""
+            try:
+                from kubernetes import client, config
+                import yaml
+                config.load_kube_config()
+                v1 = client.CoreV1Api()
+
+                pod = v1.read_namespaced_pod(name, namespace)
+                manifest = client.ApiClient().sanitize_for_serialization(pod)
+                return yaml.dump(manifest, default_flow_style=False)
+            except Exception as e:
+                return f"# Error: {str(e)}"
+
+        @self.server.resource("manifest://secrets/{namespace}/{name}")
+        def get_secret_manifest(namespace: str, name: str) -> str:
+            """Get YAML manifest for a specific secret (data masked)."""
+            try:
+                from kubernetes import client, config
+                import yaml
+                config.load_kube_config()
+                v1 = client.CoreV1Api()
+
+                secret = v1.read_namespaced_secret(name, namespace)
+                manifest = client.ApiClient().sanitize_for_serialization(secret)
+                if "data" in manifest and manifest["data"]:
+                    manifest["data"] = {k: "[MASKED]" for k in manifest["data"].keys()}
+                return yaml.dump(manifest, default_flow_style=False)
+            except Exception as e:
+                return f"# Error: {str(e)}"
+
+        @self.server.resource("manifest://ingresses/{namespace}/{name}")
+        def get_ingress_manifest(namespace: str, name: str) -> str:
+            """Get YAML manifest for a specific ingress."""
+            try:
+                from kubernetes import client, config
+                import yaml
+                config.load_kube_config()
+                networking_v1 = client.NetworkingV1Api()
+
+                ingress = networking_v1.read_namespaced_ingress(name, namespace)
+                manifest = client.ApiClient().sanitize_for_serialization(ingress)
+                return yaml.dump(manifest, default_flow_style=False)
+            except Exception as e:
+                return f"# Error: {str(e)}"
+
     def setup_prompts(self):
         """Set up MCP prompts."""
         @self.server.prompt()
@@ -4736,6 +5033,888 @@ For each issue, provide:
 - **Mount failures**: Check PVC status, storage class
 
 Start the investigation now."""
+
+        @self.server.prompt()
+        def deploy_application(app_name: str, namespace: str = "default", replicas: int = 1) -> str:
+            """Step-by-step guide for deploying applications to Kubernetes."""
+            return f"""# Kubernetes Deployment Guide: {app_name}
+
+Target Namespace: {namespace}
+Desired Replicas: {replicas}
+
+## Pre-Deployment Checklist
+
+### Step 1: Verify Cluster Access
+- Use `get_namespaces` to confirm cluster connectivity
+- Check if namespace '{namespace}' exists
+- If not, create it: `kubectl_create_namespace("{namespace}")`
+
+### Step 2: Review Existing Resources
+Check for conflicts or existing deployments:
+- `get_deployments(namespace="{namespace}")` - List current deployments
+- `get_services(namespace="{namespace}")` - List current services
+- `get_configmaps(namespace="{namespace}")` - List ConfigMaps
+
+### Step 3: Prepare Deployment Manifest
+Required components for '{app_name}':
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {app_name}
+  namespace: {namespace}
+  labels:
+    app: {app_name}
+spec:
+  replicas: {replicas}
+  selector:
+    matchLabels:
+      app: {app_name}
+  template:
+    metadata:
+      labels:
+        app: {app_name}
+    spec:
+      containers:
+      - name: {app_name}
+        image: <IMAGE_NAME>:<TAG>
+        ports:
+        - containerPort: <PORT>
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "100m"
+          limits:
+            memory: "128Mi"
+            cpu: "200m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: <PORT>
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: <PORT>
+          initialDelaySeconds: 5
+          periodSeconds: 5
+```
+
+### Step 4: Apply Configuration
+Use `kubectl_apply` with the manifest YAML
+
+### Step 5: Verify Deployment
+1. `kubectl_rollout_status("deployment", "{app_name}", "{namespace}")` - Watch rollout
+2. `get_pods(namespace="{namespace}")` - Check pod status
+3. `get_logs(pod_name, "{namespace}")` - Check application logs
+
+### Step 6: Expose Service (if needed)
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: {app_name}
+  namespace: {namespace}
+spec:
+  selector:
+    app: {app_name}
+  ports:
+  - port: 80
+    targetPort: <PORT>
+  type: ClusterIP  # or LoadBalancer, NodePort
+```
+
+### Step 7: Post-Deployment Verification
+- `kubectl_describe("deployment", "{app_name}", "{namespace}")` - Full details
+- `kubectl_get_endpoints("{app_name}", "{namespace}")` - Service endpoints
+- Test connectivity to the application
+
+## Rollback Plan
+If issues occur:
+- `kubectl_rollout("undo", "deployment", "{app_name}", "{namespace}")` - Rollback
+- `kubectl_rollout_history("deployment", "{app_name}", "{namespace}")` - View history
+
+Start the deployment process now."""
+
+        @self.server.prompt()
+        def security_audit(namespace: Optional[str] = None, scope: str = "full") -> str:
+            """Security audit workflow for Kubernetes clusters."""
+            ns_text = f"namespace '{namespace}'" if namespace else "all namespaces"
+            return f"""# Kubernetes Security Audit
+
+Scope: {scope}
+Target: {ns_text}
+
+## Phase 1: RBAC Analysis
+
+### Step 1: Review ClusterRoles
+- `kubectl_get("clusterroles")` - List all cluster roles
+- Look for overly permissive roles (e.g., `*` on verbs or resources)
+- Check for `cluster-admin` bindings
+
+### Step 2: Review RoleBindings
+- `kubectl_get("clusterrolebindings")` - Cluster-wide bindings
+- `kubectl_get("rolebindings", namespace="{namespace or 'all'}")` - Namespace bindings
+- Identify which users/serviceaccounts have elevated privileges
+
+### Step 3: ServiceAccount Analysis
+- `kubectl_get("serviceaccounts", namespace="{namespace or 'all'}")` - List SAs
+- Check for default SA usage in pods
+- Verify SA token automounting is disabled where not needed
+
+## Phase 2: Pod Security
+
+### Step 4: Security Context Review
+Use `kubectl_get_security_contexts(namespace="{namespace}")` to check:
+- [ ] Pods running as non-root
+- [ ] Read-only root filesystem
+- [ ] Dropped capabilities
+- [ ] No privilege escalation
+
+### Step 5: Image Security
+- `kubectl_list_images(namespace="{namespace}")` - List all images
+- Check for:
+  - [ ] Specific image tags (not `latest`)
+  - [ ] Trusted registries
+  - [ ] Image pull policies
+
+### Step 6: Network Policies
+- `kubectl_get("networkpolicies", namespace="{namespace}")` - List policies
+- Verify default deny policies exist
+- Check ingress/egress rules
+
+## Phase 3: Secrets Management
+
+### Step 7: Secrets Audit
+- `kubectl_get("secrets", namespace="{namespace}")` - List secrets
+- Check for:
+  - [ ] Unused secrets
+  - [ ] Secrets mounted as environment variables (less secure)
+  - [ ] External secrets management integration
+
+### Step 8: ConfigMap Review
+- `kubectl_get("configmaps", namespace="{namespace}")` - List ConfigMaps
+- Ensure no sensitive data in ConfigMaps
+
+## Phase 4: Resource Security
+
+### Step 9: Resource Quotas
+- `kubectl_get("resourcequotas", namespace="{namespace}")` - Check quotas
+- Verify limits are set appropriately
+
+### Step 10: Pod Disruption Budgets
+- `kubectl_get("poddisruptionbudgets", namespace="{namespace}")` - Check PDBs
+- Ensure critical workloads have PDBs
+
+## Phase 5: Cluster Security
+
+### Step 11: API Server Audit
+- Check API server audit logs
+- Review authentication methods
+
+### Step 12: Node Security
+- `kubectl_get("nodes")` - List nodes
+- Check node labels and taints
+- Verify node security patches
+
+## Security Report Template
+
+For each finding, document:
+1. **Severity**: Critical/High/Medium/Low
+2. **Resource**: Specific resource affected
+3. **Issue**: Description of the security concern
+4. **Risk**: Potential impact if exploited
+5. **Remediation**: Steps to fix
+6. **Verification**: How to confirm the fix
+
+## Common Fixes:
+- Add `securityContext.runAsNonRoot: true`
+- Set `automountServiceAccountToken: false`
+- Add NetworkPolicy with default deny
+- Use specific image tags
+- Enable Pod Security Standards
+
+Begin the security audit now."""
+
+        @self.server.prompt()
+        def cost_optimization(namespace: Optional[str] = None) -> str:
+            """Cost optimization analysis workflow."""
+            ns_text = f"namespace '{namespace}'" if namespace else "cluster-wide"
+            return f"""# Kubernetes Cost Optimization Analysis
+
+Scope: {ns_text}
+
+## Phase 1: Resource Usage Analysis
+
+### Step 1: Current Resource Consumption
+Use `kubectl_get_resource_usage(namespace="{namespace}")` to analyze:
+- CPU requests vs actual usage
+- Memory requests vs actual usage
+- Identify over-provisioned resources
+
+### Step 2: Idle Resource Detection
+Use `kubectl_get_idle_resources(namespace="{namespace}")` to find:
+- Pods with < 10% CPU utilization
+- Pods with < 20% memory utilization
+- Unused PersistentVolumes
+- Idle LoadBalancer services
+
+### Step 3: Resource Recommendations
+Use `kubectl_get_resource_recommendations(namespace="{namespace}")`:
+- Right-sizing suggestions based on usage
+- HPA recommendations
+- VPA recommendations
+
+## Phase 2: Workload Optimization
+
+### Step 4: Deployment Analysis
+For each deployment:
+- Check replica count vs actual load
+- Review resource requests/limits
+- Identify candidates for autoscaling
+
+### Step 5: Node Utilization
+- `kubectl_top("nodes")` - Node resource usage
+- Identify underutilized nodes
+- Consider node consolidation
+
+### Step 6: Storage Optimization
+- Review PVC sizes vs actual usage
+- Identify unused PVCs
+- Consider storage class optimization
+
+## Phase 3: Scheduling Optimization
+
+### Step 7: Pod Scheduling
+- Review pod affinity/anti-affinity rules
+- Check for bin-packing opportunities
+- Evaluate spot/preemptible node usage
+
+### Step 8: Priority Classes
+- Review PriorityClasses
+- Ensure critical workloads have appropriate priority
+
+## Phase 4: Cost Estimation
+
+### Step 9: Current Cost Analysis
+Use `kubectl_get_cost_analysis(namespace="{namespace}")`:
+- Estimated monthly costs
+- Cost breakdown by resource type
+- Cost per namespace/workload
+
+### Step 10: Optimization Savings
+Estimate savings from:
+- Right-sizing resources
+- Implementing autoscaling
+- Using spot instances
+- Consolidating workloads
+
+## Optimization Actions
+
+### Quick Wins (Immediate Impact):
+1. Remove idle resources
+2. Right-size over-provisioned pods
+3. Delete unused PVCs
+
+### Medium-Term:
+1. Implement HPA for variable workloads
+2. Use VPA for stable workloads
+3. Consolidate underutilized nodes
+
+### Long-Term:
+1. Implement cluster autoscaler
+2. Use spot/preemptible nodes
+3. Multi-tenancy optimization
+
+## Cost Monitoring Setup
+- Set up `kubectl_get_budget_alerts` for thresholds
+- Monitor `kubectl_get_cost_trends` regularly
+- Review monthly cost reports
+
+Begin the cost optimization analysis now."""
+
+        @self.server.prompt()
+        def disaster_recovery(namespace: Optional[str] = None, dr_type: str = "full") -> str:
+            """Disaster recovery planning and execution workflow."""
+            ns_text = f"namespace '{namespace}'" if namespace else "entire cluster"
+            return f"""# Kubernetes Disaster Recovery Plan
+
+Scope: {ns_text}
+DR Type: {dr_type}
+
+## Phase 1: Pre-Disaster Preparation
+
+### Step 1: Inventory Current State
+Document all resources:
+- `get_deployments(namespace="{namespace}")` - All deployments
+- `get_services(namespace="{namespace}")` - All services
+- `kubectl_get("configmaps", namespace="{namespace}")` - ConfigMaps
+- `kubectl_get("secrets", namespace="{namespace}")` - Secrets
+- `kubectl_get("pvc", namespace="{namespace}")` - Persistent volumes
+
+### Step 2: Backup Strategy
+For each resource type:
+
+**Deployments/StatefulSets:**
+- Export YAML manifests using `kubectl_export`
+- Store in version control
+- Document image versions
+
+**ConfigMaps/Secrets:**
+- Export with `kubectl_export`
+- Encrypt secrets before storage
+- Use external secret management
+
+**Persistent Data:**
+- Volume snapshots (if supported)
+- Application-level backups
+- Document backup frequency
+
+### Step 3: Document Dependencies
+Create dependency map:
+- External services (databases, APIs)
+- DNS configurations
+- Load balancer settings
+- SSL certificates
+
+## Phase 2: Backup Execution
+
+### Step 4: Export Resources
+For namespace '{namespace or "all"}':
+```
+kubectl_export("deployment", namespace="{namespace}")
+kubectl_export("service", namespace="{namespace}")
+kubectl_export("configmap", namespace="{namespace}")
+kubectl_export("secret", namespace="{namespace}")
+kubectl_export("ingress", namespace="{namespace}")
+```
+
+### Step 5: Verify Backups
+- Validate YAML syntax
+- Check completeness
+- Test restore in staging
+
+### Step 6: Backup Storage
+- Store backups in multiple locations
+- Use encrypted storage
+- Implement retention policy
+
+## Phase 3: Recovery Procedures
+
+### Step 7: Cluster Recovery
+If cluster is lost:
+1. Provision new cluster
+2. Configure networking
+3. Set up storage classes
+4. Apply RBAC configurations
+
+### Step 8: Namespace Recovery
+For namespace '{namespace or "default"}':
+1. `kubectl_create_namespace("{namespace}")` - Create namespace
+2. Apply secrets first (dependencies)
+3. Apply ConfigMaps
+4. Apply PVCs
+5. Apply deployments
+6. Apply services
+7. Apply ingresses
+
+### Step 9: Data Recovery
+- Restore from volume snapshots
+- Execute application-level restores
+- Verify data integrity
+
+### Step 10: Verification
+Post-recovery checks:
+- `get_pods(namespace="{namespace}")` - All pods running
+- `kubectl_get_endpoints` - Services have endpoints
+- Application health checks
+- Data verification
+
+## Phase 4: Testing & Documentation
+
+### Step 11: DR Testing Schedule
+- Monthly: Backup verification
+- Quarterly: Partial restore test
+- Annually: Full DR drill
+
+### Step 12: Recovery Time Objectives
+Document for each service:
+- RTO (Recovery Time Objective)
+- RPO (Recovery Point Objective)
+- Priority order
+
+### Step 13: Runbook Updates
+After each test:
+- Update procedures
+- Document lessons learned
+- Refine time estimates
+
+## Emergency Contacts
+- Cluster administrators
+- Application owners
+- External service contacts
+- Cloud provider support
+
+## Quick Reference Commands
+```
+# Full namespace backup
+kubectl get all -n {namespace or 'default'} -o yaml > backup.yaml
+
+# Restore from backup
+kubectl apply -f backup.yaml
+
+# Check restore status
+kubectl get pods -n {namespace or 'default'} -w
+```
+
+Begin disaster recovery planning now."""
+
+        @self.server.prompt()
+        def debug_networking(service_name: str, namespace: str = "default") -> str:
+            """Network debugging workflow for Kubernetes services."""
+            return f"""# Kubernetes Network Debugging: {service_name}
+
+Target: Service '{service_name}' in namespace '{namespace}'
+
+## Phase 1: Service Discovery
+
+### Step 1: Verify Service Exists
+- `kubectl_describe("service", "{service_name}", "{namespace}")` - Service details
+- Check service type (ClusterIP, NodePort, LoadBalancer)
+- Note selector labels and ports
+
+### Step 2: Check Endpoints
+- `kubectl_get_endpoints("{service_name}", "{namespace}")` - Endpoint addresses
+- If empty: No pods match the service selector
+- Verify endpoint IPs match pod IPs
+
+### Step 3: Verify Backend Pods
+- `get_pods(namespace="{namespace}")` - List pods
+- Check pods have matching labels
+- Verify pods are in Running state
+
+## Phase 2: DNS Resolution
+
+### Step 4: Test DNS Resolution
+From within a pod:
+```
+nslookup {service_name}.{namespace}.svc.cluster.local
+```
+
+Expected format: `<service>.<namespace>.svc.cluster.local`
+
+### Step 5: CoreDNS Health
+- `get_pods(namespace="kube-system")` - Check CoreDNS pods
+- `get_logs(coredns_pod, "kube-system")` - Check DNS logs
+
+## Phase 3: Connectivity Testing
+
+### Step 6: Pod-to-Pod Connectivity
+Test from a debug pod:
+```
+kubectl run debug --rm -it --image=busybox -- wget -qO- http://{service_name}.{namespace}:PORT
+```
+
+### Step 7: Service Port Verification
+- Verify `port` (service port) and `targetPort` (container port) match
+- Check if container is listening on targetPort
+- Use `kubectl_port_forward` to test directly
+
+### Step 8: Network Policies
+- `kubectl_get("networkpolicies", namespace="{namespace}")` - List policies
+- Check if policies block ingress/egress
+- Verify policy selectors
+
+## Phase 4: Load Balancer / Ingress
+
+### Step 9: External Access (LoadBalancer)
+If type=LoadBalancer:
+- Check external IP assignment
+- Verify cloud provider LB health
+- Test external connectivity
+
+### Step 10: Ingress Configuration
+- `kubectl_describe("ingress", ingress_name, "{namespace}")` - Ingress details
+- Verify host and path rules
+- Check ingress controller logs
+
+## Phase 5: Common Issues
+
+### Issue: No Endpoints
+Causes:
+- Pod selector mismatch
+- Pods not running
+- Readiness probe failing
+
+Fix:
+1. Check service selector labels
+2. Verify pod labels match
+3. Fix readiness probe
+
+### Issue: Connection Refused
+Causes:
+- Wrong targetPort
+- App not listening
+- App crashed
+
+Fix:
+1. Verify container port
+2. Check pod logs
+3. Test with port-forward
+
+### Issue: Connection Timeout
+Causes:
+- Network policy blocking
+- Wrong service IP/port
+- CNI issues
+
+Fix:
+1. Review network policies
+2. Verify kube-proxy running
+3. Check CNI plugin status
+
+### Issue: DNS Resolution Failed
+Causes:
+- CoreDNS not running
+- DNS policy on pod
+- Namespace isolation
+
+Fix:
+1. Check CoreDNS pods
+2. Verify pod dnsPolicy
+3. Check DNS service
+
+## Debugging Commands Reference
+```
+# Test from debug pod
+kubectl run debug --rm -it --image=nicolaka/netshoot -- /bin/bash
+
+# Inside debug pod:
+curl -v http://{service_name}.{namespace}:PORT
+dig {service_name}.{namespace}.svc.cluster.local
+traceroute {service_ip}
+netstat -tlnp
+```
+
+## Network Flow Verification
+1. Client -> Service IP (kube-proxy/iptables)
+2. Service -> Endpoint (pod IP)
+3. Pod IP -> Container port
+
+Check each hop for failures.
+
+Begin network debugging now."""
+
+        @self.server.prompt()
+        def scale_application(app_name: str, namespace: str = "default", target_replicas: int = 3) -> str:
+            """Application scaling guide with best practices."""
+            return f"""# Kubernetes Scaling Guide: {app_name}
+
+Target: Deployment '{app_name}' in namespace '{namespace}'
+Target Replicas: {target_replicas}
+
+## Pre-Scaling Checklist
+
+### Step 1: Current State Assessment
+- `kubectl_describe("deployment", "{app_name}", "{namespace}")` - Current config
+- `kubectl_top("pods", namespace="{namespace}")` - Resource usage
+- Note current replica count and resource limits
+
+### Step 2: Capacity Planning
+Calculate required resources:
+- Current pod resources × {target_replicas} = Total needed
+- Check node capacity: `kubectl_top("nodes")`
+- Verify cluster can accommodate new pods
+
+### Step 3: Check Dependencies
+- Database connection pools
+- External API rate limits
+- Shared resources (ConfigMaps, Secrets)
+- Service mesh sidecar limits
+
+## Scaling Methods
+
+### Method 1: Manual Scaling
+Immediate scale operation:
+```
+kubectl_scale("deployment", "{app_name}", {target_replicas}, "{namespace}")
+```
+
+Monitor rollout:
+```
+kubectl_rollout_status("deployment", "{app_name}", "{namespace}")
+```
+
+### Method 2: Horizontal Pod Autoscaler (HPA)
+For automatic scaling based on metrics:
+
+```yaml
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {app_name}-hpa
+  namespace: {namespace}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {app_name}
+  minReplicas: 2
+  maxReplicas: {target_replicas * 2}
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80
+```
+
+### Method 3: Vertical Pod Autoscaler (VPA)
+For automatic resource adjustment:
+- Adjust CPU/memory requests
+- Useful for variable workloads
+- May require pod restarts
+
+## Scaling Best Practices
+
+### Pod Disruption Budget
+Ensure availability during scaling:
+```yaml
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {app_name}-pdb
+  namespace: {namespace}
+spec:
+  minAvailable: 1  # or maxUnavailable: 1
+  selector:
+    matchLabels:
+      app: {app_name}
+```
+
+### Anti-Affinity Rules
+Spread pods across nodes:
+```yaml
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+    - weight: 100
+      podAffinityTerm:
+        labelSelector:
+          matchLabels:
+            app: {app_name}
+        topologyKey: kubernetes.io/hostname
+```
+
+### Resource Requests/Limits
+Ensure proper resource allocation:
+```yaml
+resources:
+  requests:
+    memory: "256Mi"
+    cpu: "250m"
+  limits:
+    memory: "512Mi"
+    cpu: "500m"
+```
+
+## Post-Scaling Verification
+
+### Step 4: Verify Scaling Success
+1. `get_pods(namespace="{namespace}")` - Check pod count
+2. Verify all pods are Running and Ready
+3. Check pod distribution across nodes
+
+### Step 5: Monitor Application
+- Check application metrics
+- Verify response times
+- Monitor error rates
+- Check resource utilization
+
+### Step 6: Update Dependent Resources
+- Adjust service mesh settings
+- Update monitoring thresholds
+- Review log aggregation capacity
+
+## Rollback Plan
+If issues occur after scaling:
+```
+kubectl_scale("deployment", "{app_name}", original_count, "{namespace}")
+```
+
+## Scaling Triggers Reference
+| Metric | Scale Up When | Scale Down When |
+|--------|---------------|-----------------|
+| CPU | > 70% | < 30% |
+| Memory | > 80% | < 40% |
+| RPS | > threshold | < threshold |
+| Queue depth | > 100 | < 10 |
+
+Begin scaling operation now."""
+
+        @self.server.prompt()
+        def upgrade_cluster(current_version: str = "1.28", target_version: str = "1.29") -> str:
+            """Kubernetes cluster upgrade planning guide."""
+            return f"""# Kubernetes Cluster Upgrade Plan
+
+Current Version: {current_version}
+Target Version: {target_version}
+
+## Pre-Upgrade Phase
+
+### Step 1: Compatibility Check
+Review upgrade path:
+- Kubernetes supports N-2 version skew
+- Upgrade one minor version at a time
+- Check: {current_version} -> {target_version} is valid
+
+### Step 2: Deprecation Review
+Check for deprecated APIs:
+- `kubectl_get_deprecated_resources` - Find deprecated resources
+- Review release notes for {target_version}
+- Update manifests before upgrade
+
+### Step 3: Addon Compatibility
+Verify addon versions support {target_version}:
+- CNI plugin (Calico, Cilium, etc.)
+- Ingress controller
+- Metrics server
+- Storage drivers
+
+### Step 4: Backup Everything
+Create full backups:
+- etcd snapshot
+- All resource manifests
+- PersistentVolume data
+- External configurations
+
+## Control Plane Upgrade
+
+### Step 5: Upgrade Control Plane Components
+Order of operations:
+1. kube-apiserver
+2. kube-controller-manager
+3. kube-scheduler
+4. cloud-controller-manager (if applicable)
+
+For managed clusters (EKS, GKE, AKS):
+- Use provider's upgrade mechanism
+- Monitor upgrade progress
+
+### Step 6: Verify Control Plane
+After control plane upgrade:
+- `kubectl_cluster_info` - Verify API server version
+- Check component health
+- Test API connectivity
+
+## Node Upgrade
+
+### Step 7: Upgrade Strategy Selection
+Choose one:
+
+**Rolling Upgrade (Recommended):**
+- Upgrade nodes one at a time
+- Minimal disruption
+- Slower but safer
+
+**Blue-Green:**
+- Create new node pool
+- Migrate workloads
+- Delete old nodes
+
+### Step 8: Node Upgrade Process
+For each node:
+
+1. **Cordon the node:**
+   `kubectl_cordon(node_name)`
+
+2. **Drain workloads:**
+   `kubectl_drain(node_name, ignore_daemonsets=True)`
+
+3. **Upgrade kubelet & kubectl:**
+   - Update packages
+   - Restart kubelet
+
+4. **Uncordon the node:**
+   `kubectl_uncordon(node_name)`
+
+5. **Verify node health:**
+   `kubectl_describe("node", node_name)`
+
+### Step 9: Verify Node Versions
+- `kubectl_get("nodes")` - Check all node versions
+- Ensure all nodes show {target_version}
+
+## Post-Upgrade Verification
+
+### Step 10: Cluster Health Check
+Run comprehensive checks:
+- `kubectl_cluster_info` - Cluster status
+- `get_pods(namespace="kube-system")` - System pods
+- All nodes Ready
+- All system pods Running
+
+### Step 11: Application Verification
+For each namespace:
+- Check pod health
+- Verify service endpoints
+- Test application functionality
+- Monitor for errors
+
+### Step 12: Update Tooling
+After successful upgrade:
+- Update kubectl client
+- Update CI/CD pipelines
+- Update documentation
+- Update monitoring dashboards
+
+## Rollback Plan
+
+### If Issues Occur:
+1. Stop upgrade process
+2. Restore from etcd backup (control plane)
+3. Downgrade nodes if needed
+4. Investigate root cause
+
+### Rollback Considerations:
+- API resources created with new features won't work
+- May need to restore from backup
+- Document rollback steps before starting
+
+## Upgrade Checklist
+
+Pre-Upgrade:
+- [ ] Backup etcd
+- [ ] Backup all manifests
+- [ ] Check API deprecations
+- [ ] Verify addon compatibility
+- [ ] Test upgrade in staging
+- [ ] Schedule maintenance window
+- [ ] Notify stakeholders
+
+During Upgrade:
+- [ ] Upgrade control plane
+- [ ] Verify control plane health
+- [ ] Upgrade nodes (rolling)
+- [ ] Monitor for issues
+
+Post-Upgrade:
+- [ ] Verify all nodes upgraded
+- [ ] Check application health
+- [ ] Update client tools
+- [ ] Document any issues
+- [ ] Update runbooks
+
+Begin upgrade planning now."""
 
     def _mask_secrets(self, text: str) -> str:
         """Mask sensitive data in output."""

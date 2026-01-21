@@ -23,7 +23,7 @@ A Model Context Protocol (MCP) server for Kubernetes that enables AI assistants 
 
 ## Features
 
-### 80 MCP Tools for Complete Kubernetes Management
+### 80+ MCP Tools for Complete Kubernetes Management
 
 | Category | Tools |
 |----------|-------|
@@ -44,6 +44,42 @@ A Model Context Protocol (MCP) server for Kubernetes that enables AI assistants 
 | **Cost Optimization** | `get_resource_recommendations`, `get_idle_resources`, `get_resource_quotas_usage`, `get_cost_analysis`, `get_overprovisioned_resources`, `get_resource_trends`, `get_namespace_cost_allocation`, `optimize_resource_requests` |
 | **Advanced** | `kubectl_generic`, `kubectl_explain`, `get_api_resources`, `port_forward`, `get_resource_usage`, `node_management` |
 
+### MCP Resources (FastMCP 3)
+
+Access Kubernetes data as browsable resources:
+
+| Resource URI | Description |
+|--------------|-------------|
+| `kubeconfig://contexts` | List all available kubectl contexts |
+| `kubeconfig://current-context` | Get current active context |
+| `namespace://current` | Get current namespace |
+| `namespace://list` | List all namespaces |
+| `cluster://info` | Get cluster information |
+| `cluster://nodes` | Get detailed node information |
+| `cluster://version` | Get Kubernetes version |
+| `cluster://api-resources` | List available API resources |
+| `manifest://deployments/{ns}/{name}` | Get deployment YAML |
+| `manifest://services/{ns}/{name}` | Get service YAML |
+| `manifest://pods/{ns}/{name}` | Get pod YAML |
+| `manifest://configmaps/{ns}/{name}` | Get ConfigMap YAML |
+| `manifest://secrets/{ns}/{name}` | Get secret YAML (data masked) |
+| `manifest://ingresses/{ns}/{name}` | Get ingress YAML |
+
+### MCP Prompts (FastMCP 3)
+
+Pre-built workflow prompts for common Kubernetes operations:
+
+| Prompt | Description |
+|--------|-------------|
+| `troubleshoot_workload` | Comprehensive troubleshooting guide for pods/deployments |
+| `deploy_application` | Step-by-step deployment workflow |
+| `security_audit` | Security scanning and RBAC analysis workflow |
+| `cost_optimization` | Resource optimization and cost analysis workflow |
+| `disaster_recovery` | Backup and recovery planning workflow |
+| `debug_networking` | Network debugging for services and connectivity |
+| `scale_application` | Scaling guide with HPA/VPA best practices |
+| `upgrade_cluster` | Kubernetes cluster upgrade planning |
+
 ### Key Capabilities
 
 - **Multi-Transport Support**: stdio, SSE, HTTP/streamable-http
@@ -53,6 +89,7 @@ A Model Context Protocol (MCP) server for Kubernetes that enables AI assistants 
 - **Diagnostics**: Pod crash analysis, network connectivity testing, DNS resolution checks
 - **Helm v3**: Full Helm chart lifecycle management
 - **Cost Optimization**: Resource recommendations, idle resource detection, usage analysis
+- **FastMCP 3**: MCP Resources and Prompts for enhanced AI workflows
 
 ## Installation
 
@@ -235,6 +272,67 @@ switch_context --context_name production
 
 # Get context details
 get_context_details --context_name staging
+```
+
+## Development & Testing
+
+### Setup Development Environment
+
+```bash
+# Clone the repository
+git clone https://github.com/rohitg00/kubectl-mcp-server.git
+cd kubectl-mcp-server
+
+# Create virtual environment
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+
+# Install development dependencies
+pip install -r requirements-dev.txt
+```
+
+### Running Tests
+
+```bash
+# Run all tests
+pytest tests/ -v
+
+# Run specific test file
+pytest tests/test_tools.py -v
+
+# Run with coverage
+pytest tests/ --cov=kubectl_mcp_tool --cov-report=html
+
+# Run only unit tests
+pytest tests/ -v -m unit
+```
+
+### Test Structure
+
+```
+tests/
+├── __init__.py          # Test package
+├── conftest.py          # Shared fixtures and mocks
+├── test_tools.py        # Unit tests for 80+ MCP tools
+├── test_resources.py    # Tests for MCP Resources
+├── test_prompts.py      # Tests for MCP Prompts
+└── test_server.py       # Server initialization tests
+```
+
+### Code Quality
+
+```bash
+# Format code
+black kubectl_mcp_tool tests
+
+# Sort imports
+isort kubectl_mcp_tool tests
+
+# Lint
+flake8 kubectl_mcp_tool tests
+
+# Type checking
+mypy kubectl_mcp_tool
 ```
 
 ## Contributing
