@@ -1,5 +1,6 @@
 FROM --platform=$TARGETPLATFORM python:3.11-slim
 ARG TARGETARCH
+# Build: 2026-01-21 - Rebuild Docker image with proper tags
 
 # Install system dependencies and tools
 RUN apt-get update && \
