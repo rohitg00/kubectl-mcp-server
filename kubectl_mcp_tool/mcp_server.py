@@ -2522,6 +2522,608 @@ class MCPServer:
                 logger.error(f"Error getting PDBs: {e}")
                 return {"success": False, "error": str(e)}
 
+        # ============================================================
+        # PHASE 2: Kubernetes v1.35 Features & More Resource Types
+        # ============================================================
+
+        @self.server.tool(
+            annotations=ToolAnnotations(
+                title="Get Persistent Volumes",
+                readOnlyHint=True,
+            ),
+        )
+        def get_persistent_volumes(name: Optional[str] = None) -> Dict[str, Any]:
+            """List PersistentVolumes with their status, capacity, and node affinity (v1.35 mutable support)."""
+            try:
+                from kubernetes import client, config
+                config.load_kube_config()
+                v1 = client.CoreV1Api()
+
+                if name:
+                    pvs = [v1.read_persistent_volume(name)]
+                else:
+                    pvs = v1.list_persistent_volume().items
+
+                pv_list = []
+                for pv in pvs:
+                    # Extract node affinity (mutable in K8s v1.35)
+                    node_affinity = None
+                    if pv.spec.node_affinity and pv.spec.node_affinity.required:
+                        terms = []
+                        for term in (pv.spec.node_affinity.required.node_selector_terms or []):
+                            expressions = []
+                            for expr in (term.match_expressions or []):
+                                expressions.append({
+                                    "key": expr.key,
+                                    "operator": expr.operator,
+                                    "values": expr.values
+                                })
+                            terms.append({"matchExpressions": expressions})
+                        node_affinity = {"required": {"nodeSelectorTerms": terms}}
+
+                    pv_list.append({
+                        "name": pv.metadata.name,
+                        "capacity": pv.spec.capacity.get("storage") if pv.spec.capacity else None,
+                        "accessModes": pv.spec.access_modes,
+                        "reclaimPolicy": pv.spec.persistent_volume_reclaim_policy,
+                        "storageClassName": pv.spec.storage_class_name,
+                        "status": pv.status.phase,
+                        "claim": {
+                            "name": pv.spec.claim_ref.name,
+                            "namespace": pv.spec.claim_ref.namespace
+                        } if pv.spec.claim_ref else None,
+                        "volumeMode": pv.spec.volume_mode,
+                        "nodeAffinity": node_affinity,
+                        "mountOptions": pv.spec.mount_options,
+                        "source": self._get_pv_source(pv.spec),
+                        "age": str(pv.metadata.creation_timestamp)
+                    })
+
+                return {
+                    "success": True,
+                    "count": len(pv_list),
+                    "persistentVolumes": pv_list
+                }
+            except Exception as e:
+                logger.error(f"Error getting PVs: {e}")
+                return {"success": False, "error": str(e)}
+
+        def _get_pv_source(spec) -> Dict[str, Any]:
+            """Extract PV source type and details."""
+            if spec.host_path:
+                return {"type": "hostPath", "path": spec.host_path.path}
+            elif spec.nfs:
+                return {"type": "nfs", "server": spec.nfs.server, "path": spec.nfs.path}
+            elif spec.csi:
+                return {"type": "csi", "driver": spec.csi.driver, "volumeHandle": spec.csi.volume_handle}
+            elif spec.aws_elastic_block_store:
+                return {"type": "awsEBS", "volumeID": spec.aws_elastic_block_store.volume_id}
+            elif spec.gce_persistent_disk:
+                return {"type": "gcePD", "pdName": spec.gce_persistent_disk.pd_name}
+            elif spec.azure_disk:
+                return {"type": "azureDisk", "diskName": spec.azure_disk.disk_name}
+            elif spec.local:
+                return {"type": "local", "path": spec.local.path}
+            return {"type": "unknown"}
+
+        self._get_pv_source = _get_pv_source
+
+        @self.server.tool(
+            annotations=ToolAnnotations(
+                title="Get Persistent Volume Claims",
+                readOnlyHint=True,
+            ),
+        )
+        def get_pvcs(namespace: Optional[str] = None) -> Dict[str, Any]:
+            """List PersistentVolumeClaims with their status and bound volumes."""
+            try:
+                from kubernetes import client, config
+                config.load_kube_config()
+                v1 = client.CoreV1Api()
+
+                if namespace:
+                    pvcs = v1.list_namespaced_persistent_volume_claim(namespace)
+                else:
+                    pvcs = v1.list_persistent_volume_claim_for_all_namespaces()
+
+                pvc_list = []
+                for pvc in pvcs.items:
+                    pvc_list.append({
+                        "name": pvc.metadata.name,
+                        "namespace": pvc.metadata.namespace,
+                        "status": pvc.status.phase,
+                        "volume": pvc.spec.volume_name,
+                        "capacity": pvc.status.capacity.get("storage") if pvc.status.capacity else None,
+                        "requestedCapacity": pvc.spec.resources.requests.get("storage") if pvc.spec.resources and pvc.spec.resources.requests else None,
+                        "accessModes": pvc.spec.access_modes,
+                        "storageClassName": pvc.spec.storage_class_name,
+                        "volumeMode": pvc.spec.volume_mode,
+                        "conditions": [
+                            {"type": c.type, "status": c.status, "reason": c.reason}
+                            for c in (pvc.status.conditions or [])
+                        ],
+                        "age": str(pvc.metadata.creation_timestamp)
+                    })
+
+                return {
+                    "success": True,
+                    "count": len(pvc_list),
+                    "pvcs": pvc_list
+                }
+            except Exception as e:
+                logger.error(f"Error getting PVCs: {e}")
+                return {"success": False, "error": str(e)}
+
+        @self.server.tool(
+            annotations=ToolAnnotations(
+                title="Get Storage Classes",
+                readOnlyHint=True,
+            ),
+        )
+        def get_storage_classes() -> Dict[str, Any]:
+            """List StorageClasses with their provisioners and parameters."""
+            try:
+                from kubernetes import client, config
+                config.load_kube_config()
+                storage = client.StorageV1Api()
+
+                scs = storage.list_storage_class()
+
+                sc_list = []
+                for sc in scs.items:
+                    sc_list.append({
+                        "name": sc.metadata.name,
+                        "provisioner": sc.provisioner,
+                        "reclaimPolicy": sc.reclaim_policy,
+                        "volumeBindingMode": sc.volume_binding_mode,
+                        "allowVolumeExpansion": sc.allow_volume_expansion,
+                        "parameters": sc.parameters or {},
+                        "isDefault": sc.metadata.annotations.get("storageclass.kubernetes.io/is-default-class") == "true" if sc.metadata.annotations else False,
+                        "mountOptions": sc.mount_options
+                    })
+
+                return {
+                    "success": True,
+                    "count": len(sc_list),
+                    "storageClasses": sc_list
+                }
+            except Exception as e:
+                logger.error(f"Error getting storage classes: {e}")
+                return {"success": False, "error": str(e)}
+
+        @self.server.tool(
+            annotations=ToolAnnotations(
+                title="Get Custom Resource Definitions",
+                readOnlyHint=True,
+            ),
+        )
+        def get_crds(group: Optional[str] = None) -> Dict[str, Any]:
+            """List Custom Resource Definitions in the cluster."""
+            try:
+                from kubernetes import client, config
+                config.load_kube_config()
+                apiext = client.ApiextensionsV1Api()
+
+                crds = apiext.list_custom_resource_definition()
+
+                crd_list = []
+                for crd in crds.items:
+                    if group and crd.spec.group != group:
+                        continue
+
+                    versions = []
+                    for v in (crd.spec.versions or []):
+                        versions.append({
+                            "name": v.name,
+                            "served": v.served,
+                            "storage": v.storage
+                        })
+
+                    crd_list.append({
+                        "name": crd.metadata.name,
+                        "group": crd.spec.group,
+                        "kind": crd.spec.names.kind,
+                        "plural": crd.spec.names.plural,
+                        "singular": crd.spec.names.singular,
+                        "scope": crd.spec.scope,
+                        "versions": versions,
+                        "established": any(
+                            c.type == "Established" and c.status == "True"
+                            for c in (crd.status.conditions or [])
+                        ),
+                        "age": str(crd.metadata.creation_timestamp)
+                    })
+
+                return {
+                    "success": True,
+                    "count": len(crd_list),
+                    "crds": crd_list
+                }
+            except Exception as e:
+                logger.error(f"Error getting CRDs: {e}")
+                return {"success": False, "error": str(e)}
+
+        @self.server.tool(
+            annotations=ToolAnnotations(
+                title="Get Resource Quotas",
+                readOnlyHint=True,
+            ),
+        )
+        def get_resource_quotas(namespace: Optional[str] = None) -> Dict[str, Any]:
+            """List ResourceQuotas with their usage and limits."""
+            try:
+                from kubernetes import client, config
+                config.load_kube_config()
+                v1 = client.CoreV1Api()
+
+                if namespace:
+                    quotas = v1.list_namespaced_resource_quota(namespace)
+                else:
+                    quotas = v1.list_resource_quota_for_all_namespaces()
+
+                quota_list = []
+                for quota in quotas.items:
+                    hard = {}
+                    used = {}
+                    if quota.status.hard:
+                        hard = {k: str(v) for k, v in quota.status.hard.items()}
+                    if quota.status.used:
+                        used = {k: str(v) for k, v in quota.status.used.items()}
+
+                    quota_list.append({
+                        "name": quota.metadata.name,
+                        "namespace": quota.metadata.namespace,
+                        "hard": hard,
+                        "used": used,
+                        "scopes": quota.spec.scopes if quota.spec.scopes else []
+                    })
+
+                return {
+                    "success": True,
+                    "count": len(quota_list),
+                    "resourceQuotas": quota_list
+                }
+            except Exception as e:
+                logger.error(f"Error getting resource quotas: {e}")
+                return {"success": False, "error": str(e)}
+
+        @self.server.tool(
+            annotations=ToolAnnotations(
+                title="Get Limit Ranges",
+                readOnlyHint=True,
+            ),
+        )
+        def get_limit_ranges(namespace: Optional[str] = None) -> Dict[str, Any]:
+            """List LimitRanges with their constraints."""
+            try:
+                from kubernetes import client, config
+                config.load_kube_config()
+                v1 = client.CoreV1Api()
+
+                if namespace:
+                    limits = v1.list_namespaced_limit_range(namespace)
+                else:
+                    limits = v1.list_limit_range_for_all_namespaces()
+
+                limit_list = []
+                for lr in limits.items:
+                    ranges = []
+                    for limit in (lr.spec.limits or []):
+                        range_info = {"type": limit.type}
+                        if limit.default:
+                            range_info["default"] = {k: str(v) for k, v in limit.default.items()}
+                        if limit.default_request:
+                            range_info["defaultRequest"] = {k: str(v) for k, v in limit.default_request.items()}
+                        if limit.max:
+                            range_info["max"] = {k: str(v) for k, v in limit.max.items()}
+                        if limit.min:
+                            range_info["min"] = {k: str(v) for k, v in limit.min.items()}
+                        if limit.max_limit_request_ratio:
+                            range_info["maxLimitRequestRatio"] = {k: str(v) for k, v in limit.max_limit_request_ratio.items()}
+                        ranges.append(range_info)
+
+                    limit_list.append({
+                        "name": lr.metadata.name,
+                        "namespace": lr.metadata.namespace,
+                        "limits": ranges
+                    })
+
+                return {
+                    "success": True,
+                    "count": len(limit_list),
+                    "limitRanges": limit_list
+                }
+            except Exception as e:
+                logger.error(f"Error getting limit ranges: {e}")
+                return {"success": False, "error": str(e)}
+
+        @self.server.tool(
+            annotations=ToolAnnotations(
+                title="Get Service Accounts",
+                readOnlyHint=True,
+            ),
+        )
+        def get_service_accounts(namespace: Optional[str] = None) -> Dict[str, Any]:
+            """List ServiceAccounts with their secrets and image pull secrets."""
+            try:
+                from kubernetes import client, config
+                config.load_kube_config()
+                v1 = client.CoreV1Api()
+
+                if namespace:
+                    sas = v1.list_namespaced_service_account(namespace)
+                else:
+                    sas = v1.list_service_account_for_all_namespaces()
+
+                sa_list = []
+                for sa in sas.items:
+                    sa_list.append({
+                        "name": sa.metadata.name,
+                        "namespace": sa.metadata.namespace,
+                        "secrets": [s.name for s in (sa.secrets or [])],
+                        "imagePullSecrets": [s.name for s in (sa.image_pull_secrets or [])],
+                        "automountServiceAccountToken": sa.automount_service_account_token,
+                        "age": str(sa.metadata.creation_timestamp)
+                    })
+
+                return {
+                    "success": True,
+                    "count": len(sa_list),
+                    "serviceAccounts": sa_list
+                }
+            except Exception as e:
+                logger.error(f"Error getting service accounts: {e}")
+                return {"success": False, "error": str(e)}
+
+        @self.server.tool(
+            annotations=ToolAnnotations(
+                title="Restart Deployment",
+                readOnlyHint=False,
+            ),
+        )
+        def restart_deployment(name: str, namespace: str = "default") -> Dict[str, Any]:
+            """Trigger a rolling restart of a deployment (similar to kubectl rollout restart)."""
+            blocked = self._check_destructive()
+            if blocked:
+                return blocked
+
+            try:
+                from kubernetes import client, config
+                from datetime import datetime, timezone
+                config.load_kube_config()
+                apps = client.AppsV1Api()
+
+                # Patch the deployment to trigger a rolling restart
+                now = datetime.now(timezone.utc).isoformat()
+                body = {
+                    "spec": {
+                        "template": {
+                            "metadata": {
+                                "annotations": {
+                                    "kubectl.kubernetes.io/restartedAt": now
+                                }
+                            }
+                        }
+                    }
+                }
+
+                apps.patch_namespaced_deployment(name, namespace, body)
+
+                return {
+                    "success": True,
+                    "message": f"Deployment '{name}' in namespace '{namespace}' is being restarted",
+                    "restartedAt": now
+                }
+            except client.exceptions.ApiException as e:
+                if e.status == 404:
+                    return {"success": False, "error": f"Deployment '{name}' not found in namespace '{namespace}'"}
+                return {"success": False, "error": str(e)}
+            except Exception as e:
+                logger.error(f"Error restarting deployment: {e}")
+                return {"success": False, "error": str(e)}
+
+        @self.server.tool(
+            annotations=ToolAnnotations(
+                title="Get Pod Metrics",
+                readOnlyHint=True,
+            ),
+        )
+        def get_pod_metrics(namespace: Optional[str] = None, pod_name: Optional[str] = None) -> Dict[str, Any]:
+            """Get CPU and memory metrics for pods (requires metrics-server)."""
+            try:
+                import subprocess
+                cmd = ["kubectl", "top", "pods"]
+                if namespace:
+                    cmd.extend(["-n", namespace])
+                else:
+                    cmd.append("--all-namespaces")
+                if pod_name:
+                    cmd.append(pod_name)
+                cmd.append("--no-headers")
+
+                result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
+
+                if result.returncode != 0:
+                    if "metrics not available" in result.stderr.lower() or "metrics-server" in result.stderr.lower():
+                        return {"success": False, "error": "Metrics server not available. Install metrics-server to use this feature."}
+                    return {"success": False, "error": result.stderr.strip()}
+
+                metrics = []
+                for line in result.stdout.strip().split("\n"):
+                    if not line:
+                        continue
+                    parts = line.split()
+                    if namespace:
+                        # Format: NAME CPU MEMORY
+                        if len(parts) >= 3:
+                            metrics.append({
+                                "namespace": namespace,
+                                "pod": parts[0],
+                                "cpu": parts[1],
+                                "memory": parts[2]
+                            })
+                    else:
+                        # Format: NAMESPACE NAME CPU MEMORY
+                        if len(parts) >= 4:
+                            metrics.append({
+                                "namespace": parts[0],
+                                "pod": parts[1],
+                                "cpu": parts[2],
+                                "memory": parts[3]
+                            })
+
+                return {
+                    "success": True,
+                    "count": len(metrics),
+                    "metrics": metrics
+                }
+            except subprocess.TimeoutExpired:
+                return {"success": False, "error": "Metrics request timed out"}
+            except Exception as e:
+                logger.error(f"Error getting pod metrics: {e}")
+                return {"success": False, "error": str(e)}
+
+        @self.server.tool(
+            annotations=ToolAnnotations(
+                title="Get Node Metrics",
+                readOnlyHint=True,
+            ),
+        )
+        def get_node_metrics() -> Dict[str, Any]:
+            """Get CPU and memory metrics for nodes (requires metrics-server)."""
+            try:
+                import subprocess
+                result = subprocess.run(
+                    ["kubectl", "top", "nodes", "--no-headers"],
+                    capture_output=True, text=True, timeout=30
+                )
+
+                if result.returncode != 0:
+                    if "metrics not available" in result.stderr.lower():
+                        return {"success": False, "error": "Metrics server not available. Install metrics-server to use this feature."}
+                    return {"success": False, "error": result.stderr.strip()}
+
+                metrics = []
+                for line in result.stdout.strip().split("\n"):
+                    if not line:
+                        continue
+                    parts = line.split()
+                    # Format: NAME CPU CPU% MEMORY MEMORY%
+                    if len(parts) >= 5:
+                        metrics.append({
+                            "node": parts[0],
+                            "cpu": parts[1],
+                            "cpuPercent": parts[2],
+                            "memory": parts[3],
+                            "memoryPercent": parts[4]
+                        })
+
+                return {
+                    "success": True,
+                    "count": len(metrics),
+                    "metrics": metrics
+                }
+            except subprocess.TimeoutExpired:
+                return {"success": False, "error": "Metrics request timed out"}
+            except Exception as e:
+                logger.error(f"Error getting node metrics: {e}")
+                return {"success": False, "error": str(e)}
+
+        @self.server.tool(
+            annotations=ToolAnnotations(
+                title="Get Priority Classes",
+                readOnlyHint=True,
+            ),
+        )
+        def get_priority_classes() -> Dict[str, Any]:
+            """List PriorityClasses for workload scheduling priority."""
+            try:
+                from kubernetes import client, config
+                config.load_kube_config()
+                scheduling = client.SchedulingV1Api()
+
+                pcs = scheduling.list_priority_class()
+
+                pc_list = []
+                for pc in pcs.items:
+                    pc_list.append({
+                        "name": pc.metadata.name,
+                        "value": pc.value,
+                        "globalDefault": pc.global_default or False,
+                        "preemptionPolicy": pc.preemption_policy,
+                        "description": pc.description
+                    })
+
+                # Sort by value descending
+                pc_list.sort(key=lambda x: x["value"], reverse=True)
+
+                return {
+                    "success": True,
+                    "count": len(pc_list),
+                    "priorityClasses": pc_list
+                }
+            except Exception as e:
+                logger.error(f"Error getting priority classes: {e}")
+                return {"success": False, "error": str(e)}
+
+        @self.server.tool(
+            annotations=ToolAnnotations(
+                title="Get Pod Security Policies (Deprecated) / Pod Security Standards",
+                readOnlyHint=True,
+            ),
+        )
+        def get_pod_security_info(namespace: Optional[str] = None) -> Dict[str, Any]:
+            """Get Pod Security Standards enforcement info for namespaces."""
+            try:
+                from kubernetes import client, config
+                config.load_kube_config()
+                v1 = client.CoreV1Api()
+
+                if namespace:
+                    namespaces = [v1.read_namespace(namespace)]
+                else:
+                    namespaces = v1.list_namespace().items
+
+                ns_info = []
+                for ns in namespaces:
+                    labels = ns.metadata.labels or {}
+
+                    # Check for Pod Security Standards labels
+                    pss = {
+                        "enforce": labels.get("pod-security.kubernetes.io/enforce"),
+                        "enforceVersion": labels.get("pod-security.kubernetes.io/enforce-version"),
+                        "audit": labels.get("pod-security.kubernetes.io/audit"),
+                        "auditVersion": labels.get("pod-security.kubernetes.io/audit-version"),
+                        "warn": labels.get("pod-security.kubernetes.io/warn"),
+                        "warnVersion": labels.get("pod-security.kubernetes.io/warn-version")
+                    }
+
+                    # Remove None values
+                    pss = {k: v for k, v in pss.items() if v is not None}
+
+                    ns_info.append({
+                        "namespace": ns.metadata.name,
+                        "podSecurityStandards": pss if pss else None,
+                        "hasNoSecurityPolicy": not pss
+                    })
+
+                # Summary
+                unprotected = [n for n in ns_info if n["hasNoSecurityPolicy"]]
+
+                return {
+                    "success": True,
+                    "summary": {
+                        "totalNamespaces": len(ns_info),
+                        "withPSS": len([n for n in ns_info if n["podSecurityStandards"]]),
+                        "withoutPSS": len(unprotected)
+                    },
+                    "namespaces": ns_info,
+                    "unprotectedNamespaces": [n["namespace"] for n in unprotected if n["namespace"] not in ["kube-system", "kube-public", "kube-node-lease"]]
+                }
+            except Exception as e:
+                logger.error(f"Error getting pod security info: {e}")
+                return {"success": False, "error": str(e)}
+
     def _check_destructive(self) -> Optional[Dict[str, Any]]:
         """Check if destructive operations are allowed."""
         if self.non_destructive:
