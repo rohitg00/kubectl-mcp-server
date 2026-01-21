@@ -2042,20 +2042,30 @@ if __name__ == "__main__":
     server_name = "kubectl_mcp_server"
     mcp_server = MCPServer(name=server_name)
 
-    loop = asyncio.get_event_loop()
+    import signal
+    import os
+
+    # Handle signals gracefully with immediate exit
+    def signal_handler(sig, frame):
+        print("\nShutting down server...", file=sys.stderr)
+        os._exit(0)
+
+    signal.signal(signal.SIGINT, signal_handler)
+    signal.signal(signal.SIGTERM, signal_handler)
+
     try:
         if args.transport == "stdio":
             logger.info(f"Starting {server_name} with stdio transport.")
-            loop.run_until_complete(mcp_server.serve_stdio())
+            asyncio.run(mcp_server.serve_stdio())
         elif args.transport == "sse":
             logger.info(f"Starting {server_name} with SSE transport on {args.host}:{args.port}.")
-            loop.run_until_complete(mcp_server.serve_sse(host=args.host, port=args.port))
+            asyncio.run(mcp_server.serve_sse(host=args.host, port=args.port))
         elif args.transport in ("http", "streamable-http"):
             logger.info(f"Starting {server_name} with HTTP transport on {args.host}:{args.port}.")
-            loop.run_until_complete(mcp_server.serve_http(host=args.host, port=args.port))
+            asyncio.run(mcp_server.serve_http(host=args.host, port=args.port))
     except KeyboardInterrupt:
-        logger.info("Server shutdown requested by user.")
+        print("\nShutting down server...", file=sys.stderr)
+    except SystemExit:
+        pass  # Clean exit
     except Exception as e:
         logger.error(f"Server exited with error: {e}", exc_info=True)
-    finally:
-        logger.info("Shutting down server.")

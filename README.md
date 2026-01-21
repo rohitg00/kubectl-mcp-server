@@ -7,6 +7,7 @@ A Model Context Protocol (MCP) server for Kubernetes that enables AI assistants 
 [![Kubernetes](https://img.shields.io/badge/kubernetes-%23326ce5.svg?style=flat&logo=kubernetes&logoColor=white)](https://kubernetes.io/)
 [![MCP](https://img.shields.io/badge/MCP-compatible-green.svg)](https://github.com/modelcontextprotocol/modelcontextprotocol)
 [![PyPI version](https://badge.fury.io/py/kubectl-mcp-tool.svg)](https://pypi.org/project/kubectl-mcp-tool/)
+[![npm version](https://badge.fury.io/js/kubectl-mcp-server.svg)](https://www.npmjs.com/package/kubectl-mcp-server)
 [![Docker](https://img.shields.io/docker/pulls/rohitghumare64/kubectl-mcp-server.svg)](https://hub.docker.com/r/rohitghumare64/kubectl-mcp-server)
 
 ## 🎥 Live Demo - Watch `kubectl-mcp-tool` in Action with Claude!
@@ -128,6 +129,25 @@ The tool operates in two modes:
 
 For detailed installation instructions, please see the [Installation Guide](./docs/INSTALLATION.md).
 
+### npm / npx (Recommended for Node.js users)
+
+The easiest way to run kubectl-mcp-server is via npx:
+
+```bash
+# Run directly without installation
+npx kubectl-mcp-server
+
+# Or install globally
+npm install -g kubectl-mcp-server
+kubectl-mcp-server
+```
+
+The npm package is available at: [https://www.npmjs.com/package/kubectl-mcp-server](https://www.npmjs.com/package/kubectl-mcp-server)
+
+> **Note:** The npm package requires Python 3.9+ to be installed. It will automatically install the Python dependencies on first run.
+
+### pip (Python)
+
 You can install kubectl-mcp-tool directly from PyPI:
 
 ```bash
@@ -137,7 +157,7 @@ pip install kubectl-mcp-tool
 For a specific version:
 
 ```bash
-pip install kubectl-mcp-tool==1.3.0
+pip install kubectl-mcp-tool==1.4.0
 ```
 
 The package is available on PyPI: [https://pypi.org/project/kubectl-mcp-tool/](https://pypi.org/project/kubectl-mcp-tool/)
@@ -401,12 +421,25 @@ The MCP Server (`kubectl_mcp_tool.mcp_server`) is a robust implementation built 
 
 Add the following to your Claude Desktop configuration at `~/Library/Application\ Support/Claude/claude_desktop_config.json` (Windows: `%APPDATA%\Claude\mcp.json`):
 
+**Using npx (Recommended):**
+```json
+{
+  "mcpServers": {
+    "kubernetes": {
+      "command": "npx",
+      "args": ["-y", "kubectl-mcp-server"]
+    }
+  }
+}
+```
+
+**Using Python directly:**
 ```json
 {
   "mcpServers": {
     "kubernetes": {
       "command": "python",
-      "args": ["-m", "kubectl_mcp_tool.mcp_server"], 
+      "args": ["-m", "kubectl_mcp_tool.mcp_server"],
       "env": {
         "KUBECONFIG": "$HOME/.kube/config" // or whatever your path is for the config file
       }
@@ -419,6 +452,19 @@ Add the following to your Claude Desktop configuration at `~/Library/Application
 
 Claude Code is Anthropic's CLI tool for coding with Claude. Add the following to `~/.config/claude-code/mcp.json`:
 
+**Using npx (Recommended):**
+```json
+{
+  "mcpServers": {
+    "kubernetes": {
+      "command": "npx",
+      "args": ["-y", "kubectl-mcp-server"]
+    }
+  }
+}
+```
+
+**Using Python directly:**
 ```json
 {
   "mcpServers": {
@@ -439,6 +485,19 @@ For detailed Claude Code integration instructions, see [Claude Code Integration 
 
 Add the following to your Cursor AI settings under MCP by adding a new global MCP server:
 
+**Using npx (Recommended):**
+```json
+{
+  "mcpServers": {
+    "kubernetes": {
+      "command": "npx",
+      "args": ["-y", "kubectl-mcp-server"]
+    }
+  }
+}
+```
+
+**Using Python directly:**
 ```json
 {
   "mcpServers": {
@@ -462,6 +521,19 @@ Save this configuration to `~/.cursor/mcp.json` for global settings.
 
 Add the following to your Windsurf configuration at `~/.config/windsurf/mcp.json` (Windows: `%APPDATA%\WindSurf\mcp.json`):
 
+**Using npx (Recommended):**
+```json
+{
+  "mcpServers": {
+    "kubernetes": {
+      "command": "npx",
+      "args": ["-y", "kubectl-mcp-server"]
+    }
+  }
+}
+```
+
+**Using Python directly:**
 ```json
 {
   "mcpServers": {

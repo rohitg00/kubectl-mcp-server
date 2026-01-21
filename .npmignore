@@ -1,0 +1,58 @@
+# Python files (not needed for npm package)
+kubectl_mcp_tool/
+*.py
+*.pyc
+__pycache__/
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Development files
+.git/
+.github/
+.gitignore
+.venv/
+venv/
+env/
+.env
+.pytest_cache/
+.mypy_cache/
+.tox/
+.coverage
+htmlcov/
+tests/
+test_*.py
+*_test.py
+
+# Documentation (keep README)
+docs/
+*.md
+!README.md
+
+# Docker files
+Dockerfile
+docker-compose*.yml
+.dockerignore
+
+# IDE files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Misc
+*.log
+*.tmp
+install.sh
+requirements*.txt
+setup.py
+setup.cfg
+pyproject.toml
+MANIFEST.in
+Makefile
