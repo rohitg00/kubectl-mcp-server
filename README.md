@@ -5,10 +5,27 @@ A Model Context Protocol (MCP) server for Kubernetes that enables AI assistants 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/)
 [![Kubernetes](https://img.shields.io/badge/kubernetes-%23326ce5.svg?style=flat&logo=kubernetes&logoColor=white)](https://kubernetes.io/)
-[![MCP](https://img.shields.io/badge/MCP-compatible-green.svg)](https://github.com/modelcontextprotocol/modelcontextprotocol)
-[![PyPI version](https://badge.fury.io/py/kubectl-mcp-tool.svg)](https://pypi.org/project/kubectl-mcp-tool/)
-[![npm version](https://badge.fury.io/js/kubectl-mcp-server.svg)](https://www.npmjs.com/package/kubectl-mcp-server)
+[![MCP](https://img.shields.io/badge/MCP-compatible-green.svg)](https://modelcontextprotocol.io)
+[![PyPI](https://img.shields.io/pypi/v/kubectl-mcp-tool?color=blue&label=PyPI)](https://pypi.org/project/kubectl-mcp-tool/)
+[![npm](https://img.shields.io/npm/v/kubectl-mcp-server?color=green&label=npm)](https://www.npmjs.com/package/kubectl-mcp-server)
 [![Docker](https://img.shields.io/docker/pulls/rohitghumare64/kubectl-mcp-server.svg)](https://hub.docker.com/r/rohitghumare64/kubectl-mcp-server)
+[![Tests](https://img.shields.io/badge/tests-135%20passed-success)](https://github.com/rohitg00/kubectl-mcp-server)
+
+## MCP Client Compatibility
+
+Works with all MCP-compatible AI assistants:
+
+| Client | Status | Client | Status |
+|--------|--------|--------|--------|
+| Claude Desktop | ✅ Native | Claude Code | ✅ Native |
+| Cursor | ✅ Native | Windsurf | ✅ Native |
+| GitHub Copilot | ✅ Native | OpenAI Codex | ✅ Native |
+| Gemini CLI | ✅ Native | Goose | ✅ Native |
+| Roo Code | ✅ Native | Kilo Code | ✅ Native |
+| Amp | ✅ Native | Trae | ✅ Native |
+| OpenCode | ✅ Native | Kiro CLI | ✅ Native |
+| Antigravity | ✅ Native | Clawdbot | ✅ Native |
+| Droid (Factory) | ✅ Native | Any MCP Client | ✅ Compatible |
 
 ## Live Demos
 
