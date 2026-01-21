@@ -23,7 +23,7 @@ A Model Context Protocol (MCP) server for Kubernetes that enables AI assistants 
 
 ## Features
 
-### 72 MCP Tools for Complete Kubernetes Management
+### 80 MCP Tools for Complete Kubernetes Management
 
 | Category | Tools |
 |----------|-------|
@@ -41,6 +41,7 @@ A Model Context Protocol (MCP) server for Kubernetes that enables AI assistants 
 | **Diagnostics** | `diagnose_pod_crash`, `detect_pending_pods`, `get_evicted_pods`, `compare_namespaces` |
 | **Operations** | `kubectl_apply`, `kubectl_create`, `kubectl_describe`, `kubectl_patch`, `delete_resource`, `kubectl_cp`, `backup_resource`, `label_resource`, `annotate_resource`, `taint_node`, `wait_for_condition` |
 | **Autoscaling** | `get_hpa`, `get_pdb` |
+| **Cost Optimization** | `get_resource_recommendations`, `get_idle_resources`, `get_resource_quotas_usage`, `get_cost_analysis`, `get_overprovisioned_resources`, `get_resource_trends`, `get_namespace_cost_allocation`, `optimize_resource_requests` |
 | **Advanced** | `kubectl_generic`, `kubectl_explain`, `get_api_resources`, `port_forward`, `get_resource_usage`, `node_management` |
 
 ### Key Capabilities
@@ -51,6 +52,7 @@ A Model Context Protocol (MCP) server for Kubernetes that enables AI assistants 
 - **Security**: Non-destructive mode, secrets masking, RBAC validation
 - **Diagnostics**: Pod crash analysis, network connectivity testing, DNS resolution checks
 - **Helm v3**: Full Helm chart lifecycle management
+- **Cost Optimization**: Resource recommendations, idle resource detection, usage analysis
 
 ## Installation
 
