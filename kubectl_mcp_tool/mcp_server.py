@@ -7,6 +7,14 @@ Compatible with:
 - Cursor AI
 - Windsurf
 - Docker MCP Toolkit (https://docs.docker.com/ai/mcp-catalog-and-toolkit/toolkit/)
+
+FastMCP Migration Notes:
+------------------------
+Currently using: fastmcp (gofastmcp.com) - standalone package with extra features
+To revert to official Anthropic MCP SDK:
+  1. Change requirements.txt: fastmcp>=3.0.0 -> mcp>=1.8.0
+  2. Change import below: from fastmcp import FastMCP -> from mcp.server.fastmcp import FastMCP
+  3. Change ToolAnnotations import: from fastmcp.tools import ToolAnnotations -> from mcp.types import ToolAnnotations
 """
 
 import json
@@ -51,22 +59,24 @@ for handler in logging.root.handlers[:]:
     if isinstance(handler, logging.StreamHandler) and handler.stream == sys.stdout:
         logging.root.removeHandler(handler)
 
+# FastMCP 3 from gofastmcp.com (standalone package)
+# To revert to official SDK: from mcp.server.fastmcp import FastMCP
 try:
-    from mcp.server.fastmcp import FastMCP
-    from mcp.types import ToolAnnotations
+    from fastmcp import FastMCP
+    from mcp.types import ToolAnnotations  # ToolAnnotations is from underlying MCP SDK
 except ImportError:
-    logger.error("MCP SDK not found. Installing...")
+    logger.error("FastMCP not found. Installing...")
     import subprocess
     try:
         subprocess.check_call(
-            [sys.executable, "-m", "pip", "install", "mcp>=1.8.0"],
-            stdout=subprocess.DEVNULL,  # Don't pollute stdout
+            [sys.executable, "-m", "pip", "install", "fastmcp>=3.0.0"],
+            stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL
         )
-        from mcp.server.fastmcp import FastMCP
+        from fastmcp import FastMCP
         from mcp.types import ToolAnnotations
     except Exception as e:
-        logger.error(f"Failed to install MCP SDK: {e}")
+        logger.error(f"Failed to install FastMCP: {e}")
         raise
 
 class MCPServer:
