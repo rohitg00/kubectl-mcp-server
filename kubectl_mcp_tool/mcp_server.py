@@ -69,8 +69,6 @@ except ImportError:
         logger.error(f"Failed to install MCP SDK: {e}")
         raise
 
-from .natural_language import process_query
-
 class MCPServer:
     """MCP server implementation."""
 
@@ -1728,10 +1726,6 @@ class MCPServer:
                 logger.error(f"Error checking secrets: {e}")
                 return {"success": False, "error": str(e)}
 
-        # ============================================================
-        # PHASE 1: Quick Win Features
-        # ============================================================
-
         @self.server.tool(
             annotations=ToolAnnotations(
                 title="Get Ingress Resources",
@@ -2522,10 +2516,6 @@ class MCPServer:
                 logger.error(f"Error getting PDBs: {e}")
                 return {"success": False, "error": str(e)}
 
-        # ============================================================
-        # PHASE 2: Kubernetes v1.35 Features & More Resource Types
-        # ============================================================
-
         @self.server.tool(
             annotations=ToolAnnotations(
                 title="Get Persistent Volumes",
@@ -3123,10 +3113,6 @@ class MCPServer:
             except Exception as e:
                 logger.error(f"Error getting pod security info: {e}")
                 return {"success": False, "error": str(e)}
-
-        # ============================================================
-        # PHASE 3: Advanced Features - Network, Diagnostics, Security
-        # ============================================================
 
         @self.server.tool(
             annotations=ToolAnnotations(
