@@ -3124,6 +3124,867 @@ class MCPServer:
                 logger.error(f"Error getting pod security info: {e}")
                 return {"success": False, "error": str(e)}
 
+        # ============================================================
+        # PHASE 3: Advanced Features - Network, Diagnostics, Security
+        # ============================================================
+
+        @self.server.tool(
+            annotations=ToolAnnotations(
+                title="Diagnose Network Connectivity",
+                readOnlyHint=True,
+            ),
+        )
+        def diagnose_network_connectivity(
+            source_pod: str,
+            target: str,
+            namespace: str = "default",
+            port: Optional[int] = None
+        ) -> Dict[str, Any]:
+            """Test network connectivity from a pod to a target (service, pod IP, or external host)."""
+            try:
+                import subprocess
+
+                diagnosis = {
+                    "source": {"pod": source_pod, "namespace": namespace},
+                    "target": target,
+                    "port": port,
+                    "tests": [],
+                    "issues": [],
+                    "recommendations": []
+                }
+
+                # DNS resolution test
+                dns_cmd = ["kubectl", "exec", "-n", namespace, source_pod, "--", "nslookup", target.split(":")[0]]
+                dns_result = subprocess.run(dns_cmd, capture_output=True, text=True, timeout=30)
+                dns_success = dns_result.returncode == 0
+
+                diagnosis["tests"].append({
+                    "name": "DNS Resolution",
+                    "success": dns_success,
+                    "output": dns_result.stdout if dns_success else dns_result.stderr
+                })
+
+                if not dns_success:
+                    diagnosis["issues"].append({
+                        "type": "DNS",
+                        "message": f"Failed to resolve {target}",
+                        "details": dns_result.stderr
+                    })
+                    diagnosis["recommendations"].append("Check CoreDNS pods in kube-system namespace")
+                    diagnosis["recommendations"].append("Verify the service/pod exists and is in the correct namespace")
+
+                # Connectivity test (ping or nc)
+                if port:
+                    # TCP connectivity test
+                    nc_cmd = ["kubectl", "exec", "-n", namespace, source_pod, "--", "nc", "-zv", "-w", "5", target.split(":")[0], str(port)]
+                    nc_result = subprocess.run(nc_cmd, capture_output=True, text=True, timeout=30)
+                    conn_success = nc_result.returncode == 0
+
+                    diagnosis["tests"].append({
+                        "name": f"TCP Connectivity (port {port})",
+                        "success": conn_success,
+                        "output": nc_result.stdout + nc_result.stderr
+                    })
+
+                    if not conn_success:
+                        diagnosis["issues"].append({
+                            "type": "TCP",
+                            "message": f"Cannot connect to {target}:{port}",
+                            "details": nc_result.stderr
+                        })
+                        diagnosis["recommendations"].append("Check if NetworkPolicy is blocking traffic")
+                        diagnosis["recommendations"].append("Verify the target service/pod is running and listening on the port")
+                else:
+                    # Ping test
+                    ping_cmd = ["kubectl", "exec", "-n", namespace, source_pod, "--", "ping", "-c", "3", "-W", "5", target.split(":")[0]]
+                    ping_result = subprocess.run(ping_cmd, capture_output=True, text=True, timeout=30)
+                    ping_success = ping_result.returncode == 0
+
+                    diagnosis["tests"].append({
+                        "name": "ICMP Ping",
+                        "success": ping_success,
+                        "output": ping_result.stdout if ping_success else ping_result.stderr
+                    })
+
+                # Curl test if HTTP/HTTPS target
+                if target.startswith("http"):
+                    curl_cmd = ["kubectl", "exec", "-n", namespace, source_pod, "--", "curl", "-s", "-o", "/dev/null", "-w", "%{http_code}", "-m", "10", target]
+                    curl_result = subprocess.run(curl_cmd, capture_output=True, text=True, timeout=30)
+
+                    http_code = curl_result.stdout.strip()
+                    http_success = http_code.startswith("2") or http_code.startswith("3")
+
+                    diagnosis["tests"].append({
+                        "name": "HTTP Request",
+                        "success": http_success,
+                        "httpCode": http_code,
+                        "output": f"HTTP {http_code}"
+                    })
+
+                # Summary
+                all_passed = all(t["success"] for t in diagnosis["tests"])
+                diagnosis["summary"] = {
+                    "overallSuccess": all_passed,
+                    "testsRun": len(diagnosis["tests"]),
+                    "testsPassed": len([t for t in diagnosis["tests"] if t["success"]]),
+                    "issuesFound": len(diagnosis["issues"])
+                }
+
+                return {"success": True, "diagnosis": diagnosis}
+            except subprocess.TimeoutExpired:
+                return {"success": False, "error": "Network test timed out"}
+            except Exception as e:
+                logger.error(f"Error diagnosing network: {e}")
+                return {"success": False, "error": str(e)}
+
+        @self.server.tool(
+            annotations=ToolAnnotations(
+                title="Check DNS Resolution",
+                readOnlyHint=True,
+            ),
+        )
+        def check_dns_resolution(hostname: str, namespace: str = "default", pod_name: Optional[str] = None) -> Dict[str, Any]:
+            """Test DNS resolution from within the cluster."""
+            try:
+                import subprocess
+
+                # If no pod specified, try to find a suitable pod
+                if not pod_name:
+                    # Look for a running pod in the namespace
+                    find_cmd = ["kubectl", "get", "pods", "-n", namespace, "-o", "jsonpath={.items[0].metadata.name}", "--field-selector=status.phase=Running"]
+                    find_result = subprocess.run(find_cmd, capture_output=True, text=True, timeout=10)
+                    if find_result.returncode != 0 or not find_result.stdout.strip():
+                        return {"success": False, "error": f"No running pods found in namespace '{namespace}' to run DNS test from"}
+                    pod_name = find_result.stdout.strip()
+
+                results = {"hostname": hostname, "fromPod": pod_name, "namespace": namespace, "records": []}
+
+                # nslookup
+                nslookup_cmd = ["kubectl", "exec", "-n", namespace, pod_name, "--", "nslookup", hostname]
+                nslookup_result = subprocess.run(nslookup_cmd, capture_output=True, text=True, timeout=30)
+
+                results["nslookup"] = {
+                    "success": nslookup_result.returncode == 0,
+                    "output": nslookup_result.stdout if nslookup_result.returncode == 0 else nslookup_result.stderr
+                }
+
+                # Parse IPs from output
+                if nslookup_result.returncode == 0:
+                    import re
+                    ips = re.findall(r'Address:\s*(\d+\.\d+\.\d+\.\d+)', nslookup_result.stdout)
+                    # Filter out DNS server IPs (usually first one)
+                    if len(ips) > 1:
+                        results["resolvedIPs"] = ips[1:]
+                    else:
+                        results["resolvedIPs"] = ips
+
+                # Check CoreDNS status
+                coredns_cmd = ["kubectl", "get", "pods", "-n", "kube-system", "-l", "k8s-app=kube-dns", "-o", "jsonpath={.items[*].status.phase}"]
+                coredns_result = subprocess.run(coredns_cmd, capture_output=True, text=True, timeout=10)
+                results["coreDNSStatus"] = coredns_result.stdout.strip() if coredns_result.returncode == 0 else "unknown"
+
+                return {"success": True, "results": results}
+            except subprocess.TimeoutExpired:
+                return {"success": False, "error": "DNS check timed out"}
+            except Exception as e:
+                logger.error(f"Error checking DNS: {e}")
+                return {"success": False, "error": str(e)}
+
+        @self.server.tool(
+            annotations=ToolAnnotations(
+                title="Get Evicted Pods",
+                readOnlyHint=True,
+            ),
+        )
+        def get_evicted_pods(namespace: Optional[str] = None) -> Dict[str, Any]:
+            """Find evicted pods with their eviction reasons."""
+            try:
+                from kubernetes import client, config
+                config.load_kube_config()
+                v1 = client.CoreV1Api()
+
+                if namespace:
+                    pods = v1.list_namespaced_pod(namespace)
+                else:
+                    pods = v1.list_pod_for_all_namespaces()
+
+                evicted = []
+                for pod in pods.items:
+                    if pod.status.phase == "Failed" and pod.status.reason == "Evicted":
+                        evicted.append({
+                            "name": pod.metadata.name,
+                            "namespace": pod.metadata.namespace,
+                            "reason": pod.status.reason,
+                            "message": pod.status.message,
+                            "nodeName": pod.spec.node_name,
+                            "evictedAt": str(pod.status.start_time) if pod.status.start_time else None
+                        })
+
+                # Group by reason
+                by_reason = {}
+                for pod in evicted:
+                    msg = pod.get("message", "Unknown")
+                    if "ephemeral-storage" in msg.lower():
+                        reason = "DiskPressure"
+                    elif "memory" in msg.lower():
+                        reason = "MemoryPressure"
+                    else:
+                        reason = "Other"
+
+                    if reason not in by_reason:
+                        by_reason[reason] = []
+                    by_reason[reason].append(pod["name"])
+
+                return {
+                    "success": True,
+                    "summary": {
+                        "totalEvicted": len(evicted),
+                        "byReason": {k: len(v) for k, v in by_reason.items()}
+                    },
+                    "evictedPods": evicted,
+                    "recommendations": [
+                        "DiskPressure: Clean up disk space or increase ephemeral-storage limits" if "DiskPressure" in by_reason else None,
+                        "MemoryPressure: Increase memory limits or add more nodes" if "MemoryPressure" in by_reason else None
+                    ]
+                }
+            except Exception as e:
+                logger.error(f"Error getting evicted pods: {e}")
+                return {"success": False, "error": str(e)}
+
+        @self.server.tool(
+            annotations=ToolAnnotations(
+                title="Compare Resources Across Namespaces",
+                readOnlyHint=True,
+            ),
+        )
+        def compare_namespaces(namespace1: str, namespace2: str, resource_type: str = "deployment") -> Dict[str, Any]:
+            """Compare resources between two namespaces (useful for staging vs prod comparison)."""
+            try:
+                import subprocess
+                import json as json_module
+
+                def get_resources(ns):
+                    cmd = ["kubectl", "get", resource_type, "-n", ns, "-o", "json"]
+                    result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
+                    if result.returncode != 0:
+                        return None, result.stderr
+                    return json_module.loads(result.stdout), None
+
+                ns1_resources, ns1_err = get_resources(namespace1)
+                ns2_resources, ns2_err = get_resources(namespace2)
+
+                if ns1_err:
+                    return {"success": False, "error": f"Error getting resources from {namespace1}: {ns1_err}"}
+                if ns2_err:
+                    return {"success": False, "error": f"Error getting resources from {namespace2}: {ns2_err}"}
+
+                ns1_names = {item["metadata"]["name"]: item for item in ns1_resources.get("items", [])}
+                ns2_names = {item["metadata"]["name"]: item for item in ns2_resources.get("items", [])}
+
+                comparison = {
+                    "resourceType": resource_type,
+                    "namespace1": namespace1,
+                    "namespace2": namespace2,
+                    "onlyInNs1": list(set(ns1_names.keys()) - set(ns2_names.keys())),
+                    "onlyInNs2": list(set(ns2_names.keys()) - set(ns1_names.keys())),
+                    "inBoth": list(set(ns1_names.keys()) & set(ns2_names.keys())),
+                    "differences": []
+                }
+
+                # Compare common resources
+                for name in comparison["inBoth"]:
+                    r1 = ns1_names[name]
+                    r2 = ns2_names[name]
+
+                    diffs = []
+                    # Compare replicas for deployments
+                    if resource_type == "deployment":
+                        r1_replicas = r1.get("spec", {}).get("replicas", 0)
+                        r2_replicas = r2.get("spec", {}).get("replicas", 0)
+                        if r1_replicas != r2_replicas:
+                            diffs.append({"field": "replicas", "ns1": r1_replicas, "ns2": r2_replicas})
+
+                        # Compare image
+                        r1_containers = r1.get("spec", {}).get("template", {}).get("spec", {}).get("containers", [])
+                        r2_containers = r2.get("spec", {}).get("template", {}).get("spec", {}).get("containers", [])
+                        for i, (c1, c2) in enumerate(zip(r1_containers, r2_containers)):
+                            if c1.get("image") != c2.get("image"):
+                                diffs.append({
+                                    "field": f"containers[{i}].image",
+                                    "ns1": c1.get("image"),
+                                    "ns2": c2.get("image")
+                                })
+
+                    if diffs:
+                        comparison["differences"].append({"name": name, "diffs": diffs})
+
+                comparison["summary"] = {
+                    "totalInNs1": len(ns1_names),
+                    "totalInNs2": len(ns2_names),
+                    "onlyInNs1Count": len(comparison["onlyInNs1"]),
+                    "onlyInNs2Count": len(comparison["onlyInNs2"]),
+                    "commonCount": len(comparison["inBoth"]),
+                    "withDifferences": len(comparison["differences"])
+                }
+
+                return {"success": True, "comparison": comparison}
+            except Exception as e:
+                logger.error(f"Error comparing namespaces: {e}")
+                return {"success": False, "error": str(e)}
+
+        @self.server.tool(
+            annotations=ToolAnnotations(
+                title="Get Admission Webhooks",
+                readOnlyHint=True,
+            ),
+        )
+        def get_admission_webhooks() -> Dict[str, Any]:
+            """List ValidatingWebhookConfigurations and MutatingWebhookConfigurations."""
+            try:
+                from kubernetes import client, config
+                config.load_kube_config()
+                admission = client.AdmissionregistrationV1Api()
+
+                validating = admission.list_validating_webhook_configuration()
+                mutating = admission.list_mutating_webhook_configuration()
+
+                validating_list = []
+                for vwc in validating.items:
+                    webhooks = []
+                    for wh in (vwc.webhooks or []):
+                        webhooks.append({
+                            "name": wh.name,
+                            "failurePolicy": wh.failure_policy,
+                            "matchPolicy": wh.match_policy,
+                            "sideEffects": wh.side_effects,
+                            "timeoutSeconds": wh.timeout_seconds,
+                            "rules": [
+                                {
+                                    "apiGroups": r.api_groups,
+                                    "apiVersions": r.api_versions,
+                                    "operations": r.operations,
+                                    "resources": r.resources
+                                }
+                                for r in (wh.rules or [])
+                            ]
+                        })
+                    validating_list.append({
+                        "name": vwc.metadata.name,
+                        "webhooks": webhooks
+                    })
+
+                mutating_list = []
+                for mwc in mutating.items:
+                    webhooks = []
+                    for wh in (mwc.webhooks or []):
+                        webhooks.append({
+                            "name": wh.name,
+                            "failurePolicy": wh.failure_policy,
+                            "matchPolicy": wh.match_policy,
+                            "sideEffects": wh.side_effects,
+                            "timeoutSeconds": wh.timeout_seconds,
+                            "reinvocationPolicy": wh.reinvocation_policy
+                        })
+                    mutating_list.append({
+                        "name": mwc.metadata.name,
+                        "webhooks": webhooks
+                    })
+
+                return {
+                    "success": True,
+                    "validatingWebhooks": {
+                        "count": len(validating_list),
+                        "items": validating_list
+                    },
+                    "mutatingWebhooks": {
+                        "count": len(mutating_list),
+                        "items": mutating_list
+                    }
+                }
+            except Exception as e:
+                logger.error(f"Error getting admission webhooks: {e}")
+                return {"success": False, "error": str(e)}
+
+        @self.server.tool(
+            annotations=ToolAnnotations(
+                title="Backup Resource as YAML",
+                readOnlyHint=True,
+            ),
+        )
+        def backup_resource(resource_type: str, name: str, namespace: Optional[str] = None) -> Dict[str, Any]:
+            """Export a resource as YAML for backup or migration."""
+            try:
+                import subprocess
+
+                cmd = ["kubectl", "get", resource_type, name, "-o", "yaml"]
+                if namespace:
+                    cmd.extend(["-n", namespace])
+
+                result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
+
+                if result.returncode != 0:
+                    return {"success": False, "error": result.stderr.strip()}
+
+                # Remove cluster-specific fields for cleaner export
+                yaml_content = result.stdout
+
+                return {
+                    "success": True,
+                    "resource": {
+                        "type": resource_type,
+                        "name": name,
+                        "namespace": namespace
+                    },
+                    "yaml": yaml_content,
+                    "hint": "Save this YAML to a file and use 'kubectl apply -f' to restore"
+                }
+            except Exception as e:
+                logger.error(f"Error backing up resource: {e}")
+                return {"success": False, "error": str(e)}
+
+        @self.server.tool(
+            annotations=ToolAnnotations(
+                title="Label Resource",
+                readOnlyHint=False,
+            ),
+        )
+        def label_resource(
+            resource_type: str,
+            name: str,
+            labels: Dict[str, str],
+            namespace: Optional[str] = None,
+            overwrite: bool = False
+        ) -> Dict[str, Any]:
+            """Add or update labels on a resource."""
+            blocked = self._check_destructive()
+            if blocked:
+                return blocked
+
+            try:
+                import subprocess
+
+                cmd = ["kubectl", "label", resource_type, name]
+                if namespace:
+                    cmd.extend(["-n", namespace])
+
+                # Add labels
+                for key, value in labels.items():
+                    if value is None:
+                        cmd.append(f"{key}-")  # Remove label
+                    else:
+                        cmd.append(f"{key}={value}")
+
+                if overwrite:
+                    cmd.append("--overwrite")
+
+                result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
+
+                if result.returncode != 0:
+                    return {"success": False, "error": result.stderr.strip()}
+
+                return {
+                    "success": True,
+                    "message": result.stdout.strip(),
+                    "resource": {"type": resource_type, "name": name, "namespace": namespace},
+                    "appliedLabels": labels
+                }
+            except Exception as e:
+                logger.error(f"Error labeling resource: {e}")
+                return {"success": False, "error": str(e)}
+
+        @self.server.tool(
+            annotations=ToolAnnotations(
+                title="Annotate Resource",
+                readOnlyHint=False,
+            ),
+        )
+        def annotate_resource(
+            resource_type: str,
+            name: str,
+            annotations: Dict[str, str],
+            namespace: Optional[str] = None,
+            overwrite: bool = False
+        ) -> Dict[str, Any]:
+            """Add or update annotations on a resource."""
+            blocked = self._check_destructive()
+            if blocked:
+                return blocked
+
+            try:
+                import subprocess
+
+                cmd = ["kubectl", "annotate", resource_type, name]
+                if namespace:
+                    cmd.extend(["-n", namespace])
+
+                for key, value in annotations.items():
+                    if value is None:
+                        cmd.append(f"{key}-")  # Remove annotation
+                    else:
+                        cmd.append(f"{key}={value}")
+
+                if overwrite:
+                    cmd.append("--overwrite")
+
+                result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
+
+                if result.returncode != 0:
+                    return {"success": False, "error": result.stderr.strip()}
+
+                return {
+                    "success": True,
+                    "message": result.stdout.strip(),
+                    "resource": {"type": resource_type, "name": name, "namespace": namespace},
+                    "appliedAnnotations": annotations
+                }
+            except Exception as e:
+                logger.error(f"Error annotating resource: {e}")
+                return {"success": False, "error": str(e)}
+
+        @self.server.tool(
+            annotations=ToolAnnotations(
+                title="Taint Node",
+                readOnlyHint=False,
+            ),
+        )
+        def taint_node(
+            node_name: str,
+            key: str,
+            value: Optional[str] = None,
+            effect: str = "NoSchedule",
+            remove: bool = False
+        ) -> Dict[str, Any]:
+            """Add or remove taints on a node."""
+            blocked = self._check_destructive()
+            if blocked:
+                return blocked
+
+            try:
+                import subprocess
+
+                if effect not in ["NoSchedule", "PreferNoSchedule", "NoExecute"]:
+                    return {"success": False, "error": f"Invalid effect: {effect}. Must be NoSchedule, PreferNoSchedule, or NoExecute"}
+
+                cmd = ["kubectl", "taint", "nodes", node_name]
+
+                if remove:
+                    # Remove taint
+                    taint_str = f"{key}:{effect}-"
+                else:
+                    # Add taint
+                    if value:
+                        taint_str = f"{key}={value}:{effect}"
+                    else:
+                        taint_str = f"{key}:{effect}"
+
+                cmd.append(taint_str)
+
+                result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
+
+                if result.returncode != 0:
+                    return {"success": False, "error": result.stderr.strip()}
+
+                return {
+                    "success": True,
+                    "message": result.stdout.strip(),
+                    "node": node_name,
+                    "action": "removed" if remove else "added",
+                    "taint": {"key": key, "value": value, "effect": effect}
+                }
+            except Exception as e:
+                logger.error(f"Error tainting node: {e}")
+                return {"success": False, "error": str(e)}
+
+        @self.server.tool(
+            annotations=ToolAnnotations(
+                title="Wait for Condition",
+                readOnlyHint=True,
+            ),
+        )
+        def wait_for_condition(
+            resource_type: str,
+            name: str,
+            condition: str,
+            namespace: Optional[str] = None,
+            timeout: int = 60
+        ) -> Dict[str, Any]:
+            """Wait for a resource to reach a specific condition."""
+            try:
+                import subprocess
+
+                cmd = ["kubectl", "wait", f"{resource_type}/{name}", f"--for={condition}", f"--timeout={timeout}s"]
+                if namespace:
+                    cmd.extend(["-n", namespace])
+
+                result = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout + 10)
+
+                if result.returncode != 0:
+                    return {
+                        "success": False,
+                        "conditionMet": False,
+                        "error": result.stderr.strip(),
+                        "resource": {"type": resource_type, "name": name, "namespace": namespace},
+                        "condition": condition
+                    }
+
+                return {
+                    "success": True,
+                    "conditionMet": True,
+                    "message": result.stdout.strip(),
+                    "resource": {"type": resource_type, "name": name, "namespace": namespace},
+                    "condition": condition
+                }
+            except subprocess.TimeoutExpired:
+                return {
+                    "success": False,
+                    "conditionMet": False,
+                    "error": f"Timeout waiting for condition '{condition}' after {timeout}s",
+                    "resource": {"type": resource_type, "name": name, "namespace": namespace}
+                }
+            except Exception as e:
+                logger.error(f"Error waiting for condition: {e}")
+                return {"success": False, "error": str(e)}
+
+        @self.server.tool(
+            annotations=ToolAnnotations(
+                title="Get Pod Conditions Detailed",
+                readOnlyHint=True,
+            ),
+        )
+        def get_pod_conditions(pod_name: str, namespace: str = "default") -> Dict[str, Any]:
+            """Get detailed pod conditions breakdown."""
+            try:
+                from kubernetes import client, config
+                config.load_kube_config()
+                v1 = client.CoreV1Api()
+
+                pod = v1.read_namespaced_pod(pod_name, namespace)
+
+                conditions = []
+                for c in (pod.status.conditions or []):
+                    conditions.append({
+                        "type": c.type,
+                        "status": c.status,
+                        "reason": c.reason,
+                        "message": c.message,
+                        "lastTransitionTime": str(c.last_transition_time) if c.last_transition_time else None,
+                        "lastProbeTime": str(c.last_probe_time) if c.last_probe_time else None
+                    })
+
+                # Container readiness
+                container_statuses = []
+                for cs in (pod.status.container_statuses or []):
+                    status = {
+                        "name": cs.name,
+                        "ready": cs.ready,
+                        "started": cs.started,
+                        "restartCount": cs.restart_count,
+                        "image": cs.image,
+                        "containerID": cs.container_id
+                    }
+                    if cs.state:
+                        if cs.state.running:
+                            status["state"] = "running"
+                            status["startedAt"] = str(cs.state.running.started_at)
+                        elif cs.state.waiting:
+                            status["state"] = "waiting"
+                            status["waitingReason"] = cs.state.waiting.reason
+                        elif cs.state.terminated:
+                            status["state"] = "terminated"
+                            status["terminatedReason"] = cs.state.terminated.reason
+                            status["exitCode"] = cs.state.terminated.exit_code
+                    container_statuses.append(status)
+
+                # Overall pod phase
+                phase_analysis = {
+                    "phase": pod.status.phase,
+                    "reason": pod.status.reason,
+                    "message": pod.status.message,
+                    "hostIP": pod.status.host_ip,
+                    "podIP": pod.status.pod_ip,
+                    "startTime": str(pod.status.start_time) if pod.status.start_time else None,
+                    "qosClass": pod.status.qos_class
+                }
+
+                return {
+                    "success": True,
+                    "pod": pod_name,
+                    "namespace": namespace,
+                    "phaseAnalysis": phase_analysis,
+                    "conditions": conditions,
+                    "containerStatuses": container_statuses
+                }
+            except client.exceptions.ApiException as e:
+                if e.status == 404:
+                    return {"success": False, "error": f"Pod '{pod_name}' not found in namespace '{namespace}'"}
+                return {"success": False, "error": str(e)}
+            except Exception as e:
+                logger.error(f"Error getting pod conditions: {e}")
+                return {"success": False, "error": str(e)}
+
+        @self.server.tool(
+            annotations=ToolAnnotations(
+                title="Trace Service to Pods",
+                readOnlyHint=True,
+            ),
+        )
+        def trace_service_chain(service_name: str, namespace: str = "default") -> Dict[str, Any]:
+            """Trace the connection chain from a service to its pods."""
+            try:
+                from kubernetes import client, config
+                config.load_kube_config()
+                v1 = client.CoreV1Api()
+
+                # Get service
+                service = v1.read_namespaced_service(service_name, namespace)
+
+                chain = {
+                    "service": {
+                        "name": service.metadata.name,
+                        "namespace": namespace,
+                        "type": service.spec.type,
+                        "clusterIP": service.spec.cluster_ip,
+                        "ports": [
+                            {"name": p.name, "port": p.port, "targetPort": str(p.target_port), "protocol": p.protocol}
+                            for p in (service.spec.ports or [])
+                        ],
+                        "selector": service.spec.selector
+                    },
+                    "endpoints": [],
+                    "pods": []
+                }
+
+                # Get endpoints
+                try:
+                    endpoints = v1.read_namespaced_endpoints(service_name, namespace)
+                    for subset in (endpoints.subsets or []):
+                        for addr in (subset.addresses or []):
+                            chain["endpoints"].append({
+                                "ip": addr.ip,
+                                "nodeName": addr.node_name,
+                                "targetRef": {
+                                    "kind": addr.target_ref.kind,
+                                    "name": addr.target_ref.name
+                                } if addr.target_ref else None
+                            })
+                except:
+                    pass
+
+                # Get pods matching selector
+                if service.spec.selector:
+                    selector = ",".join([f"{k}={v}" for k, v in service.spec.selector.items()])
+                    pods = v1.list_namespaced_pod(namespace, label_selector=selector)
+
+                    for pod in pods.items:
+                        chain["pods"].append({
+                            "name": pod.metadata.name,
+                            "ip": pod.status.pod_ip,
+                            "phase": pod.status.phase,
+                            "ready": all(c.ready for c in (pod.status.container_statuses or []) if c.ready is not None),
+                            "nodeName": pod.spec.node_name,
+                            "containers": [c.name for c in pod.spec.containers]
+                        })
+
+                # Analysis
+                ready_pods = [p for p in chain["pods"] if p["ready"]]
+                chain["analysis"] = {
+                    "totalPods": len(chain["pods"]),
+                    "readyPods": len(ready_pods),
+                    "endpointCount": len(chain["endpoints"]),
+                    "healthy": len(ready_pods) > 0 and len(chain["endpoints"]) > 0,
+                    "issues": []
+                }
+
+                if not chain["pods"]:
+                    chain["analysis"]["issues"].append("No pods match the service selector")
+                elif len(ready_pods) == 0:
+                    chain["analysis"]["issues"].append("No pods are ready")
+                if not chain["endpoints"]:
+                    chain["analysis"]["issues"].append("No endpoints found - service cannot route traffic")
+
+                return {"success": True, "chain": chain}
+            except client.exceptions.ApiException as e:
+                if e.status == 404:
+                    return {"success": False, "error": f"Service '{service_name}' not found in namespace '{namespace}'"}
+                return {"success": False, "error": str(e)}
+            except Exception as e:
+                logger.error(f"Error tracing service: {e}")
+                return {"success": False, "error": str(e)}
+
+        @self.server.tool(
+            annotations=ToolAnnotations(
+                title="Get Cluster Version Info",
+                readOnlyHint=True,
+            ),
+        )
+        def get_cluster_version() -> Dict[str, Any]:
+            """Get detailed cluster version information."""
+            try:
+                from kubernetes import client, config
+                config.load_kube_config()
+                version_api = client.VersionApi()
+
+                version_info = version_api.get_code()
+
+                return {
+                    "success": True,
+                    "version": {
+                        "major": version_info.major,
+                        "minor": version_info.minor,
+                        "gitVersion": version_info.git_version,
+                        "gitCommit": version_info.git_commit,
+                        "gitTreeState": version_info.git_tree_state,
+                        "buildDate": version_info.build_date,
+                        "goVersion": version_info.go_version,
+                        "compiler": version_info.compiler,
+                        "platform": version_info.platform
+                    }
+                }
+            except Exception as e:
+                logger.error(f"Error getting cluster version: {e}")
+                return {"success": False, "error": str(e)}
+
+        @self.server.tool(
+            annotations=ToolAnnotations(
+                title="Get Container Logs Previous",
+                readOnlyHint=True,
+            ),
+        )
+        def get_previous_logs(
+            pod_name: str,
+            namespace: str = "default",
+            container: Optional[str] = None,
+            tail: int = 100
+        ) -> Dict[str, Any]:
+            """Get logs from the previous container instance (useful for crash debugging)."""
+            try:
+                import subprocess
+
+                cmd = ["kubectl", "logs", pod_name, "-n", namespace, "--previous", f"--tail={tail}"]
+                if container:
+                    cmd.extend(["-c", container])
+
+                result = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
+
+                if result.returncode != 0:
+                    if "previous terminated container" in result.stderr.lower():
+                        return {"success": False, "error": "No previous container instance found (container hasn't crashed)"}
+                    return {"success": False, "error": result.stderr.strip()}
+
+                return {
+                    "success": True,
+                    "pod": pod_name,
+                    "namespace": namespace,
+                    "container": container,
+                    "logs": result.stdout,
+                    "lineCount": len(result.stdout.split("\n"))
+                }
+            except subprocess.TimeoutExpired:
+                return {"success": False, "error": "Log retrieval timed out"}
+            except Exception as e:
+                logger.error(f"Error getting previous logs: {e}")
+                return {"success": False, "error": str(e)}
+
     def _check_destructive(self) -> Optional[Dict[str, Any]]:
         """Check if destructive operations are allowed."""
         if self.non_destructive:
