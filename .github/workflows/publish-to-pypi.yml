@@ -3,6 +3,7 @@ name: Publish to PyPI
 on:
   release:
     types: [published]
+  workflow_dispatch:
 
 jobs:
   deploy:
@@ -13,6 +14,8 @@ jobs:
       contents: read
     steps:
     - uses: actions/checkout@v4
+      with:
+        ref: ${{ github.ref }}
     
     - name: Set up Python
       uses: actions/setup-python@v5
