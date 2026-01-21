@@ -1728,6 +1728,800 @@ class MCPServer:
                 logger.error(f"Error checking secrets: {e}")
                 return {"success": False, "error": str(e)}
 
+        # ============================================================
+        # PHASE 1: Quick Win Features
+        # ============================================================
+
+        @self.server.tool(
+            annotations=ToolAnnotations(
+                title="Get Ingress Resources",
+                readOnlyHint=True,
+            ),
+        )
+        def get_ingress(namespace: Optional[str] = None) -> Dict[str, Any]:
+            """List Ingress resources with their hosts, paths, and backends."""
+            try:
+                from kubernetes import client, config
+                config.load_kube_config()
+                networking = client.NetworkingV1Api()
+
+                if namespace:
+                    ingresses = networking.list_namespaced_ingress(namespace)
+                else:
+                    ingresses = networking.list_ingress_for_all_namespaces()
+
+                ingress_list = []
+                for ing in ingresses.items:
+                    rules = []
+                    if ing.spec.rules:
+                        for rule in ing.spec.rules:
+                            paths = []
+                            if rule.http and rule.http.paths:
+                                for path in rule.http.paths:
+                                    backend = {}
+                                    if path.backend.service:
+                                        backend = {
+                                            "service": path.backend.service.name,
+                                            "port": path.backend.service.port.number if path.backend.service.port else None
+                                        }
+                                    paths.append({
+                                        "path": path.path or "/",
+                                        "pathType": path.path_type,
+                                        "backend": backend
+                                    })
+                            rules.append({
+                                "host": rule.host or "*",
+                                "paths": paths
+                            })
+
+                    tls = []
+                    if ing.spec.tls:
+                        for t in ing.spec.tls:
+                            tls.append({
+                                "hosts": t.hosts or [],
+                                "secretName": t.secret_name
+                            })
+
+                    ingress_list.append({
+                        "name": ing.metadata.name,
+                        "namespace": ing.metadata.namespace,
+                        "className": ing.spec.ingress_class_name,
+                        "rules": rules,
+                        "tls": tls,
+                        "loadBalancer": [lb.ip or lb.hostname for lb in (ing.status.load_balancer.ingress or [])] if ing.status.load_balancer else []
+                    })
+
+                return {
+                    "success": True,
+                    "count": len(ingress_list),
+                    "ingresses": ingress_list
+                }
+            except Exception as e:
+                logger.error(f"Error getting ingresses: {e}")
+                return {"success": False, "error": str(e)}
+
+        @self.server.tool(
+            annotations=ToolAnnotations(
+                title="Get StatefulSets",
+                readOnlyHint=True,
+            ),
+        )
+        def get_statefulsets(namespace: Optional[str] = None) -> Dict[str, Any]:
+            """List StatefulSets with their status and replica counts."""
+            try:
+                from kubernetes import client, config
+                config.load_kube_config()
+                apps = client.AppsV1Api()
+
+                if namespace:
+                    statefulsets = apps.list_namespaced_stateful_set(namespace)
+                else:
+                    statefulsets = apps.list_stateful_set_for_all_namespaces()
+
+                sts_list = []
+                for sts in statefulsets.items:
+                    sts_list.append({
+                        "name": sts.metadata.name,
+                        "namespace": sts.metadata.namespace,
+                        "replicas": sts.spec.replicas,
+                        "readyReplicas": sts.status.ready_replicas or 0,
+                        "currentReplicas": sts.status.current_replicas or 0,
+                        "updatedReplicas": sts.status.updated_replicas or 0,
+                        "serviceName": sts.spec.service_name,
+                        "podManagementPolicy": sts.spec.pod_management_policy,
+                        "updateStrategy": sts.spec.update_strategy.type if sts.spec.update_strategy else None,
+                        "volumeClaimTemplates": [
+                            {
+                                "name": pvc.metadata.name,
+                                "storageClass": pvc.spec.storage_class_name,
+                                "accessModes": pvc.spec.access_modes,
+                                "storage": pvc.spec.resources.requests.get("storage") if pvc.spec.resources and pvc.spec.resources.requests else None
+                            }
+                            for pvc in (sts.spec.volume_claim_templates or [])
+                        ],
+                        "selector": sts.spec.selector.match_labels if sts.spec.selector else {},
+                        "age": str(sts.metadata.creation_timestamp)
+                    })
+
+                return {
+                    "success": True,
+                    "count": len(sts_list),
+                    "statefulsets": sts_list
+                }
+            except Exception as e:
+                logger.error(f"Error getting statefulsets: {e}")
+                return {"success": False, "error": str(e)}
+
+        @self.server.tool(
+            annotations=ToolAnnotations(
+                title="Get DaemonSets",
+                readOnlyHint=True,
+            ),
+        )
+        def get_daemonsets(namespace: Optional[str] = None) -> Dict[str, Any]:
+            """List DaemonSets with their status and node coverage."""
+            try:
+                from kubernetes import client, config
+                config.load_kube_config()
+                apps = client.AppsV1Api()
+
+                if namespace:
+                    daemonsets = apps.list_namespaced_daemon_set(namespace)
+                else:
+                    daemonsets = apps.list_daemon_set_for_all_namespaces()
+
+                ds_list = []
+                for ds in daemonsets.items:
+                    ds_list.append({
+                        "name": ds.metadata.name,
+                        "namespace": ds.metadata.namespace,
+                        "desiredNumberScheduled": ds.status.desired_number_scheduled,
+                        "currentNumberScheduled": ds.status.current_number_scheduled,
+                        "numberReady": ds.status.number_ready or 0,
+                        "numberAvailable": ds.status.number_available or 0,
+                        "numberUnavailable": ds.status.number_unavailable or 0,
+                        "numberMisscheduled": ds.status.number_misscheduled or 0,
+                        "updatedNumberScheduled": ds.status.updated_number_scheduled or 0,
+                        "updateStrategy": ds.spec.update_strategy.type if ds.spec.update_strategy else None,
+                        "selector": ds.spec.selector.match_labels if ds.spec.selector else {},
+                        "nodeSelector": ds.spec.template.spec.node_selector if ds.spec.template.spec.node_selector else {},
+                        "tolerations": [
+                            {"key": t.key, "operator": t.operator, "effect": t.effect}
+                            for t in (ds.spec.template.spec.tolerations or [])
+                        ],
+                        "age": str(ds.metadata.creation_timestamp)
+                    })
+
+                return {
+                    "success": True,
+                    "count": len(ds_list),
+                    "daemonsets": ds_list
+                }
+            except Exception as e:
+                logger.error(f"Error getting daemonsets: {e}")
+                return {"success": False, "error": str(e)}
+
+        @self.server.tool(
+            annotations=ToolAnnotations(
+                title="Get Jobs and CronJobs",
+                readOnlyHint=True,
+            ),
+        )
+        def get_jobs(namespace: Optional[str] = None, include_cronjobs: bool = True) -> Dict[str, Any]:
+            """List Jobs and CronJobs with their status and completion info."""
+            try:
+                from kubernetes import client, config
+                config.load_kube_config()
+                batch = client.BatchV1Api()
+
+                # Get Jobs
+                if namespace:
+                    jobs = batch.list_namespaced_job(namespace)
+                else:
+                    jobs = batch.list_job_for_all_namespaces()
+
+                job_list = []
+                for job in jobs.items:
+                    conditions = []
+                    if job.status.conditions:
+                        for c in job.status.conditions:
+                            conditions.append({
+                                "type": c.type,
+                                "status": c.status,
+                                "reason": c.reason,
+                                "message": c.message
+                            })
+
+                    job_list.append({
+                        "name": job.metadata.name,
+                        "namespace": job.metadata.namespace,
+                        "completions": job.spec.completions,
+                        "parallelism": job.spec.parallelism,
+                        "succeeded": job.status.succeeded or 0,
+                        "failed": job.status.failed or 0,
+                        "active": job.status.active or 0,
+                        "startTime": str(job.status.start_time) if job.status.start_time else None,
+                        "completionTime": str(job.status.completion_time) if job.status.completion_time else None,
+                        "backoffLimit": job.spec.backoff_limit,
+                        "conditions": conditions,
+                        "ownerReferences": [
+                            {"kind": ref.kind, "name": ref.name}
+                            for ref in (job.metadata.owner_references or [])
+                        ]
+                    })
+
+                result = {
+                    "success": True,
+                    "jobs": {
+                        "count": len(job_list),
+                        "items": job_list
+                    }
+                }
+
+                # Get CronJobs
+                if include_cronjobs:
+                    if namespace:
+                        cronjobs = batch.list_namespaced_cron_job(namespace)
+                    else:
+                        cronjobs = batch.list_cron_job_for_all_namespaces()
+
+                    cronjob_list = []
+                    for cj in cronjobs.items:
+                        cronjob_list.append({
+                            "name": cj.metadata.name,
+                            "namespace": cj.metadata.namespace,
+                            "schedule": cj.spec.schedule,
+                            "suspend": cj.spec.suspend,
+                            "concurrencyPolicy": cj.spec.concurrency_policy,
+                            "successfulJobsHistoryLimit": cj.spec.successful_jobs_history_limit,
+                            "failedJobsHistoryLimit": cj.spec.failed_jobs_history_limit,
+                            "lastScheduleTime": str(cj.status.last_schedule_time) if cj.status.last_schedule_time else None,
+                            "lastSuccessfulTime": str(cj.status.last_successful_time) if cj.status.last_successful_time else None,
+                            "activeJobs": len(cj.status.active or [])
+                        })
+
+                    result["cronjobs"] = {
+                        "count": len(cronjob_list),
+                        "items": cronjob_list
+                    }
+
+                return result
+            except Exception as e:
+                logger.error(f"Error getting jobs: {e}")
+                return {"success": False, "error": str(e)}
+
+        @self.server.tool(
+            annotations=ToolAnnotations(
+                title="Diagnose Pod Crash",
+                readOnlyHint=True,
+            ),
+        )
+        def diagnose_pod_crash(pod_name: str, namespace: str = "default") -> Dict[str, Any]:
+            """Automated diagnosis of pod crash loops and failures."""
+            try:
+                from kubernetes import client, config
+                config.load_kube_config()
+                v1 = client.CoreV1Api()
+
+                # Get pod details
+                pod = v1.read_namespaced_pod(pod_name, namespace)
+
+                diagnosis = {
+                    "pod": pod_name,
+                    "namespace": namespace,
+                    "phase": pod.status.phase,
+                    "issues": [],
+                    "recommendations": [],
+                    "containerStatuses": [],
+                    "events": []
+                }
+
+                # Analyze container statuses
+                for cs in (pod.status.container_statuses or []):
+                    container_info = {
+                        "name": cs.name,
+                        "ready": cs.ready,
+                        "restartCount": cs.restart_count,
+                        "state": None,
+                        "lastState": None
+                    }
+
+                    # Current state
+                    if cs.state:
+                        if cs.state.waiting:
+                            container_info["state"] = {
+                                "status": "waiting",
+                                "reason": cs.state.waiting.reason,
+                                "message": cs.state.waiting.message
+                            }
+                            # Diagnose waiting states
+                            if cs.state.waiting.reason == "CrashLoopBackOff":
+                                diagnosis["issues"].append({
+                                    "container": cs.name,
+                                    "issue": "CrashLoopBackOff",
+                                    "severity": "critical",
+                                    "description": "Container is crashing repeatedly"
+                                })
+                                diagnosis["recommendations"].append("Check container logs for error messages")
+                                diagnosis["recommendations"].append("Verify the container command and args are correct")
+                            elif cs.state.waiting.reason == "ImagePullBackOff":
+                                diagnosis["issues"].append({
+                                    "container": cs.name,
+                                    "issue": "ImagePullBackOff",
+                                    "severity": "critical",
+                                    "description": "Unable to pull container image"
+                                })
+                                diagnosis["recommendations"].append("Verify the image name and tag exist")
+                                diagnosis["recommendations"].append("Check imagePullSecrets if using private registry")
+                            elif cs.state.waiting.reason == "CreateContainerConfigError":
+                                diagnosis["issues"].append({
+                                    "container": cs.name,
+                                    "issue": "CreateContainerConfigError",
+                                    "severity": "critical",
+                                    "description": "Container configuration error"
+                                })
+                                diagnosis["recommendations"].append("Check ConfigMaps and Secrets referenced by the container")
+                        elif cs.state.running:
+                            container_info["state"] = {"status": "running", "startedAt": str(cs.state.running.started_at)}
+                        elif cs.state.terminated:
+                            container_info["state"] = {
+                                "status": "terminated",
+                                "exitCode": cs.state.terminated.exit_code,
+                                "reason": cs.state.terminated.reason,
+                                "message": cs.state.terminated.message
+                            }
+                            if cs.state.terminated.exit_code != 0:
+                                diagnosis["issues"].append({
+                                    "container": cs.name,
+                                    "issue": f"Exited with code {cs.state.terminated.exit_code}",
+                                    "severity": "error",
+                                    "reason": cs.state.terminated.reason
+                                })
+                                if cs.state.terminated.reason == "OOMKilled":
+                                    diagnosis["recommendations"].append(f"Increase memory limit for container '{cs.name}'")
+                                elif cs.state.terminated.reason == "Error":
+                                    diagnosis["recommendations"].append(f"Check logs for container '{cs.name}' to identify the error")
+
+                    # Last state (for crash analysis)
+                    if cs.last_state and cs.last_state.terminated:
+                        container_info["lastState"] = {
+                            "status": "terminated",
+                            "exitCode": cs.last_state.terminated.exit_code,
+                            "reason": cs.last_state.terminated.reason,
+                            "finishedAt": str(cs.last_state.terminated.finished_at)
+                        }
+
+                    # High restart count warning
+                    if cs.restart_count > 5:
+                        diagnosis["issues"].append({
+                            "container": cs.name,
+                            "issue": f"High restart count: {cs.restart_count}",
+                            "severity": "warning",
+                            "description": "Container has restarted multiple times"
+                        })
+
+                    diagnosis["containerStatuses"].append(container_info)
+
+                # Get recent events
+                events = v1.list_namespaced_event(
+                    namespace,
+                    field_selector=f"involvedObject.name={pod_name}"
+                )
+                for event in events.items:
+                    diagnosis["events"].append({
+                        "type": event.type,
+                        "reason": event.reason,
+                        "message": event.message,
+                        "count": event.count,
+                        "lastTimestamp": str(event.last_timestamp) if event.last_timestamp else None
+                    })
+                    # Add issues from events
+                    if event.type == "Warning":
+                        if event.reason == "FailedScheduling":
+                            diagnosis["issues"].append({
+                                "issue": "FailedScheduling",
+                                "severity": "critical",
+                                "description": event.message
+                            })
+                        elif event.reason == "FailedMount":
+                            diagnosis["issues"].append({
+                                "issue": "FailedMount",
+                                "severity": "critical",
+                                "description": event.message
+                            })
+                            diagnosis["recommendations"].append("Check PVC status and storage class")
+                        elif event.reason == "Unhealthy":
+                            diagnosis["issues"].append({
+                                "issue": "Unhealthy",
+                                "severity": "warning",
+                                "description": event.message
+                            })
+                            diagnosis["recommendations"].append("Review liveness/readiness probe configuration")
+
+                # Check pod conditions
+                for condition in (pod.status.conditions or []):
+                    if condition.status == "False":
+                        diagnosis["issues"].append({
+                            "issue": f"Condition {condition.type} is False",
+                            "severity": "warning",
+                            "reason": condition.reason,
+                            "message": condition.message
+                        })
+
+                # Summary
+                diagnosis["summary"] = {
+                    "totalIssues": len(diagnosis["issues"]),
+                    "criticalIssues": len([i for i in diagnosis["issues"] if i.get("severity") == "critical"]),
+                    "totalRecommendations": len(set(diagnosis["recommendations"]))
+                }
+                diagnosis["recommendations"] = list(set(diagnosis["recommendations"]))
+
+                return {"success": True, "diagnosis": diagnosis}
+            except client.exceptions.ApiException as e:
+                if e.status == 404:
+                    return {"success": False, "error": f"Pod '{pod_name}' not found in namespace '{namespace}'"}
+                return {"success": False, "error": str(e)}
+            except Exception as e:
+                logger.error(f"Error diagnosing pod: {e}")
+                return {"success": False, "error": str(e)}
+
+        @self.server.tool(
+            annotations=ToolAnnotations(
+                title="Detect Pending Pods",
+                readOnlyHint=True,
+            ),
+        )
+        def detect_pending_pods(namespace: Optional[str] = None) -> Dict[str, Any]:
+            """Find pending pods and explain why they are not scheduled."""
+            try:
+                from kubernetes import client, config
+                config.load_kube_config()
+                v1 = client.CoreV1Api()
+
+                if namespace:
+                    pods = v1.list_namespaced_pod(namespace, field_selector="status.phase=Pending")
+                else:
+                    pods = v1.list_pod_for_all_namespaces(field_selector="status.phase=Pending")
+
+                pending_pods = []
+                for pod in pods.items:
+                    pod_info = {
+                        "name": pod.metadata.name,
+                        "namespace": pod.metadata.namespace,
+                        "createdAt": str(pod.metadata.creation_timestamp),
+                        "reasons": [],
+                        "events": []
+                    }
+
+                    # Check conditions for scheduling issues
+                    for condition in (pod.status.conditions or []):
+                        if condition.type == "PodScheduled" and condition.status == "False":
+                            pod_info["reasons"].append({
+                                "type": "SchedulingFailed",
+                                "reason": condition.reason,
+                                "message": condition.message
+                            })
+
+                    # Get events for more details
+                    events = v1.list_namespaced_event(
+                        pod.metadata.namespace,
+                        field_selector=f"involvedObject.name={pod.metadata.name}"
+                    )
+                    for event in events.items:
+                        if event.reason in ["FailedScheduling", "FailedAttachVolume", "FailedMount"]:
+                            pod_info["events"].append({
+                                "reason": event.reason,
+                                "message": event.message,
+                                "count": event.count
+                            })
+                            # Parse common scheduling failures
+                            msg = event.message or ""
+                            if "Insufficient cpu" in msg:
+                                pod_info["reasons"].append({
+                                    "type": "InsufficientCPU",
+                                    "message": "Not enough CPU available on any node"
+                                })
+                            elif "Insufficient memory" in msg:
+                                pod_info["reasons"].append({
+                                    "type": "InsufficientMemory",
+                                    "message": "Not enough memory available on any node"
+                                })
+                            elif "node(s) had taint" in msg:
+                                pod_info["reasons"].append({
+                                    "type": "NodeTaints",
+                                    "message": "Pod doesn't tolerate node taints"
+                                })
+                            elif "node(s) didn't match Pod's node affinity" in msg:
+                                pod_info["reasons"].append({
+                                    "type": "NodeAffinity",
+                                    "message": "No nodes match the pod's node affinity rules"
+                                })
+                            elif "persistentvolumeclaim" in msg.lower():
+                                pod_info["reasons"].append({
+                                    "type": "PVCIssue",
+                                    "message": "PersistentVolumeClaim not bound or not found"
+                                })
+
+                    # Check resource requests
+                    total_cpu = 0
+                    total_memory = 0
+                    for container in pod.spec.containers:
+                        if container.resources and container.resources.requests:
+                            cpu_req = container.resources.requests.get("cpu", "0")
+                            mem_req = container.resources.requests.get("memory", "0")
+                            pod_info["resourceRequests"] = {
+                                "cpu": cpu_req,
+                                "memory": mem_req
+                            }
+
+                    pending_pods.append(pod_info)
+
+                # Categorize by reason
+                by_reason = {}
+                for pod in pending_pods:
+                    for reason in pod["reasons"]:
+                        reason_type = reason.get("type", "Unknown")
+                        if reason_type not in by_reason:
+                            by_reason[reason_type] = []
+                        by_reason[reason_type].append(pod["name"])
+
+                return {
+                    "success": True,
+                    "summary": {
+                        "totalPending": len(pending_pods),
+                        "byReason": {k: len(v) for k, v in by_reason.items()}
+                    },
+                    "pendingPods": pending_pods,
+                    "recommendations": self._get_pending_recommendations(by_reason)
+                }
+            except Exception as e:
+                logger.error(f"Error detecting pending pods: {e}")
+                return {"success": False, "error": str(e)}
+
+        def _get_pending_recommendations(reason_map: dict) -> List[str]:
+            """Generate recommendations based on pending reasons."""
+            recommendations = []
+            if "InsufficientCPU" in reason_map:
+                recommendations.append("Consider scaling up nodes or reducing CPU requests")
+            if "InsufficientMemory" in reason_map:
+                recommendations.append("Consider scaling up nodes or reducing memory requests")
+            if "NodeTaints" in reason_map:
+                recommendations.append("Add appropriate tolerations to pod spec or remove taints from nodes")
+            if "NodeAffinity" in reason_map:
+                recommendations.append("Review node affinity rules or add labels to nodes")
+            if "PVCIssue" in reason_map:
+                recommendations.append("Check PVC status and ensure storage class can provision volumes")
+            return recommendations
+
+        # Store helper as instance method
+        self._get_pending_recommendations = _get_pending_recommendations
+
+        @self.server.tool(
+            annotations=ToolAnnotations(
+                title="Get ReplicaSets",
+                readOnlyHint=True,
+            ),
+        )
+        def get_replicasets(namespace: Optional[str] = None) -> Dict[str, Any]:
+            """List ReplicaSets with their status and owner references."""
+            try:
+                from kubernetes import client, config
+                config.load_kube_config()
+                apps = client.AppsV1Api()
+
+                if namespace:
+                    replicasets = apps.list_namespaced_replica_set(namespace)
+                else:
+                    replicasets = apps.list_replica_set_for_all_namespaces()
+
+                rs_list = []
+                for rs in replicasets.items:
+                    rs_list.append({
+                        "name": rs.metadata.name,
+                        "namespace": rs.metadata.namespace,
+                        "replicas": rs.spec.replicas,
+                        "readyReplicas": rs.status.ready_replicas or 0,
+                        "availableReplicas": rs.status.available_replicas or 0,
+                        "selector": rs.spec.selector.match_labels if rs.spec.selector else {},
+                        "ownerReferences": [
+                            {"kind": ref.kind, "name": ref.name}
+                            for ref in (rs.metadata.owner_references or [])
+                        ],
+                        "age": str(rs.metadata.creation_timestamp)
+                    })
+
+                return {
+                    "success": True,
+                    "count": len(rs_list),
+                    "replicasets": rs_list
+                }
+            except Exception as e:
+                logger.error(f"Error getting replicasets: {e}")
+                return {"success": False, "error": str(e)}
+
+        @self.server.tool(
+            annotations=ToolAnnotations(
+                title="Get Endpoints",
+                readOnlyHint=True,
+            ),
+        )
+        def get_endpoints(namespace: Optional[str] = None, service_name: Optional[str] = None) -> Dict[str, Any]:
+            """List Endpoints for services to debug connectivity."""
+            try:
+                from kubernetes import client, config
+                config.load_kube_config()
+                v1 = client.CoreV1Api()
+
+                if service_name and namespace:
+                    endpoints = [v1.read_namespaced_endpoints(service_name, namespace)]
+                elif namespace:
+                    endpoints = v1.list_namespaced_endpoints(namespace).items
+                else:
+                    endpoints = v1.list_endpoints_for_all_namespaces().items
+
+                ep_list = []
+                for ep in endpoints:
+                    subsets = []
+                    for subset in (ep.subsets or []):
+                        addresses = []
+                        for addr in (subset.addresses or []):
+                            addresses.append({
+                                "ip": addr.ip,
+                                "hostname": addr.hostname,
+                                "nodeName": addr.node_name,
+                                "targetRef": {
+                                    "kind": addr.target_ref.kind,
+                                    "name": addr.target_ref.name,
+                                    "namespace": addr.target_ref.namespace
+                                } if addr.target_ref else None
+                            })
+                        not_ready = []
+                        for addr in (subset.not_ready_addresses or []):
+                            not_ready.append({
+                                "ip": addr.ip,
+                                "targetRef": {
+                                    "kind": addr.target_ref.kind,
+                                    "name": addr.target_ref.name
+                                } if addr.target_ref else None
+                            })
+                        ports = [{"name": p.name, "port": p.port, "protocol": p.protocol} for p in (subset.ports or [])]
+                        subsets.append({
+                            "addresses": addresses,
+                            "notReadyAddresses": not_ready,
+                            "ports": ports
+                        })
+
+                    ep_list.append({
+                        "name": ep.metadata.name,
+                        "namespace": ep.metadata.namespace,
+                        "subsets": subsets,
+                        "totalReady": sum(len(s.get("addresses", [])) for s in subsets),
+                        "totalNotReady": sum(len(s.get("notReadyAddresses", [])) for s in subsets)
+                    })
+
+                return {
+                    "success": True,
+                    "count": len(ep_list),
+                    "endpoints": ep_list
+                }
+            except Exception as e:
+                logger.error(f"Error getting endpoints: {e}")
+                return {"success": False, "error": str(e)}
+
+        @self.server.tool(
+            annotations=ToolAnnotations(
+                title="Get HorizontalPodAutoscalers",
+                readOnlyHint=True,
+            ),
+        )
+        def get_hpa(namespace: Optional[str] = None) -> Dict[str, Any]:
+            """List HorizontalPodAutoscalers with their current and target metrics."""
+            try:
+                from kubernetes import client, config
+                config.load_kube_config()
+                autoscaling = client.AutoscalingV2Api()
+
+                if namespace:
+                    hpas = autoscaling.list_namespaced_horizontal_pod_autoscaler(namespace)
+                else:
+                    hpas = autoscaling.list_horizontal_pod_autoscaler_for_all_namespaces()
+
+                hpa_list = []
+                for hpa in hpas.items:
+                    metrics = []
+                    for metric in (hpa.spec.metrics or []):
+                        metric_info = {"type": metric.type}
+                        if metric.type == "Resource" and metric.resource:
+                            metric_info["resource"] = {
+                                "name": metric.resource.name,
+                                "targetType": metric.resource.target.type if metric.resource.target else None,
+                                "targetValue": metric.resource.target.average_utilization if metric.resource.target else None
+                            }
+                        elif metric.type == "Pods" and metric.pods:
+                            metric_info["pods"] = {
+                                "metricName": metric.pods.metric.name if metric.pods.metric else None
+                            }
+                        metrics.append(metric_info)
+
+                    current_metrics = []
+                    for cm in (hpa.status.current_metrics or []):
+                        cm_info = {"type": cm.type}
+                        if cm.type == "Resource" and cm.resource:
+                            cm_info["resource"] = {
+                                "name": cm.resource.name,
+                                "currentValue": cm.resource.current.average_utilization if cm.resource.current else None
+                            }
+                        current_metrics.append(cm_info)
+
+                    hpa_list.append({
+                        "name": hpa.metadata.name,
+                        "namespace": hpa.metadata.namespace,
+                        "scaleTargetRef": {
+                            "kind": hpa.spec.scale_target_ref.kind,
+                            "name": hpa.spec.scale_target_ref.name
+                        },
+                        "minReplicas": hpa.spec.min_replicas,
+                        "maxReplicas": hpa.spec.max_replicas,
+                        "currentReplicas": hpa.status.current_replicas,
+                        "desiredReplicas": hpa.status.desired_replicas,
+                        "metrics": metrics,
+                        "currentMetrics": current_metrics,
+                        "conditions": [
+                            {"type": c.type, "status": c.status, "reason": c.reason}
+                            for c in (hpa.status.conditions or [])
+                        ]
+                    })
+
+                return {
+                    "success": True,
+                    "count": len(hpa_list),
+                    "hpas": hpa_list
+                }
+            except Exception as e:
+                logger.error(f"Error getting HPAs: {e}")
+                return {"success": False, "error": str(e)}
+
+        @self.server.tool(
+            annotations=ToolAnnotations(
+                title="Get PodDisruptionBudgets",
+                readOnlyHint=True,
+            ),
+        )
+        def get_pdb(namespace: Optional[str] = None) -> Dict[str, Any]:
+            """List PodDisruptionBudgets with their status."""
+            try:
+                from kubernetes import client, config
+                config.load_kube_config()
+                policy = client.PolicyV1Api()
+
+                if namespace:
+                    pdbs = policy.list_namespaced_pod_disruption_budget(namespace)
+                else:
+                    pdbs = policy.list_pod_disruption_budget_for_all_namespaces()
+
+                pdb_list = []
+                for pdb in pdbs.items:
+                    pdb_list.append({
+                        "name": pdb.metadata.name,
+                        "namespace": pdb.metadata.namespace,
+                        "minAvailable": str(pdb.spec.min_available) if pdb.spec.min_available else None,
+                        "maxUnavailable": str(pdb.spec.max_unavailable) if pdb.spec.max_unavailable else None,
+                        "selector": pdb.spec.selector.match_labels if pdb.spec.selector else {},
+                        "currentHealthy": pdb.status.current_healthy,
+                        "desiredHealthy": pdb.status.desired_healthy,
+                        "disruptionsAllowed": pdb.status.disruptions_allowed,
+                        "expectedPods": pdb.status.expected_pods
+                    })
+
+                return {
+                    "success": True,
+                    "count": len(pdb_list),
+                    "pdbs": pdb_list
+                }
+            except Exception as e:
+                logger.error(f"Error getting PDBs: {e}")
+                return {"success": False, "error": str(e)}
+
     def _check_destructive(self) -> Optional[Dict[str, Any]]:
         """Check if destructive operations are allowed."""
         if self.non_destructive:
