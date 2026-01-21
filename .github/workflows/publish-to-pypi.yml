@@ -16,19 +16,39 @@ jobs:
     - uses: actions/checkout@v4
       with:
         ref: ${{ github.ref }}
-    
+
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
         python-version: '3.11'
-    
+
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
         pip install build
-    
+
+    - name: Get version from setup.py
+      id: version
+      run: |
+        VERSION=$(python -c "exec(open('setup.py').read().split('version=')[1].split(',')[0].strip('\"').strip(\"'\"))" 2>/dev/null || python setup.py --version)
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+    - name: Check if version exists on PyPI
+      id: check
+      run: |
+        VERSION=$(python setup.py --version)
+        if pip index versions kubectl-mcp-tool 2>/dev/null | grep -q "$VERSION"; then
+          echo "exists=true" >> $GITHUB_OUTPUT
+          echo "Version $VERSION already exists on PyPI, skipping publish"
+        else
+          echo "exists=false" >> $GITHUB_OUTPUT
+          echo "Version $VERSION not found, will publish"
+        fi
+
     - name: Build package
+      if: steps.check.outputs.exists != 'true'
       run: python -m build
-    
+
     - name: Publish to PyPI
+      if: steps.check.outputs.exists != 'true'
       uses: pypa/gh-action-pypi-publish@release/v1

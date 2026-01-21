@@ -25,7 +25,20 @@ jobs:
         VERSION=${GITHUB_REF_NAME#v}
         npm version $VERSION --no-git-tag-version --allow-same-version
 
+    - name: Check if version exists
+      id: check
+      run: |
+        VERSION=${GITHUB_REF_NAME#v}
+        if npm view kubectl-mcp-server@$VERSION version 2>/dev/null; then
+          echo "exists=true" >> $GITHUB_OUTPUT
+          echo "Version $VERSION already exists on npm, skipping publish"
+        else
+          echo "exists=false" >> $GITHUB_OUTPUT
+          echo "Version $VERSION not found, will publish"
+        fi
+
     - name: Publish to npm
+      if: steps.check.outputs.exists != 'true'
       run: npm publish --provenance --access public
       env:
         NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
