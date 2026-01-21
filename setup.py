@@ -14,7 +14,7 @@ setup(
     url="https://github.com/rohitg00/kubectl-mcp-server",
     packages=find_packages(),
     install_requires=[
-        "fastmcp>=3.0.0",  # gofastmcp.com - to revert: change to mcp>=1.8.0
+        "fastmcp>=3.0.0b1",  # gofastmcp.com - to revert: change to mcp>=1.8.0
         "pydantic>=2.0.0",
         "fastapi>=0.100.0",
         "uvicorn>=0.22.0",

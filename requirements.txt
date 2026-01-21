@@ -1,6 +1,6 @@
 # FastMCP 3 from gofastmcp.com (standalone package with extra features)
 # To revert to official Anthropic SDK: change to mcp>=1.8.0
-fastmcp>=3.0.0
+fastmcp>=3.0.0b1
 
 # Framework dependencies
 pydantic>=2.0.0
