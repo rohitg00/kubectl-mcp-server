@@ -206,6 +206,66 @@ Add to `~/.config/windsurf/mcp.json`:
 }
 ```
 
+### GitHub Copilot (VS Code)
+
+Add to VS Code `settings.json`:
+
+```json
+{
+  "mcp": {
+    "servers": {
+      "kubernetes": {
+        "command": "npx",
+        "args": ["-y", "kubectl-mcp-server"]
+      }
+    }
+  }
+}
+```
+
+### Goose
+
+Add to `~/.config/goose/config.yaml`:
+
+```yaml
+extensions:
+  kubernetes:
+    command: npx
+    args:
+      - -y
+      - kubectl-mcp-server
+```
+
+### Gemini CLI
+
+Add to `~/.gemini/settings.json`:
+
+```json
+{
+  "mcpServers": {
+    "kubernetes": {
+      "command": "npx",
+      "args": ["-y", "kubectl-mcp-server"]
+    }
+  }
+}
+```
+
+### Roo Code / Kilo Code
+
+Add to `~/.config/roo-code/mcp.json` or `~/.config/kilo-code/mcp.json`:
+
+```json
+{
+  "mcpServers": {
+    "kubernetes": {
+      "command": "npx",
+      "args": ["-y", "kubectl-mcp-server"]
+    }
+  }
+}
+```
+
 ### Using Python Directly
 
 If you prefer Python over npx:
