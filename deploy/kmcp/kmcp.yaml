@@ -1,0 +1,46 @@
+# kMCP Manifest for kubectl-mcp-server
+# Deploy with: kmcp deploy --file deploy/kmcp/kmcp.yaml --image rohitghumare64/kubectl-mcp-server:latest
+# Or use: kmcp deploy package --deployment-name kubectl-mcp-server --manager npx --args kubectl-mcp-server
+
+apiVersion: kagent.dev/v1alpha1
+kind: MCPServer
+metadata:
+  name: kubectl-mcp-server
+  namespace: default
+  labels:
+    app: kubectl-mcp-server
+    app.kubernetes.io/name: kubectl-mcp-server
+    app.kubernetes.io/part-of: kubernetes-ai-tools
+spec:
+  deployment:
+    # Use the official Docker image
+    image: "rohitghumare64/kubectl-mcp-server:latest"
+    imagePullPolicy: IfNotPresent
+    port: 8000
+
+    # Environment variables
+    env:
+      MCP_DEBUG: "0"
+
+    # Mount kubeconfig from a secret (see deploy/kubernetes/kubeconfig-secret.yaml)
+    secretRefs:
+      - name: kubeconfig-secret
+
+    volumeMounts:
+      - name: kubeconfig
+        mountPath: /root/.kube
+        readOnly: true
+
+    volumes:
+      - name: kubeconfig
+        secret:
+          secretName: kubeconfig-secret
+          items:
+            - key: config
+              path: config
+
+  # Use HTTP transport for external access
+  transportType: http
+  httpTransport:
+    targetPort: 8000
+    path: /mcp

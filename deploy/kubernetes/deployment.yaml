@@ -1,0 +1,64 @@
+# Deployment for kubectl-mcp-server
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kubectl-mcp-server
+  namespace: kubectl-mcp
+  labels:
+    app: kubectl-mcp-server
+    app.kubernetes.io/name: kubectl-mcp-server
+    app.kubernetes.io/version: "1.9.0"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: kubectl-mcp-server
+  template:
+    metadata:
+      labels:
+        app: kubectl-mcp-server
+        app.kubernetes.io/name: kubectl-mcp-server
+    spec:
+      serviceAccountName: kubectl-mcp-server
+      containers:
+        - name: kubectl-mcp-server
+          image: rohitghumare64/kubectl-mcp-server:latest
+          imagePullPolicy: Always
+          args:
+            - "--transport"
+            - "sse"
+            - "--port"
+            - "8000"
+          ports:
+            - name: http
+              containerPort: 8000
+              protocol: TCP
+          env:
+            - name: MCP_DEBUG
+              value: "0"
+            # Use in-cluster config (ServiceAccount token)
+            - name: KUBERNETES_SERVICE_HOST
+              value: "kubernetes.default.svc"
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 10
+            periodSeconds: 30
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          securityContext:
+            runAsNonRoot: false  # kubectl needs root for some operations
+            readOnlyRootFilesystem: false

@@ -1,0 +1,23 @@
+# Kustomization for kubectl-mcp-server
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+metadata:
+  name: kubectl-mcp-server
+
+namespace: kubectl-mcp
+
+resources:
+  - namespace.yaml
+  - rbac.yaml
+  - deployment.yaml
+  - service.yaml
+
+labels:
+  - pairs:
+      app.kubernetes.io/name: kubectl-mcp-server
+      app.kubernetes.io/part-of: kubernetes-ai-tools
+
+images:
+  - name: rohitghumare64/kubectl-mcp-server
+    newTag: latest

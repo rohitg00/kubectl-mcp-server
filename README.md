@@ -9,7 +9,7 @@ A Model Context Protocol (MCP) server for Kubernetes that enables AI assistants 
 [![PyPI](https://img.shields.io/pypi/v/kubectl-mcp-tool?color=blue&label=PyPI)](https://pypi.org/project/kubectl-mcp-tool/)
 [![npm](https://img.shields.io/npm/v/kubectl-mcp-server?color=green&label=npm)](https://www.npmjs.com/package/kubectl-mcp-server)
 [![Docker](https://img.shields.io/docker/pulls/rohitghumare64/kubectl-mcp-server.svg)](https://hub.docker.com/r/rohitghumare64/kubectl-mcp-server)
-[![Tests](https://img.shields.io/badge/tests-135%20passed-success)](https://github.com/rohitg00/kubectl-mcp-server)
+[![Tests](https://img.shields.io/badge/tests-138%20passed-success)](https://github.com/rohitg00/kubectl-mcp-server)
 
 ## MCP Client Compatibility
 
@@ -331,6 +331,70 @@ docker mcp server enable kubectl-mcp-server
 docker mcp client connect claude
 ```
 
+## Kubernetes Deployment
+
+Deploy kubectl-mcp-server directly in your Kubernetes cluster for centralized access.
+
+### kMCP Deployment (Recommended)
+
+[kMCP](https://github.com/kagent-dev/kmcp) is a development platform and control plane for MCP servers. See [kMCP quickstart](https://kagent.dev/docs/kmcp/quickstart).
+
+```bash
+# Install kmcp CLI
+curl -fsSL https://raw.githubusercontent.com/kagent-dev/kmcp/refs/heads/main/scripts/get-kmcp.sh | bash
+
+# Install kmcp controller in your cluster
+helm install kmcp-crds oci://ghcr.io/kagent-dev/kmcp/helm/kmcp-crds \
+     --namespace kmcp-system --create-namespace
+kmcp install
+
+# Deploy kubectl-mcp-server using npx (easiest)
+kmcp deploy package --deployment-name kubectl-mcp-server \
+   --manager npx --args kubectl-mcp-server
+
+# Or deploy using our Docker image with the MCPServer manifest
+kmcp deploy --file deploy/kmcp/kmcp.yaml --image rohitghumare64/kubectl-mcp-server:latest
+```
+
+### Standard Kubernetes Deployment
+
+Deploy using kubectl/kustomize without kMCP:
+
+```bash
+# Using kustomize (recommended)
+kubectl apply -k deploy/kubernetes/
+
+# Or apply individual manifests
+kubectl apply -f deploy/kubernetes/namespace.yaml
+kubectl apply -f deploy/kubernetes/rbac.yaml
+kubectl apply -f deploy/kubernetes/deployment.yaml
+kubectl apply -f deploy/kubernetes/service.yaml
+
+# Access via port-forward
+kubectl port-forward -n kubectl-mcp svc/kubectl-mcp-server 8000:8000
+```
+
+### MCPServer Custom Resource
+
+For kMCP deployments, apply this MCPServer resource:
+
+```yaml
+apiVersion: kagent.dev/v1alpha1
+kind: MCPServer
+metadata:
+  name: kubectl-mcp-server
+spec:
+  deployment:
+    image: "rohitghumare64/kubectl-mcp-server:latest"
+    port: 8000
+  transportType: http
+  httpTransport:
+    targetPort: 8000
+    path: /mcp
+```
+
+See [deploy/](deploy/) for full manifests and configuration options.
+
 ## Architecture
 
 ```
@@ -422,7 +486,7 @@ tests/
 └── test_server.py       # Server initialization tests
 ```
 
-**135 tests covering**: tool registration, resource exposure, prompt generation, server initialization, non-destructive mode, secret masking, error handling, and transport methods.
+**138 tests covering**: tool registration, resource exposure, prompt generation, server initialization, non-destructive mode, secret masking, error handling, and transport methods.
 
 ### Code Quality
 

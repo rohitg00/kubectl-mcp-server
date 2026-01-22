@@ -1,0 +1,8 @@
+# Namespace for kubectl-mcp-server
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: kubectl-mcp
+  labels:
+    app.kubernetes.io/name: kubectl-mcp-server
+    app.kubernetes.io/part-of: kubernetes-ai-tools

@@ -1,0 +1,38 @@
+# Service for kubectl-mcp-server
+apiVersion: v1
+kind: Service
+metadata:
+  name: kubectl-mcp-server
+  namespace: kubectl-mcp
+  labels:
+    app: kubectl-mcp-server
+    app.kubernetes.io/name: kubectl-mcp-server
+spec:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: 8000
+      targetPort: 8000
+      protocol: TCP
+  selector:
+    app: kubectl-mcp-server
+---
+# Optional: NodePort service for external access
+apiVersion: v1
+kind: Service
+metadata:
+  name: kubectl-mcp-server-nodeport
+  namespace: kubectl-mcp
+  labels:
+    app: kubectl-mcp-server
+    app.kubernetes.io/name: kubectl-mcp-server
+spec:
+  type: NodePort
+  ports:
+    - name: http
+      port: 8000
+      targetPort: 8000
+      nodePort: 30800
+      protocol: TCP
+  selector:
+    app: kubectl-mcp-server
