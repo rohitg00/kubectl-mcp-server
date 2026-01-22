@@ -23,7 +23,7 @@ import logging
 import asyncio
 import os
 import platform
-from typing import List
+from typing import List, Optional, Any
 
 from kubectl_mcp_tool.tools import (
     register_helm_tools,
@@ -40,6 +40,7 @@ from kubectl_mcp_tool.tools import (
 )
 from kubectl_mcp_tool.resources import register_resources
 from kubectl_mcp_tool.prompts import register_prompts
+from kubectl_mcp_tool.auth import get_auth_config, create_auth_verifier
 
 if platform.system() == "Windows":
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
@@ -98,15 +99,55 @@ class MCPServer:
     """MCP server implementation."""
 
     def __init__(self, name: str, non_destructive: bool = False):
-        """Initialize the MCP server."""
+        """Initialize the MCP server.
+
+        Args:
+            name: Server name for identification
+            non_destructive: If True, block destructive operations
+
+        Environment Variables:
+            MCP_AUTH_ENABLED: Enable OAuth 2.1 authentication (default: false)
+            MCP_AUTH_ISSUER: OAuth 2.0 Authorization Server URL
+            MCP_AUTH_JWKS_URI: JWKS endpoint (optional, derived from issuer)
+            MCP_AUTH_AUDIENCE: Expected token audience (default: kubectl-mcp-server)
+            MCP_AUTH_REQUIRED_SCOPES: Required scopes (default: mcp:tools)
+        """
         self.name = name
         self.non_destructive = non_destructive
-        self.server = FastMCP(name=name)
         self._dependencies_checked = False
         self._dependencies_available = None
+
+        # Load authentication configuration
+        self.auth_config = get_auth_config()
+        auth_verifier = self._setup_auth()
+
+        # Initialize FastMCP with optional authentication
+        if auth_verifier:
+            logger.info("Initializing MCP server with authentication enabled")
+            self.server = FastMCP(name=name, auth=auth_verifier)
+        else:
+            self.server = FastMCP(name=name)
+
         self.setup_tools()
         self.setup_resources()
         self.setup_prompts()
+
+    def _setup_auth(self) -> Optional[Any]:
+        """Set up authentication if enabled."""
+        if not self.auth_config.enabled:
+            logger.debug("Authentication disabled")
+            return None
+
+        try:
+            verifier = create_auth_verifier(self.auth_config)
+            if verifier:
+                logger.info(f"Authentication configured with issuer: {self.auth_config.issuer_url}")
+            return verifier
+        except Exception as e:
+            logger.error(f"Failed to configure authentication: {e}")
+            if self.auth_config.enabled:
+                raise
+            return None
 
     @property
     def dependencies_available(self) -> bool:

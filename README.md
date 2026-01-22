@@ -315,6 +315,29 @@ python -m kubectl_mcp_tool.mcp_server --transport http --port 8000
 | `MCP_DEBUG` | Set to `1` for verbose logging |
 | `MCP_LOG_FILE` | Path to log file |
 
+### Authentication (Enterprise)
+
+| Variable | Description |
+|----------|-------------|
+| `MCP_AUTH_ENABLED` | Enable OAuth 2.1 authentication (default: `false`) |
+| `MCP_AUTH_ISSUER` | OAuth 2.0 Authorization Server URL |
+| `MCP_AUTH_JWKS_URI` | JWKS endpoint (optional, derived from issuer) |
+| `MCP_AUTH_AUDIENCE` | Expected token audience (default: `kubectl-mcp-server`) |
+| `MCP_AUTH_REQUIRED_SCOPES` | Required scopes (default: `mcp:tools`) |
+
+## MCP Authorization (RFC 9728)
+
+For enterprise deployments, kubectl-mcp-server supports OAuth 2.1 authentication.
+
+```bash
+export MCP_AUTH_ENABLED=true
+export MCP_AUTH_ISSUER=https://your-idp.example.com
+export MCP_AUTH_AUDIENCE=kubectl-mcp-server
+kubectl-mcp-server --transport http --port 8000
+```
+
+Supported identity providers: **Okta**, **Auth0**, **Keycloak**, **Microsoft Entra ID**, **Google OAuth**, and any OIDC-compliant provider.
+
 ## Docker MCP Toolkit
 
 Compatible with [Docker MCP Toolkit](https://docs.docker.com/ai/mcp-catalog-and-toolkit/toolkit/):
