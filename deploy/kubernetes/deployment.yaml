@@ -7,7 +7,7 @@ metadata:
   labels:
     app: kubectl-mcp-server
     app.kubernetes.io/name: kubectl-mcp-server
-    app.kubernetes.io/version: "1.11.0"
+    app.kubernetes.io/version: "1.12.0"
 spec:
   replicas: 1
   selector:

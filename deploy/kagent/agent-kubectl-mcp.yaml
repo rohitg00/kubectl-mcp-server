@@ -1,0 +1,170 @@
+apiVersion: kagent.dev/v1alpha2
+kind: Agent
+metadata:
+  name: kubectl-mcp-agent
+  namespace: default
+spec:
+  type: Declarative
+  description: "Advanced K8s AI Agent with 140+ tools from kubectl-mcp-server"
+  declarative:
+    modelConfig: default-model-config
+    systemMessage: |
+      You are an advanced Kubernetes AI assistant powered by kubectl-mcp-server.
+      You have access to 140+ tools including:
+      - Helm management (install, upgrade, rollback, search)
+      - Pod operations (logs, exec, diagnostics)
+      - Deployment management (create, scale, restart, rollout)
+      - RBAC and security analysis
+      - Network diagnostics
+      - Storage management
+      - Cost optimization
+      
+      Always start with read-only operations before making changes.
+      Explain your actions clearly and verify results after modifications.
+    tools:
+      - type: McpServer
+        mcpServer:
+          apiGroup: kagent.dev
+          kind: RemoteMCPServer
+          name: kubectl-mcp-server
+          toolNames:
+            - install_helm_chart
+            - upgrade_helm_chart
+            - uninstall_helm_chart
+            - helm_list
+            - helm_status
+            - helm_history
+            - helm_get_values
+            - helm_get_manifest
+            - helm_get_notes
+            - helm_get_hooks
+            - helm_get_all
+            - helm_show_chart
+            - helm_show_values
+            - helm_show_readme
+            - helm_show_crds
+            - helm_show_all
+            - helm_search_repo
+            - helm_search_hub
+            - helm_repo_list
+            - helm_repo_add
+            - helm_repo_remove
+            - helm_repo_update
+            - helm_rollback
+            - helm_test
+            - helm_lint
+            - helm_package
+            - helm_dependency_update
+            - helm_dependency_list
+            - helm_dependency_build
+            - helm_pull
+            - helm_create
+            - helm_version
+            - helm_env
+            - helm_template
+            - helm_template_apply
+            - get_pods
+            - get_logs
+            - get_pod_events
+            - check_pod_health
+            - exec_in_pod
+            - cleanup_pods
+            - get_pod_conditions
+            - get_previous_logs
+            - diagnose_pod_crash
+            - detect_pending_pods
+            - get_evicted_pods
+            - get_namespaces
+            - get_services
+            - get_nodes
+            - get_configmaps
+            - get_secrets
+            - get_events
+            - get_resource_usage
+            - get_service_accounts
+            - get_crds
+            - get_resource_quotas
+            - get_limit_ranges
+            - get_priority_classes
+            - switch_context
+            - get_current_context
+            - list_contexts
+            - get_context_details
+            - set_namespace_for_context
+            - list_kubeconfig_contexts
+            - get_cluster_info
+            - kubectl_explain
+            - get_api_resources
+            - health_check
+            - get_cluster_version
+            - get_admission_webhooks
+            - get_deployments
+            - create_deployment
+            - scale_deployment
+            - restart_deployment
+            - get_replicasets
+            - get_statefulsets
+            - get_daemonsets
+            - get_jobs
+            - get_hpa
+            - get_pdb
+            - get_rbac_roles
+            - get_cluster_roles
+            - analyze_pod_security
+            - analyze_network_policies
+            - audit_rbac_permissions
+            - check_secrets_security
+            - get_pod_security_info
+            - get_ingress
+            - get_endpoints
+            - diagnose_network_connectivity
+            - check_dns_resolution
+            - trace_service_chain
+            - port_forward
+            - get_persistent_volumes
+            - get_pvcs
+            - get_storage_classes
+            - kubectl_apply
+            - kubectl_describe
+            - kubectl_generic
+            - kubectl_patch
+            - kubectl_rollout
+            - kubectl_create
+            - delete_resource
+            - kubectl_cp
+            - backup_resource
+            - label_resource
+            - annotate_resource
+            - taint_node
+            - wait_for_condition
+            - node_management
+            - compare_namespaces
+            - get_pod_metrics
+            - get_node_metrics
+            - get_resource_recommendations
+            - get_idle_resources
+            - get_resource_quotas_usage
+            - get_cost_analysis
+            - get_overprovisioned_resources
+            - get_resource_trends
+            - get_namespace_cost_allocation
+            - optimize_resource_requests
+    a2aConfig:
+      skills:
+        - id: full-k8s-management
+          name: Full Kubernetes Management
+          description: Complete Kubernetes cluster management with 140+ tools
+          tags: [kubernetes, k8s, cluster, management]
+          examples:
+            - "List all pods across namespaces"
+            - "Install nginx using Helm"
+            - "Diagnose why my pod is crashing"
+            - "Scale deployment to 5 replicas"
+    deployment:
+      resources:
+        requests:
+          cpu: "100m"
+          memory: "256Mi"
+        limits:
+          cpu: "1000m"
+          memory: "1Gi"

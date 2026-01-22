@@ -25,6 +25,10 @@ import os
 import platform
 from typing import List, Optional, Any
 
+# Import k8s_config early to patch kubernetes config for in-cluster support
+# This must be done before any tools are imported
+import kubectl_mcp_tool.k8s_config  # noqa: F401
+
 from kubectl_mcp_tool.tools import (
     register_helm_tools,
     register_pod_tools,
@@ -298,23 +302,53 @@ class MCPServer:
         await self.server.run_stdio_async()
 
     async def serve_sse(self, host: str = "0.0.0.0", port: int = 8000):
-        """Serve the MCP server over SSE transport."""
+        """Serve the MCP server over SSE transport.
+
+        Uses FastMCP 3's create_sse_app() to create a Starlette ASGI application
+        that handles Server-Sent Events for MCP communication.
+
+        SSE Endpoints:
+            - GET /sse: SSE connection endpoint for receiving server events
+            - POST /messages/: Endpoint for sending messages to the server
+        """
         logger.info(f"Starting MCP server with SSE transport on {host}:{port}")
 
         try:
-            # Try newer FastMCP API with host and port
-            await self.server.run_sse_async(host=host, port=port)
-        except TypeError:
+            import uvicorn
+        except ImportError:
+            logger.error("SSE transport requires 'uvicorn'. Install with: pip install uvicorn")
+            raise ImportError("Missing dependency for SSE transport. Run: pip install uvicorn")
+
+        try:
+            # FastMCP 3 uses create_sse_app() to create a Starlette ASGI app
+            from fastmcp.server.http import create_sse_app
+
+            # Create the SSE Starlette application
+            # message_path: POST endpoint for client messages
+            # sse_path: GET endpoint for SSE event stream
+            app = create_sse_app(
+                self.server,
+                message_path="/messages/",
+                sse_path="/sse"
+            )
+
+            logger.info(f"SSE endpoints: GET /sse (events), POST /messages/ (messages)")
+
+            # Run with uvicorn
+            config = uvicorn.Config(app, host=host, port=port, log_level="info")
+            server = uvicorn.Server(config)
+            await server.serve()
+
+        except ImportError as e:
+            # Fallback for older FastMCP versions that might have run_sse_async
+            logger.warning(f"create_sse_app not available: {e}. Trying legacy API...")
             try:
-                # Try with just port parameter
-                await self.server.run_sse_async(port=port)
-            except TypeError:
-                # Fall back to the legacy signature that takes no parameters
-                logger.warning(
-                    "FastMCP.run_sse_async() does not accept host/port parameters in this version. "
-                    "Falling back to the default signature (using FastMCP's internal default port)."
-                )
-                await self.server.run_sse_async()
+                await self.server.run_sse_async(host=host, port=port)
+            except (TypeError, AttributeError):
+                try:
+                    await self.server.run_sse_async(port=port)
+                except (TypeError, AttributeError):
+                    await self.server.run_sse_async()
 
     async def serve_http(self, host: str = "0.0.0.0", port: int = 8000):
         """
