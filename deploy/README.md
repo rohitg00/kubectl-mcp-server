@@ -42,7 +42,35 @@ kubectl apply -f kubernetes/deployment.yaml
 kubectl apply -f kubernetes/service.yaml
 ```
 
-### Option 3: Helm Chart
+### Option 3: kagent Integration (AI Agents)
+
+[kagent](https://github.com/kagent-dev/kagent) is a Kubernetes-native framework for building AI agents (CNCF project). Register kubectl-mcp-server as a ToolServer to give your agents 121 Kubernetes management tools.
+
+```bash
+# Install kagent
+brew install kagent
+# Or: curl https://raw.githubusercontent.com/kagent-dev/kagent/refs/heads/main/scripts/get-kagent | bash
+
+# Install kagent to cluster with demo agents
+export OPENAI_API_KEY="your-api-key"
+kagent install --profile demo
+
+# Register kubectl-mcp-server as a ToolServer (stdio - uses npx)
+kubectl apply -f kagent/toolserver-stdio.yaml
+
+# Or if kubectl-mcp-server is deployed in K8s (HTTP transport)
+kubectl apply -f kagent/toolserver-http.yaml
+
+# Optionally create a K8s admin agent
+kubectl apply -f kagent/agent-k8s-admin.yaml
+
+# Open kagent dashboard
+kagent dashboard
+```
+
+See [kagent/](kagent/) for ToolServer manifests and example agents.
+
+### Option 4: Helm Chart
 
 ```bash
 # Using Docker image directly with custom values
@@ -57,6 +85,10 @@ helm upgrade --install kubectl-mcp-server \
 
 ```
 deploy/
+├── kagent/                  # kagent AI agent integration
+│   ├── toolserver-stdio.yaml   # ToolServer (stdio/npx transport)
+│   ├── toolserver-http.yaml    # ToolServer (HTTP transport)
+│   └── agent-k8s-admin.yaml    # Example K8s admin agent
 ├── kmcp/                    # kMCP deployment manifests
 │   └── kmcp.yaml           # MCPServer custom resource
 ├── kubernetes/              # Standard Kubernetes manifests

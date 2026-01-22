@@ -395,6 +395,24 @@ spec:
 
 See [deploy/](deploy/) for full manifests and configuration options.
 
+### kagent Integration (AI Agents)
+
+[kagent](https://github.com/kagent-dev/kagent) is a Kubernetes-native AI agent framework (CNCF project). Register kubectl-mcp-server as a ToolServer to give your agents 121 K8s management tools.
+
+```bash
+# Install kagent
+brew install kagent
+kagent install --profile demo
+
+# Register kubectl-mcp-server as a ToolServer
+kubectl apply -f deploy/kagent/toolserver-stdio.yaml
+
+# Open kagent dashboard and chat with your K8s agent
+kagent dashboard
+```
+
+See [kagent quickstart](https://kagent.dev/docs/kagent/getting-started/quickstart) for full documentation.
+
 ## Architecture
 
 ```

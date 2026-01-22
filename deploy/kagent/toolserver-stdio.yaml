@@ -1,0 +1,19 @@
+apiVersion: kagent.dev/v1alpha1
+kind: ToolServer
+metadata:
+  name: kubectl-mcp-server
+  namespace: kagent
+  labels:
+    app.kubernetes.io/name: kubectl-mcp-server
+spec:
+  description: "Kubernetes MCP server with 121 tools for cluster management"
+  config:
+    type: stdio
+    stdio:
+      command: npx
+      args:
+        - "-y"
+        - "kubectl-mcp-server"
+      env:
+        MCP_DEBUG: "0"
+      readTimeoutSeconds: 30

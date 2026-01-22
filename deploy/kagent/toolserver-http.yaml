@@ -1,0 +1,15 @@
+apiVersion: kagent.dev/v1alpha1
+kind: ToolServer
+metadata:
+  name: kubectl-mcp-server
+  namespace: kagent
+  labels:
+    app.kubernetes.io/name: kubectl-mcp-server
+spec:
+  description: "Kubernetes MCP server with 121 tools for cluster management"
+  config:
+    type: streamableHttp
+    streamableHttp:
+      url: http://kubectl-mcp-server.kubectl-mcp.svc.cluster.local:8000/mcp
+      timeout: 60s
+      sseReadTimeout: 120s

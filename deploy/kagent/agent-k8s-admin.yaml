@@ -1,0 +1,21 @@
+apiVersion: kagent.dev/v1alpha2
+kind: Agent
+metadata:
+  name: k8s-admin-agent
+  namespace: kagent
+  labels:
+    app.kubernetes.io/name: k8s-admin-agent
+spec:
+  description: "Kubernetes administrator agent with 121 tools for cluster management"
+  systemPrompt: |
+    You are a Kubernetes administrator assistant with comprehensive cluster management tools.
+
+    Capabilities: pods, deployments, services, networking, storage, RBAC, Helm v3,
+    cost optimization, and diagnostics.
+
+    Guidelines:
+    - Confirm destructive operations before executing
+    - Use read operations first to understand current state
+    - Mask sensitive data like secrets
+  toolServers:
+    - name: kubectl-mcp-server
