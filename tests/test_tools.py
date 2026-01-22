@@ -1,14 +1,143 @@
 """
 Unit tests for all MCP tools in kubectl-mcp-server.
 
-This module contains comprehensive tests for all 80+ Kubernetes tools
+This module contains comprehensive tests for all 121 Kubernetes tools
 provided by the MCP server.
 """
 
 import pytest
 import json
+import asyncio
 from unittest.mock import patch, MagicMock
 from datetime import datetime
+
+
+# Complete list of all 121 tools that must be registered
+EXPECTED_TOOLS = [
+    # Pods (pods.py)
+    "get_pods", "get_logs", "get_pod_events", "check_pod_health", "exec_in_pod",
+    "cleanup_pods", "get_pod_conditions", "get_previous_logs", "diagnose_pod_crash",
+    "detect_pending_pods", "get_evicted_pods",
+    # Deployments (deployments.py)
+    "get_deployments", "create_deployment", "scale_deployment", "restart_deployment",
+    "get_statefulsets", "get_daemonsets", "get_replicasets", "get_jobs",
+    # Core (core.py)
+    "get_namespaces", "get_configmaps", "get_secrets", "get_events",
+    "get_resource_quotas", "get_limit_ranges",
+    # Cluster (cluster.py)
+    "get_current_context", "switch_context", "list_contexts", "list_kubeconfig_contexts",
+    "get_context_details", "set_namespace_for_context", "get_cluster_info",
+    "get_cluster_version", "get_nodes", "get_api_resources", "health_check",
+    # Networking (networking.py)
+    "get_services", "get_endpoints", "get_ingress", "port_forward",
+    "diagnose_network_connectivity", "check_dns_resolution", "trace_service_chain",
+    "analyze_network_policies",
+    # Storage (storage.py)
+    "get_pvcs", "get_persistent_volumes", "get_storage_classes",
+    # Security (security.py)
+    "get_rbac_roles", "get_cluster_roles", "get_service_accounts",
+    "audit_rbac_permissions", "check_secrets_security", "get_pod_security_info",
+    "get_admission_webhooks", "get_crds", "get_priority_classes", "analyze_pod_security",
+    # Helm (helm.py) - 37 tools
+    "helm_list", "helm_status", "helm_history", "helm_get_values", "helm_get_manifest",
+    "helm_get_notes", "helm_get_hooks", "helm_get_all", "helm_show_chart",
+    "helm_show_values", "helm_show_readme", "helm_show_crds", "helm_show_all",
+    "helm_search_repo", "helm_search_hub", "helm_repo_list", "helm_repo_add",
+    "helm_repo_remove", "helm_repo_update", "install_helm_chart", "upgrade_helm_chart",
+    "uninstall_helm_chart", "helm_rollback", "helm_test", "helm_template",
+    "helm_template_apply", "helm_create", "helm_lint", "helm_package", "helm_pull",
+    "helm_dependency_list", "helm_dependency_update", "helm_dependency_build",
+    "helm_version", "helm_env",
+    # Operations (operations.py)
+    "kubectl_apply", "kubectl_describe", "kubectl_patch", "kubectl_rollout",
+    "kubectl_create", "delete_resource", "kubectl_cp", "backup_resource",
+    "label_resource", "annotate_resource", "taint_node", "wait_for_condition",
+    "node_management", "kubectl_generic", "kubectl_explain",
+    # Diagnostics (diagnostics.py)
+    "compare_namespaces", "get_pod_metrics", "get_node_metrics",
+    # Cost (cost.py)
+    "get_resource_recommendations", "get_idle_resources", "get_resource_quotas_usage",
+    "get_cost_analysis", "get_overprovisioned_resources", "get_resource_trends",
+    "get_namespace_cost_allocation", "optimize_resource_requests", "get_resource_usage",
+    # Autoscaling (deployments.py)
+    "get_hpa", "get_pdb",
+]
+
+
+class TestAllToolsRegistered:
+    """Comprehensive tests to verify all 121 tools are registered."""
+
+    @pytest.mark.unit
+    def test_all_121_tools_registered(self):
+        """Verify all 121 expected tools are registered."""
+        from kubectl_mcp_tool.mcp_server import MCPServer
+
+        with patch("kubectl_mcp_tool.mcp_server.MCPServer._check_dependencies", return_value=True):
+            with patch("kubernetes.config.load_kube_config"):
+                server = MCPServer(name="test")
+
+        async def get_tools():
+            return await server.server.list_tools()
+
+        tools = asyncio.run(get_tools())
+        tool_names = {t.name for t in tools}
+
+        # Verify count
+        assert len(tools) == 121, f"Expected 121 tools, got {len(tools)}"
+
+        # Check for missing tools
+        missing_tools = set(EXPECTED_TOOLS) - tool_names
+        assert not missing_tools, f"Missing tools: {missing_tools}"
+
+        # Check for unexpected tools (tools not in expected list)
+        unexpected_tools = tool_names - set(EXPECTED_TOOLS)
+        assert not unexpected_tools, f"Unexpected tools: {unexpected_tools}"
+
+    @pytest.mark.unit
+    def test_tool_modules_import_correctly(self):
+        """Test that all tool modules can be imported."""
+        from kubectl_mcp_tool.tools import (
+            register_helm_tools,
+            register_pod_tools,
+            register_core_tools,
+            register_cluster_tools,
+            register_deployment_tools,
+            register_security_tools,
+            register_networking_tools,
+            register_storage_tools,
+            register_operations_tools,
+            register_diagnostics_tools,
+            register_cost_tools,
+        )
+        # All imports should succeed
+        assert callable(register_helm_tools)
+        assert callable(register_pod_tools)
+        assert callable(register_core_tools)
+        assert callable(register_cluster_tools)
+        assert callable(register_deployment_tools)
+        assert callable(register_security_tools)
+        assert callable(register_networking_tools)
+        assert callable(register_storage_tools)
+        assert callable(register_operations_tools)
+        assert callable(register_diagnostics_tools)
+        assert callable(register_cost_tools)
+
+    @pytest.mark.unit
+    def test_all_tools_have_descriptions(self):
+        """Verify all tools have non-empty descriptions."""
+        from kubectl_mcp_tool.mcp_server import MCPServer
+
+        with patch("kubectl_mcp_tool.mcp_server.MCPServer._check_dependencies", return_value=True):
+            with patch("kubernetes.config.load_kube_config"):
+                server = MCPServer(name="test")
+
+        async def get_tools():
+            return await server.server.list_tools()
+
+        tools = asyncio.run(get_tools())
+
+        tools_without_description = [t.name for t in tools if not t.description or len(t.description.strip()) == 0]
+        assert not tools_without_description, f"Tools without descriptions: {tools_without_description}"
 
 
 class TestPodTools:

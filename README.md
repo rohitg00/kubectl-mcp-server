@@ -40,7 +40,7 @@ Works with all MCP-compatible AI assistants:
 
 ## Features
 
-### 80+ MCP Tools for Complete Kubernetes Management
+### 121 MCP Tools for Complete Kubernetes Management
 
 | Category | Tools |
 |----------|-------|
@@ -53,7 +53,11 @@ Works with all MCP-compatible AI assistants:
 | **Cluster** | `get_nodes`, `get_namespaces`, `get_cluster_info`, `get_cluster_version`, `health_check`, `get_node_metrics`, `get_pod_metrics` |
 | **RBAC & Security** | `get_rbac_roles`, `get_cluster_roles`, `get_service_accounts`, `audit_rbac_permissions`, `check_secrets_security`, `get_pod_security_info`, `get_admission_webhooks` |
 | **CRDs** | `get_crds`, `get_priority_classes` |
-| **Helm** | `install_helm_chart`, `upgrade_helm_chart`, `uninstall_helm_chart`, `helm_template`, `helm_template_apply` |
+| **Helm Releases** | `helm_list`, `helm_status`, `helm_history`, `helm_get_values`, `helm_get_manifest`, `helm_get_notes`, `helm_get_hooks`, `helm_get_all` |
+| **Helm Charts** | `helm_show_chart`, `helm_show_values`, `helm_show_readme`, `helm_show_crds`, `helm_show_all`, `helm_search_repo`, `helm_search_hub` |
+| **Helm Repos** | `helm_repo_list`, `helm_repo_add`, `helm_repo_remove`, `helm_repo_update` |
+| **Helm Operations** | `install_helm_chart`, `upgrade_helm_chart`, `uninstall_helm_chart`, `helm_rollback`, `helm_test`, `helm_template`, `helm_template_apply` |
+| **Helm Development** | `helm_create`, `helm_lint`, `helm_package`, `helm_pull`, `helm_dependency_list`, `helm_dependency_update`, `helm_dependency_build`, `helm_version`, `helm_env` |
 | **Context** | `get_current_context`, `switch_context`, `list_contexts`, `list_kubeconfig_contexts` |
 | **Diagnostics** | `diagnose_pod_crash`, `detect_pending_pods`, `get_evicted_pods`, `compare_namespaces` |
 | **Operations** | `kubectl_apply`, `kubectl_create`, `kubectl_describe`, `kubectl_patch`, `delete_resource`, `kubectl_cp`, `backup_resource`, `label_resource`, `annotate_resource`, `taint_node`, `wait_for_condition` |
@@ -338,6 +342,28 @@ docker mcp client connect claude
 
 The MCP server implements the [Model Context Protocol](https://github.com/modelcontextprotocol/spec), translating natural language requests into kubectl operations.
 
+### Modular Structure
+
+```
+kubectl_mcp_tool/
+├── mcp_server.py          # Main server (FastMCP, transports)
+├── tools/                  # 121 MCP tools organized by category
+│   ├── pods.py            # Pod management & diagnostics
+│   ├── deployments.py     # Deployments, StatefulSets, DaemonSets
+│   ├── core.py            # Namespaces, ConfigMaps, Secrets
+│   ├── cluster.py         # Context/cluster management
+│   ├── networking.py      # Services, Ingress, NetworkPolicies
+│   ├── storage.py         # PVCs, StorageClasses, PVs
+│   ├── security.py        # RBAC, ServiceAccounts, PodSecurity
+│   ├── helm.py            # Complete Helm v3 operations
+│   ├── operations.py      # kubectl apply/patch/describe/etc
+│   ├── diagnostics.py     # Metrics, namespace comparison
+│   └── cost.py            # Resource optimization & cost analysis
+├── resources/              # 8 MCP Resources for data exposure
+├── prompts/                # 8 MCP Prompts for workflows
+└── cli/                    # CLI interface
+```
+
 ## Multi-Cluster Support
 
 ```bash
@@ -390,11 +416,13 @@ pytest tests/ -v -m unit
 tests/
 ├── __init__.py          # Test package
 ├── conftest.py          # Shared fixtures and mocks
-├── test_tools.py        # Unit tests for 80+ MCP tools
-├── test_resources.py    # Tests for MCP Resources
-├── test_prompts.py      # Tests for MCP Prompts
+├── test_tools.py        # Unit tests for 121 MCP tools
+├── test_resources.py    # Tests for 8 MCP Resources
+├── test_prompts.py      # Tests for 8 MCP Prompts
 └── test_server.py       # Server initialization tests
 ```
+
+**135 tests covering**: tool registration, resource exposure, prompt generation, server initialization, non-destructive mode, secret masking, error handling, and transport methods.
 
 ### Code Quality
 
