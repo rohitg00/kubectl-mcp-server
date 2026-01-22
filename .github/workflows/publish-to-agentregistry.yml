@@ -1,0 +1,116 @@
+name: Publish to agentregistry
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to publish (e.g., 1.11.0)'
+        required: true
+        type: string
+
+jobs:
+  publish:
+    name: Publish to agentregistry
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        ref: ${{ github.ref }}
+
+    - name: Get version
+      id: version
+      run: |
+        if [ -n "${{ github.event.inputs.version }}" ]; then
+          VERSION="${{ github.event.inputs.version }}"
+        else
+          VERSION=$(python setup.py --version)
+        fi
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
+        echo "Publishing version: $VERSION"
+
+    - name: Publish to agentregistry
+      env:
+        AGENTREGISTRY_URL: ${{ vars.AGENTREGISTRY_URL || 'https://aregistry.ai' }}
+      run: |
+        VERSION="${{ steps.version.outputs.version }}"
+
+        cat > server.json << EOF
+        {
+          "\$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
+          "name": "io.github.rohitg00/kubectl-mcp-server",
+          "title": "kubectl-mcp-server",
+          "description": "A Model Context Protocol (MCP) server for Kubernetes with 140+ tools, 8 resources, and 8 prompts",
+          "version": "$VERSION",
+          "repository": {
+            "url": "https://github.com/rohitg00/kubectl-mcp-server",
+            "source": "github"
+          },
+          "packages": [
+            {
+              "registryType": "oci",
+              "identifier": "docker.io/rohitghumare64/kubectl-mcp-server:$VERSION",
+              "version": "$VERSION",
+              "transport": {
+                "type": "stdio"
+              }
+            },
+            {
+              "registryType": "pypi",
+              "identifier": "kubectl-mcp-server",
+              "version": "$VERSION",
+              "runtimeHint": "uvx",
+              "transport": {
+                "type": "stdio"
+              }
+            },
+            {
+              "registryType": "npm",
+              "identifier": "kubectl-mcp-server",
+              "version": "$VERSION",
+              "runtimeHint": "npx",
+              "transport": {
+                "type": "stdio"
+              }
+            }
+          ]
+        }
+        EOF
+
+        echo "Server payload:"
+        cat server.json
+
+        echo "Creating server in agentregistry..."
+        RESPONSE=$(curl -s -w "\n%{http_code}" -X POST "${AGENTREGISTRY_URL}/admin/v0/servers" \
+          -H "Content-Type: application/json" \
+          -d @server.json)
+
+        HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
+        BODY=$(echo "$RESPONSE" | sed '$d')
+
+        echo "Response: $BODY"
+        echo "HTTP Code: $HTTP_CODE"
+
+        if [ "$HTTP_CODE" -ge 200 ] && [ "$HTTP_CODE" -lt 300 ]; then
+          echo "Server created/updated successfully"
+
+          echo "Publishing server..."
+          PUBLISH_RESPONSE=$(curl -s -w "\n%{http_code}" -X POST \
+            "${AGENTREGISTRY_URL}/admin/v0/servers/io.github.rohitg00%2Fkubectl-mcp-server/versions/${VERSION}/publish")
+
+          PUB_HTTP_CODE=$(echo "$PUBLISH_RESPONSE" | tail -n1)
+          PUB_BODY=$(echo "$PUBLISH_RESPONSE" | sed '$d')
+
+          echo "Publish response: $PUB_BODY"
+          echo "Publish HTTP Code: $PUB_HTTP_CODE"
+
+          if [ "$PUB_HTTP_CODE" -ge 200 ] && [ "$PUB_HTTP_CODE" -lt 300 ]; then
+            echo "Server published successfully to agentregistry!"
+          else
+            echo "Warning: Failed to publish server (may already be published)"
+          fi
+        else
+          echo "Warning: Failed to create server in agentregistry"
+          echo "This may be expected if the registry requires authentication"
+        fi

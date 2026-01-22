@@ -1,0 +1,56 @@
+name: kubectl-mcp-server
+framework: fastmcp-python
+version: "1.11.0"
+description: "A Model Context Protocol (MCP) server for Kubernetes with 140+ tools, 8 resources, and 8 prompts. Enables AI assistants like Claude, Cursor, and Windsurf to interact with Kubernetes clusters through natural language."
+author: rohitghumare64
+email: ghumare64@gmail.com
+
+tools:
+  get_pods:
+    name: get_pods
+    description: List pods in a namespace or across all namespaces
+    enabled: true
+    type: basic
+
+  get_deployments:
+    name: get_deployments
+    description: List deployments in a namespace
+    enabled: true
+    type: basic
+
+  kubectl_apply:
+    name: kubectl_apply
+    description: Apply Kubernetes manifests
+    enabled: true
+    type: basic
+
+  helm_list:
+    name: helm_list
+    description: List Helm releases
+    enabled: true
+    type: basic
+
+  helm_install:
+    name: helm_install
+    description: Install Helm charts
+    enabled: true
+    type: basic
+
+  get_rbac_rules:
+    name: get_rbac_rules
+    description: Get RBAC rules for a namespace
+    enabled: true
+    type: basic
+
+  diagnose_pod:
+    name: diagnose_pod
+    description: Diagnose pod issues
+    enabled: true
+    type: basic
+
+secrets:
+  kubernetes:
+    enabled: true
+    provider: kubernetes
+    secretName: kubectl-mcp-secrets
+    namespace: kubectl-mcp
