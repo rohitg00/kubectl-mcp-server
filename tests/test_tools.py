@@ -65,33 +65,41 @@ EXPECTED_TOOLS = [
 
 
 class TestAllToolsRegistered:
-    """Comprehensive tests to verify all 121 tools are registered."""
+    """Comprehensive tests to verify all 121 core tools are registered."""
 
     @pytest.mark.unit
     def test_all_121_tools_registered(self):
-        """Verify all 121 expected tools are registered."""
+        """Verify all 121 expected core tools are registered (excluding optional browser tools)."""
+        import os
         from kubectl_mcp_tool.mcp_server import MCPServer
 
-        with patch("kubectl_mcp_tool.mcp_server.MCPServer._check_dependencies", return_value=True):
-            with patch("kubernetes.config.load_kube_config"):
-                server = MCPServer(name="test")
+        # Disable browser tools for this test
+        with patch.dict(os.environ, {"MCP_BROWSER_ENABLED": "false"}):
+            # Reload browser module to pick up env change
+            import importlib
+            import kubectl_mcp_tool.tools.browser as browser_module
+            importlib.reload(browser_module)
 
-        async def get_tools():
-            return await server.server.list_tools()
+            with patch("kubectl_mcp_tool.mcp_server.MCPServer._check_dependencies", return_value=True):
+                with patch("kubernetes.config.load_kube_config"):
+                    server = MCPServer(name="test")
 
-        tools = asyncio.run(get_tools())
-        tool_names = {t.name for t in tools}
+            async def get_tools():
+                return await server.server.list_tools()
 
-        # Verify count
-        assert len(tools) == 121, f"Expected 121 tools, got {len(tools)}"
+            tools = asyncio.run(get_tools())
+            tool_names = {t.name for t in tools}
 
-        # Check for missing tools
-        missing_tools = set(EXPECTED_TOOLS) - tool_names
-        assert not missing_tools, f"Missing tools: {missing_tools}"
+            # Verify count (121 core tools, browser tools disabled)
+            assert len(tools) == 121, f"Expected 121 tools, got {len(tools)}"
 
-        # Check for unexpected tools (tools not in expected list)
-        unexpected_tools = tool_names - set(EXPECTED_TOOLS)
-        assert not unexpected_tools, f"Unexpected tools: {unexpected_tools}"
+            # Check for missing tools
+            missing_tools = set(EXPECTED_TOOLS) - tool_names
+            assert not missing_tools, f"Missing tools: {missing_tools}"
+
+            # Check for unexpected tools (tools not in expected list)
+            unexpected_tools = tool_names - set(EXPECTED_TOOLS)
+            assert not unexpected_tools, f"Unexpected tools: {unexpected_tools}"
 
     @pytest.mark.unit
     def test_tool_modules_import_correctly(self):

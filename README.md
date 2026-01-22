@@ -6,10 +6,10 @@ A Model Context Protocol (MCP) server for Kubernetes that enables AI assistants 
 [![Python](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/)
 [![Kubernetes](https://img.shields.io/badge/kubernetes-%23326ce5.svg?style=flat&logo=kubernetes&logoColor=white)](https://kubernetes.io/)
 [![MCP](https://img.shields.io/badge/MCP-compatible-green.svg)](https://modelcontextprotocol.io)
-[![PyPI](https://img.shields.io/pypi/v/kubectl-mcp-tool?color=blue&label=PyPI)](https://pypi.org/project/kubectl-mcp-tool/)
+[![PyPI](https://img.shields.io/pypi/v/kubectl-mcp-server?color=blue&label=PyPI)](https://pypi.org/project/kubectl-mcp-server/)
 [![npm](https://img.shields.io/npm/v/kubectl-mcp-server?color=green&label=npm)](https://www.npmjs.com/package/kubectl-mcp-server)
 [![Docker](https://img.shields.io/docker/pulls/rohitghumare64/kubectl-mcp-server.svg)](https://hub.docker.com/r/rohitghumare64/kubectl-mcp-server)
-[![Tests](https://img.shields.io/badge/tests-167%20passed-success)](https://github.com/rohitg00/kubectl-mcp-server)
+[![Tests](https://img.shields.io/badge/tests-187%20passed-success)](https://github.com/rohitg00/kubectl-mcp-server)
 
 ## MCP Client Compatibility
 
@@ -132,6 +132,9 @@ npm install -g kubectl-mcp-server
 ### pip (Python)
 
 ```bash
+pip install kubectl-mcp-server
+
+# Legacy alias (still works for backward compatibility)
 pip install kubectl-mcp-tool
 ```
 
@@ -324,6 +327,60 @@ python -m kubectl_mcp_tool.mcp_server --transport http --port 8000
 | `MCP_AUTH_JWKS_URI` | JWKS endpoint (optional, derived from issuer) |
 | `MCP_AUTH_AUDIENCE` | Expected token audience (default: `kubectl-mcp-server`) |
 | `MCP_AUTH_REQUIRED_SCOPES` | Required scopes (default: `mcp:tools`) |
+
+### Browser Automation (Optional)
+
+| Variable | Description |
+|----------|-------------|
+| `MCP_BROWSER_ENABLED` | Enable browser automation tools (default: `false`) |
+
+## Browser Tools (Optional Module)
+
+Enable browser automation for web-based K8s operations using [agent-browser](https://github.com/vercel-labs/agent-browser).
+
+### Setup
+
+```bash
+# Install agent-browser
+npm install -g agent-browser
+agent-browser install  # Download Chromium
+
+# Enable browser tools
+export MCP_BROWSER_ENABLED=true
+kubectl-mcp-server
+```
+
+### 19 Browser Tools
+
+| Tool | Description |
+|------|-------------|
+| `browser_open` | Open URL in browser |
+| `browser_snapshot` | Get page accessibility tree |
+| `browser_click` | Click element by ref |
+| `browser_fill` | Fill form field |
+| `browser_screenshot` | Take screenshot |
+| `browser_get_text` | Get element text |
+| `browser_get_url` | Get current URL |
+| `browser_wait` | Wait for element/text/timeout |
+| `browser_close` | Close browser |
+| `browser_test_ingress` | Test K8s service via Ingress |
+| `browser_screenshot_service` | Screenshot K8s service UI |
+| `browser_screenshot_grafana` | Screenshot Grafana dashboard |
+| `browser_screenshot_argocd` | Screenshot ArgoCD app |
+| `browser_health_check` | Health check web app |
+| `browser_form_submit` | Fill and submit form |
+| `browser_session_save` | Save browser session |
+| `browser_session_load` | Load browser session |
+| `browser_open_cloud_console` | Open EKS/GKE/AKS console |
+| `browser_pdf_export` | Export page as PDF |
+
+### Use Cases
+
+- **Test deployed apps** via Ingress URLs
+- **Screenshot Grafana/ArgoCD** dashboards
+- **Automate cloud console** operations (EKS, GKE, AKS)
+- **Health check** web applications
+- **Export monitoring dashboards** as PDF
 
 ## MCP Authorization (RFC 9728)
 
@@ -555,7 +612,7 @@ MIT License - see [LICENSE](LICENSE) for details.
 
 ## Links
 
-- [PyPI Package](https://pypi.org/project/kubectl-mcp-tool/)
+- [PyPI Package](https://pypi.org/project/kubectl-mcp-server/)
 - [npm Package](https://www.npmjs.com/package/kubectl-mcp-server)
 - [Docker Hub](https://hub.docker.com/r/rohitghumare64/kubectl-mcp-server)
 - [GitHub Issues](https://github.com/rohitg00/kubectl-mcp-server/issues)

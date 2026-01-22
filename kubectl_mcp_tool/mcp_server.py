@@ -37,6 +37,8 @@ from kubectl_mcp_tool.tools import (
     register_operations_tools,
     register_diagnostics_tools,
     register_cost_tools,
+    register_browser_tools,
+    is_browser_available,
 )
 from kubectl_mcp_tool.resources import register_resources
 from kubectl_mcp_tool.prompts import register_prompts
@@ -173,6 +175,13 @@ class MCPServer:
         register_operations_tools(self.server, self.non_destructive)
         register_diagnostics_tools(self.server, self.non_destructive)
         register_cost_tools(self.server, self.non_destructive)
+
+        # Register optional browser tools if enabled and available
+        if is_browser_available():
+            register_browser_tools(self.server, self.non_destructive)
+            logger.info("Browser automation tools enabled (MCP_BROWSER_ENABLED=true)")
+        else:
+            logger.debug("Browser tools disabled (set MCP_BROWSER_ENABLED=true to enable)")
 
     def setup_resources(self):
         """Set up MCP resources for Kubernetes data exposure."""
