@@ -9,7 +9,7 @@ A Model Context Protocol (MCP) server for Kubernetes that enables AI assistants 
 [![PyPI](https://img.shields.io/pypi/v/kubectl-mcp-tool?color=blue&label=PyPI)](https://pypi.org/project/kubectl-mcp-tool/)
 [![npm](https://img.shields.io/npm/v/kubectl-mcp-server?color=green&label=npm)](https://www.npmjs.com/package/kubectl-mcp-server)
 [![Docker](https://img.shields.io/docker/pulls/rohitghumare64/kubectl-mcp-server.svg)](https://hub.docker.com/r/rohitghumare64/kubectl-mcp-server)
-[![Tests](https://img.shields.io/badge/tests-138%20passed-success)](https://github.com/rohitg00/kubectl-mcp-server)
+[![Tests](https://img.shields.io/badge/tests-167%20passed-success)](https://github.com/rohitg00/kubectl-mcp-server)
 
 ## MCP Client Compatibility
 

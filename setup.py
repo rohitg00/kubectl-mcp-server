@@ -5,7 +5,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setup(
     name="kubectl-mcp-tool",
-    version="1.9.0",
+    version="1.10.0",
     author="Rohit Ghumare",
     author_email="ghumare64@gmail.com",
     description="A Model Context Protocol (MCP) server for Kubernetes with 121 tools, 8 resources, and 8 prompts",
