@@ -440,15 +440,34 @@ arctl mcp install io.github.rohitg00/kubectl-mcp-server
 
 ### agentgateway Integration
 
-Use with [agentgateway](https://github.com/agentgateway/agentgateway) for unified MCP routing:
+Use with [agentgateway](https://github.com/agentgateway/agentgateway) for unified MCP routing to multiple MCP servers.
 
 ```bash
-# Install agentgateway
-cargo install agentgateway
+# Start kubectl-mcp-server with streamable-http transport
+kubectl-mcp-server --transport streamable-http --port 8000
+```
 
-# Configure kubectl-mcp-server as upstream
+Create `gateway.yaml`:
+
+```yaml
+binds:
+- port: 3000
+  listeners:
+  - routes:
+    - backends:
+      - mcp:
+          targets:
+          - name: kubectl-mcp-server
+            mcp:
+              host: http://localhost:8000/mcp
+```
+
+```bash
+# Run agentgateway
 agentgateway --config gateway.yaml
 ```
+
+Connect MCP clients to `http://localhost:3000/mcp`. All 121 tools are discoverable through the gateway.
 
 ## Kubernetes Deployment
 
@@ -654,5 +673,4 @@ MIT License - see [LICENSE](LICENSE) for details.
 - [PyPI Package](https://pypi.org/project/kubectl-mcp-server/)
 - [npm Package](https://www.npmjs.com/package/kubectl-mcp-server)
 - [Docker Hub](https://hub.docker.com/r/rohitghumare64/kubectl-mcp-server)
-- [agentregistry](https://aregistry.ai) - MCP Server Registry
 - [GitHub Issues](https://github.com/rohitg00/kubectl-mcp-server/issues)
