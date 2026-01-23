@@ -12,7 +12,7 @@ from unittest.mock import patch, MagicMock
 from datetime import datetime
 
 
-# Complete list of all 121 tools that must be registered
+# Complete list of all 127 tools that must be registered (121 core + 6 UI)
 EXPECTED_TOOLS = [
     # Pods (pods.py)
     "get_pods", "get_logs", "get_pod_events", "check_pod_health", "exec_in_pod",
@@ -61,15 +61,18 @@ EXPECTED_TOOLS = [
     "get_namespace_cost_allocation", "optimize_resource_requests", "get_resource_usage",
     # Autoscaling (deployments.py)
     "get_hpa", "get_pdb",
+    # UI tools (ui.py) - 6 tools for MCP-UI interactive dashboards
+    "show_pod_logs_ui", "show_pods_dashboard_ui", "show_resource_yaml_ui",
+    "show_cluster_overview_ui", "show_events_timeline_ui", "render_k8s_dashboard_screenshot",
 ]
 
 
 class TestAllToolsRegistered:
-    """Comprehensive tests to verify all 121 core tools are registered."""
+    """Comprehensive tests to verify all 127 tools are registered (121 core + 6 UI)."""
 
     @pytest.mark.unit
-    def test_all_121_tools_registered(self):
-        """Verify all 121 expected core tools are registered (excluding optional browser tools)."""
+    def test_all_127_tools_registered(self):
+        """Verify all 127 expected tools are registered (excluding optional browser tools)."""
         import os
         from kubectl_mcp_tool.mcp_server import MCPServer
 
@@ -90,8 +93,8 @@ class TestAllToolsRegistered:
             tools = asyncio.run(get_tools())
             tool_names = {t.name for t in tools}
 
-            # Verify count (121 core tools, browser tools disabled)
-            assert len(tools) == 121, f"Expected 121 tools, got {len(tools)}"
+            # Verify count (127 tools = 121 core + 6 UI, browser tools disabled)
+            assert len(tools) == 127, f"Expected 127 tools, got {len(tools)}"
 
             # Check for missing tools
             missing_tools = set(EXPECTED_TOOLS) - tool_names

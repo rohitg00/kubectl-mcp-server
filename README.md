@@ -42,7 +42,7 @@ Works with all MCP-compatible AI assistants:
 
 ## Features
 
-### 121 MCP Tools for Complete Kubernetes Management
+### 127 MCP Tools for Complete Kubernetes Management
 
 | Category | Tools |
 |----------|-------|
@@ -66,6 +66,7 @@ Works with all MCP-compatible AI assistants:
 | **Autoscaling** | `get_hpa`, `get_pdb` |
 | **Cost Optimization** | `get_resource_recommendations`, `get_idle_resources`, `get_resource_quotas_usage`, `get_cost_analysis`, `get_overprovisioned_resources`, `get_resource_trends`, `get_namespace_cost_allocation`, `optimize_resource_requests` |
 | **Advanced** | `kubectl_generic`, `kubectl_explain`, `get_api_resources`, `port_forward`, `get_resource_usage`, `node_management` |
+| **UI Dashboards** | `show_pod_logs_ui`, `show_pods_dashboard_ui`, `show_resource_yaml_ui`, `show_cluster_overview_ui`, `show_events_timeline_ui`, `render_k8s_dashboard_screenshot` |
 
 ### MCP Resources (FastMCP 3)
 
@@ -113,6 +114,7 @@ Pre-built workflow prompts for common Kubernetes operations:
 - **Helm v3**: Full Helm chart lifecycle management
 - **Cost Optimization**: Resource recommendations, idle resource detection, usage analysis
 - **FastMCP 3**: MCP Resources and Prompts for enhanced AI workflows
+- **MCP-UI Support**: Interactive HTML dashboards for compatible hosts (Goose, LibreChat)
 
 ## Installation
 
@@ -135,6 +137,9 @@ npm install -g kubectl-mcp-server
 
 ```bash
 pip install kubectl-mcp-server
+
+# With MCP-UI support (interactive dashboards)
+pip install kubectl-mcp-server[ui]
 
 # Legacy alias (still works for backward compatibility)
 pip install kubectl-mcp-tool
@@ -336,6 +341,46 @@ python -m kubectl_mcp_tool.mcp_server --transport http --port 8000
 |----------|-------------|
 | `MCP_BROWSER_ENABLED` | Enable browser automation tools (default: `false`) |
 
+## MCP-UI Tools (Interactive Dashboards)
+
+Enable rich HTML dashboards in MCP-UI compatible hosts (Goose, LibreChat, Nanobot).
+
+### Installation
+
+```bash
+# Install with MCP-UI support
+pip install kubectl-mcp-server[ui]
+```
+
+### 6 UI Dashboard Tools
+
+| Tool | Description |
+|------|-------------|
+| `show_pod_logs_ui` | Interactive log viewer with search and filtering |
+| `show_pods_dashboard_ui` | Pods table with status, restarts, and filtering |
+| `show_resource_yaml_ui` | YAML viewer with syntax highlighting |
+| `show_cluster_overview_ui` | Cluster dashboard with nodes, namespaces, workloads |
+| `show_events_timeline_ui` | Events timeline with severity filtering |
+| `render_k8s_dashboard_screenshot` | Render any dashboard as PNG screenshot |
+
+### Features
+
+- **Dark theme**: Catppuccin-style dark UI optimized for terminals
+- **Graceful fallback**: Returns JSON data if MCP-UI not supported
+- **Screenshot rendering**: Works with agent-browser for universal compatibility
+- **No external dependencies**: Pure HTML/CSS/JS dashboards
+
+### Compatibility
+
+| Host | MCP-UI Support | Fallback |
+|------|----------------|----------|
+| Goose | ✅ Full | - |
+| LibreChat | ✅ Full | - |
+| Nanobot | ✅ Full | - |
+| Claude Desktop | ❌ | JSON + Screenshot |
+| Cursor | ❌ | JSON + Screenshot |
+| Other MCP Clients | ❌ | JSON + Screenshot |
+
 ## Browser Tools (Optional Module)
 
 Enable browser automation for web-based K8s operations using [agent-browser](https://github.com/vercel-labs/agent-browser).
@@ -467,7 +512,7 @@ binds:
 agentgateway --config gateway.yaml
 ```
 
-Connect MCP clients to `http://localhost:3000/mcp`. All 121 tools are discoverable through the gateway.
+Connect MCP clients to `http://localhost:3000/mcp`. All 127 tools are discoverable through the gateway.
 
 ## Kubernetes Deployment
 
@@ -535,7 +580,7 @@ See [deploy/](deploy/) for full manifests and configuration options.
 
 ### kagent Integration (AI Agents)
 
-[kagent](https://github.com/kagent-dev/kagent) is a Kubernetes-native AI agent framework (CNCF project). Register kubectl-mcp-server as a ToolServer to give your agents 121 K8s management tools.
+[kagent](https://github.com/kagent-dev/kagent) is a Kubernetes-native AI agent framework (CNCF project). Register kubectl-mcp-server as a ToolServer to give your agents 127 K8s management tools.
 
 ```bash
 # Install kagent
@@ -567,7 +612,7 @@ The MCP server implements the [Model Context Protocol](https://github.com/modelc
 ```
 kubectl_mcp_tool/
 ├── mcp_server.py          # Main server (FastMCP, transports)
-├── tools/                  # 121 MCP tools organized by category
+├── tools/                  # 127 MCP tools organized by category
 │   ├── pods.py            # Pod management & diagnostics
 │   ├── deployments.py     # Deployments, StatefulSets, DaemonSets
 │   ├── core.py            # Namespaces, ConfigMaps, Secrets
@@ -578,7 +623,8 @@ kubectl_mcp_tool/
 │   ├── helm.py            # Complete Helm v3 operations
 │   ├── operations.py      # kubectl apply/patch/describe/etc
 │   ├── diagnostics.py     # Metrics, namespace comparison
-│   └── cost.py            # Resource optimization & cost analysis
+│   ├── cost.py            # Resource optimization & cost analysis
+│   └── ui.py              # MCP-UI interactive dashboards
 ├── resources/              # 8 MCP Resources for data exposure
 ├── prompts/                # 8 MCP Prompts for workflows
 └── cli/                    # CLI interface

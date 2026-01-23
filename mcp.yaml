@@ -1,7 +1,7 @@
 name: kubectl-mcp-server
 framework: fastmcp-python
-version: "1.12.0"
-description: "A Model Context Protocol (MCP) server for Kubernetes with 140+ tools, 8 resources, and 8 prompts. Enables AI assistants like Claude, Cursor, and Windsurf to interact with Kubernetes clusters through natural language."
+version: "1.13.0"
+description: "A Model Context Protocol (MCP) server for Kubernetes with 127+ tools, 8 resources, and 8 prompts. Enables AI assistants like Claude, Cursor, and Windsurf to interact with Kubernetes clusters through natural language."
 author: rohitghumare64
 email: ghumare64@gmail.com
 

@@ -10,6 +10,7 @@ from .operations import register_operations_tools
 from .diagnostics import register_diagnostics_tools
 from .cost import register_cost_tools
 from .browser import register_browser_tools, is_browser_available
+from .ui import register_ui_tools, is_ui_available
 
 __all__ = [
     "register_helm_tools",
@@ -25,4 +26,6 @@ __all__ = [
     "register_cost_tools",
     "register_browser_tools",
     "is_browser_available",
+    "register_ui_tools",
+    "is_ui_available",
 ]

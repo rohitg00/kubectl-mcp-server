@@ -5,10 +5,10 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setup(
     name="kubectl-mcp-server",
-    version="1.12.0",
+    version="1.13.0",
     author="Rohit Ghumare",
     author_email="ghumare64@gmail.com",
-    description="A Model Context Protocol (MCP) server for Kubernetes with 121+ tools, 8 resources, and 8 prompts",
+    description="A Model Context Protocol (MCP) server for Kubernetes with 127+ tools, 8 resources, and 8 prompts",
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/rohitg00/kubectl-mcp-server",
@@ -26,6 +26,7 @@ setup(
         "fastmcp",
         "devops",
         "cloud-native",
+        "mcp-ui",
     ],
     install_requires=[
         "fastmcp>=3.0.0b1",  # gofastmcp.com - to revert: change to mcp>=1.8.0
@@ -42,8 +43,12 @@ setup(
         "cryptography>=42.0.2",
         "rich>=13.0.0",
         "aiohttp>=3.8.0",
-        "aiohttp-sse>=2.1.0"
+        "aiohttp-sse>=2.1.0",
     ],
+    extras_require={
+        "ui": ["mcp-ui-server>=0.5.0"],  # Optional: MCP-UI interactive dashboards
+        "all": ["mcp-ui-server>=0.5.0"],
+    },
     entry_points={
         "console_scripts": [
             "kubectl-mcp=kubectl_mcp_tool.__main__:main",

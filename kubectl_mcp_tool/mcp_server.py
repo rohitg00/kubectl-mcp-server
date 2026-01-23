@@ -43,6 +43,8 @@ from kubectl_mcp_tool.tools import (
     register_cost_tools,
     register_browser_tools,
     is_browser_available,
+    register_ui_tools,
+    is_ui_available,
 )
 from kubectl_mcp_tool.resources import register_resources
 from kubectl_mcp_tool.prompts import register_prompts
@@ -186,6 +188,13 @@ class MCPServer:
             logger.info("Browser automation tools enabled (MCP_BROWSER_ENABLED=true)")
         else:
             logger.debug("Browser tools disabled (set MCP_BROWSER_ENABLED=true to enable)")
+
+        # Register MCP-UI tools for interactive dashboards (optional)
+        if is_ui_available():
+            register_ui_tools(self.server, self.non_destructive)
+            logger.info("MCP-UI tools enabled (mcp-ui-server installed)")
+        else:
+            logger.debug("MCP-UI tools disabled (install mcp-ui-server to enable)")
 
     def setup_resources(self):
         """Set up MCP resources for Kubernetes data exposure."""
