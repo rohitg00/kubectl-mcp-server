@@ -339,19 +339,33 @@ def certs_renew(
         except Exception:
             pass
 
-    args = [
-        "patch", "certificates.cert-manager.io", name,
-        "-n", namespace, "--type", "merge",
-        "-p", json.dumps({"spec": {"renewBefore": "1h"}})
+    # Fallback: Delete the certificate's secret to trigger cert-manager to reissue
+    # This is the recommended way to trigger renewal without cmctl
+    # First, get the secret name from the certificate spec
+    get_args = [
+        "get", "certificates.cert-manager.io", name,
+        "-n", namespace,
+        "-o", "jsonpath={.spec.secretName}"
     ]
-    result = _run_kubectl(args, context)
+    secret_result = _run_kubectl(get_args, context)
+
+    if not secret_result["success"]:
+        return {"success": False, "error": f"Failed to get certificate: {secret_result.get('error', 'Unknown error')}"}
+
+    secret_name = secret_result.get("output", "").strip()
+    if not secret_name:
+        return {"success": False, "error": "Certificate does not have a secretName configured"}
+
+    # Delete the secret to trigger renewal
+    delete_args = ["delete", "secret", secret_name, "-n", namespace, "--ignore-not-found"]
+    result = _run_kubectl(delete_args, context)
 
     if result["success"]:
         return {
             "success": True,
             "context": context or "current",
-            "message": f"Patched certificate {name} to trigger renewal",
-            "note": "Certificate will be renewed on next reconciliation",
+            "message": f"Deleted secret '{secret_name}' to trigger renewal for certificate {name}",
+            "note": "cert-manager will automatically reissue the certificate",
         }
 
     return {"success": False, "error": result.get("error", "Failed to trigger renewal")}
