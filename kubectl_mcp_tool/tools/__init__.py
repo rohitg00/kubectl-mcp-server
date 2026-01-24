@@ -11,6 +11,10 @@ from .diagnostics import register_diagnostics_tools
 from .cost import register_cost_tools
 from .browser import register_browser_tools, is_browser_available
 from .ui import register_ui_tools, is_ui_available
+from .gitops import register_gitops_tools
+from .certs import register_certs_tools
+from .policy import register_policy_tools
+from .backup import register_backup_tools
 
 __all__ = [
     "register_helm_tools",
@@ -28,4 +32,8 @@ __all__ = [
     "is_browser_available",
     "register_ui_tools",
     "is_ui_available",
+    "register_gitops_tools",
+    "register_certs_tools",
+    "register_policy_tools",
+    "register_backup_tools",
 ]

@@ -501,11 +501,11 @@ class TestServerIntegration:
                         tools = asyncio.run(server.server.list_tools())
                         tool_names = [t.name for t in tools]
 
-                        # Should have browser tools (131 + 26 = 157)
+                        # Should have browser tools (164 + 26 = 190)
                         assert "browser_open" in tool_names
                         assert "browser_screenshot" in tool_names
                         assert "browser_connect_cdp" in tool_names  # v0.7 tool
-                        assert len(tools) == 157, f"Expected 157 tools (131 + 26), got {len(tools)}"
+                        assert len(tools) == 190, f"Expected 190 tools (164 + 26), got {len(tools)}"
 
 
 import asyncio

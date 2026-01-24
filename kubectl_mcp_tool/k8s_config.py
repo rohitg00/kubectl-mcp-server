@@ -509,3 +509,22 @@ def context_exists(context: str) -> bool:
     """
     contexts = list_contexts()
     return any(ctx["name"] == context for ctx in contexts)
+
+
+def _get_kubectl_context_args(context: str = "") -> list:
+    """
+    Get kubectl command arguments for specifying a context.
+
+    This utility function returns the appropriate --context flag arguments
+    for kubectl commands when targeting a specific cluster.
+
+    Args:
+        context: Context name (empty string for default context)
+
+    Returns:
+        List of command arguments, e.g., ["--context", "my-cluster"]
+        or empty list if no context specified
+    """
+    if context and context.strip():
+        return ["--context", context.strip()]
+    return []
