@@ -306,7 +306,7 @@ def rollout_promote(
     # Fallback to patching
     patch = {"status": {"pauseConditions": None}}
     if full:
-        patch["status"]["currentStepIndex"] = None  # Will promote to end
+        patch["status"]["promoteFull"] = True  # Full promotion to end
 
     args = [
         "patch", "rollouts.argoproj.io", name,

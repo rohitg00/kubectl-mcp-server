@@ -577,13 +577,22 @@ def capi_cluster_kubeconfig(
         except json.JSONDecodeError:
             return {"success": False, "error": "Failed to parse response"}
 
+    # Check if this is a NotFound error vs other failures
+    error_output = result.get("output", "") + result.get("error", "")
+    if "NotFound" in error_output or "not found" in error_output.lower():
+        return {
+            "success": True,
+            "context": context or "current",
+            "secret_name": secret_name,
+            "namespace": namespace,
+            "exists": False,
+            "note": "Kubeconfig secret not found - cluster may still be provisioning",
+        }
+
+    # For other kubectl failures, return the actual error
     return {
-        "success": True,
-        "context": context or "current",
-        "secret_name": secret_name,
-        "namespace": namespace,
-        "exists": False,
-        "note": "Kubeconfig secret not found - cluster may still be provisioning",
+        "success": False,
+        "error": error_output.strip() or "Failed to get kubeconfig secret",
     }
 
 
