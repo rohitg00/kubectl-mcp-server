@@ -172,8 +172,8 @@ class TestBrowserToolFunctions:
         assert "browser_screenshot" in tool_names
 
     @pytest.mark.unit
-    def test_all_19_browser_tools_registered(self):
-        """Verify all 19 browser tools are registered."""
+    def test_all_26_browser_tools_registered(self):
+        """Verify all 26 browser tools are registered (v0.7+)."""
         from kubectl_mcp_tool.tools.browser import register_browser_tools
         from fastmcp import FastMCP
         import asyncio
@@ -182,9 +182,10 @@ class TestBrowserToolFunctions:
         register_browser_tools(server, non_destructive=False)
 
         tools = asyncio.run(server.list_tools())
-        assert len(tools) == 19, f"Expected 19 browser tools, got {len(tools)}"
+        assert len(tools) == 26, f"Expected 26 browser tools, got {len(tools)}"
 
         expected_tools = [
+            # Core browser tools
             "browser_open",
             "browser_snapshot",
             "browser_click",
@@ -194,6 +195,15 @@ class TestBrowserToolFunctions:
             "browser_get_url",
             "browser_wait",
             "browser_close",
+            # NEW v0.7 tools
+            "browser_connect_cdp",
+            "browser_install",
+            "browser_set_provider",
+            "browser_session_list",
+            "browser_session_switch",
+            "browser_open_with_headers",
+            "browser_set_viewport",
+            # K8s integration tools
             "browser_test_ingress",
             "browser_screenshot_service",
             "browser_screenshot_grafana",
@@ -209,6 +219,157 @@ class TestBrowserToolFunctions:
         tool_names = {t.name for t in tools}
         missing = set(expected_tools) - tool_names
         assert not missing, f"Missing browser tools: {missing}"
+
+
+class TestBrowserV07Features:
+    """Tests for agent-browser v0.7 features."""
+
+    @pytest.mark.unit
+    def test_get_global_options_empty(self):
+        """Test _get_global_options with no env vars set."""
+        from kubectl_mcp_tool.tools.browser import _get_global_options
+
+        with patch.dict(os.environ, {}, clear=True):
+            # Need to reload to pick up cleared env
+            import importlib
+            import kubectl_mcp_tool.tools.browser as browser_module
+            importlib.reload(browser_module)
+
+            opts = browser_module._get_global_options()
+            # Should return empty list when no env vars set
+            assert isinstance(opts, list)
+
+    @pytest.mark.unit
+    def test_get_global_options_with_provider(self):
+        """Test _get_global_options with cloud provider."""
+        with patch.dict(os.environ, {"MCP_BROWSER_PROVIDER": "browserbase"}):
+            import importlib
+            import kubectl_mcp_tool.tools.browser as browser_module
+            importlib.reload(browser_module)
+
+            opts = browser_module._get_global_options()
+            assert "-p" in opts
+            assert "browserbase" in opts
+
+    @pytest.mark.unit
+    def test_get_global_options_with_profile(self):
+        """Test _get_global_options with persistent profile."""
+        with patch.dict(os.environ, {"MCP_BROWSER_PROFILE": "~/.k8s-browser"}):
+            import importlib
+            import kubectl_mcp_tool.tools.browser as browser_module
+            importlib.reload(browser_module)
+
+            opts = browser_module._get_global_options()
+            assert "--profile" in opts
+
+    @pytest.mark.unit
+    def test_get_global_options_with_session(self):
+        """Test _get_global_options with session name."""
+        with patch.dict(os.environ, {"MCP_BROWSER_SESSION": "test-session"}):
+            import importlib
+            import kubectl_mcp_tool.tools.browser as browser_module
+            importlib.reload(browser_module)
+
+            opts = browser_module._get_global_options()
+            assert "--session" in opts
+            assert "test-session" in opts
+
+    @pytest.mark.unit
+    def test_get_global_options_with_headed(self):
+        """Test _get_global_options with headed mode."""
+        with patch.dict(os.environ, {"MCP_BROWSER_HEADED": "true"}):
+            import importlib
+            import kubectl_mcp_tool.tools.browser as browser_module
+            importlib.reload(browser_module)
+
+            opts = browser_module._get_global_options()
+            assert "--headed" in opts
+
+    @pytest.mark.unit
+    def test_is_transient_error(self):
+        """Test transient error detection."""
+        from kubectl_mcp_tool.tools.browser import _is_transient_error
+
+        # Transient errors
+        assert _is_transient_error("ECONNREFUSED") is True
+        assert _is_transient_error("Connection refused") is True
+        assert _is_transient_error("ETIMEDOUT") is True
+        assert _is_transient_error("timeout occurred") is True
+
+        # Non-transient errors
+        assert _is_transient_error("File not found") is False
+        assert _is_transient_error("Invalid argument") is False
+
+    @pytest.mark.unit
+    def test_run_browser_with_retry_success(self):
+        """Test retry logic with successful result."""
+        from kubectl_mcp_tool.tools.browser import _run_browser_with_retry
+
+        with patch("kubectl_mcp_tool.tools.browser._run_browser") as mock_run:
+            mock_run.return_value = {"success": True, "output": "OK"}
+
+            result = _run_browser_with_retry(["open", "https://example.com"])
+
+            assert result["success"] is True
+            # Should only call once on success
+            assert mock_run.call_count == 1
+
+    @pytest.mark.unit
+    def test_run_browser_with_retry_transient_error(self):
+        """Test retry logic with transient error."""
+        from kubectl_mcp_tool.tools.browser import _run_browser_with_retry
+
+        with patch("kubectl_mcp_tool.tools.browser._run_browser") as mock_run:
+            with patch("time.sleep"):  # Skip actual sleep
+                # First two calls fail with transient error, third succeeds
+                mock_run.side_effect = [
+                    {"success": False, "error": "ECONNREFUSED"},
+                    {"success": False, "error": "ECONNREFUSED"},
+                    {"success": True, "output": "OK"},
+                ]
+
+                result = _run_browser_with_retry(["open", "https://example.com"], max_retries=3)
+
+                assert result["success"] is True
+                assert mock_run.call_count == 3
+
+    @pytest.mark.unit
+    def test_run_browser_with_retry_non_transient_error(self):
+        """Test retry logic with non-transient error (no retry)."""
+        from kubectl_mcp_tool.tools.browser import _run_browser_with_retry
+
+        with patch("kubectl_mcp_tool.tools.browser._run_browser") as mock_run:
+            mock_run.return_value = {"success": False, "error": "Invalid argument"}
+
+            result = _run_browser_with_retry(["open", "https://example.com"])
+
+            assert result["success"] is False
+            # Should not retry non-transient errors
+            assert mock_run.call_count == 1
+
+    @pytest.mark.unit
+    def test_debug_mode(self):
+        """Test debug logging."""
+        with patch.dict(os.environ, {"MCP_BROWSER_DEBUG": "true"}):
+            import importlib
+            import kubectl_mcp_tool.tools.browser as browser_module
+            importlib.reload(browser_module)
+
+            assert browser_module.MCP_BROWSER_DEBUG is True
+
+    @pytest.mark.unit
+    def test_retry_configuration(self):
+        """Test retry configuration from environment."""
+        with patch.dict(os.environ, {
+            "MCP_BROWSER_MAX_RETRIES": "5",
+            "MCP_BROWSER_RETRY_DELAY": "2000"
+        }):
+            import importlib
+            import kubectl_mcp_tool.tools.browser as browser_module
+            importlib.reload(browser_module)
+
+            assert browser_module.MCP_BROWSER_MAX_RETRIES == 5
+            assert browser_module.MCP_BROWSER_RETRY_DELAY == 2000
 
 
 class TestK8sIntegration:
@@ -340,10 +501,11 @@ class TestServerIntegration:
                         tools = asyncio.run(server.server.list_tools())
                         tool_names = [t.name for t in tools]
 
-                        # Should have browser tools (127 + 19 = 146)
+                        # Should have browser tools (127 + 26 = 153)
                         assert "browser_open" in tool_names
                         assert "browser_screenshot" in tool_names
-                        assert len(tools) == 146, f"Expected 146 tools (127 + 19), got {len(tools)}"
+                        assert "browser_connect_cdp" in tool_names  # v0.7 tool
+                        assert len(tools) == 153, f"Expected 153 tools (127 + 26), got {len(tools)}"
 
 
 import asyncio
