@@ -1,0 +1,31 @@
+apiVersion: v2
+name: kubectl-mcp-server
+description: A Model Context Protocol (MCP) server for Kubernetes with 220+ tools, 8 resources, and 8 prompts
+type: application
+version: 1.0.0
+appVersion: "1.23.0"
+home: https://github.com/rohitg00/kubectl-mcp-server
+icon: https://raw.githubusercontent.com/rohitg00/kubectl-mcp-server/main/docs/logo.png
+sources:
+  - https://github.com/rohitg00/kubectl-mcp-server
+keywords:
+  - kubernetes
+  - kubectl
+  - mcp
+  - model-context-protocol
+  - ai
+  - llm
+  - devops
+  - automation
+maintainers:
+  - name: Rohit Ghumare
+    email: ghumare64@gmail.com
+    url: https://github.com/rohitg00
+annotations:
+  artifacthub.io/category: integration-delivery
+  artifacthub.io/license: MIT
+  artifacthub.io/operator: "false"
+  artifacthub.io/prerelease: "false"
+  artifacthub.io/containsSecurityUpdates: "false"
+  artifacthub.io/recommendations: |
+    - url: https://artifacthub.io/packages/helm/prometheus-community/kube-prometheus-stack

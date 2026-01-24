@@ -1,0 +1,173 @@
+# Default values for kubectl-mcp-server.
+# This is a YAML-formatted file.
+
+replicaCount: 1
+
+image:
+  repository: rohitghumare64/kubectl-mcp-server
+  pullPolicy: IfNotPresent
+  # Overrides the image tag whose default is the chart appVersion.
+  tag: ""
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: true
+  # Annotations to add to the service account
+  annotations: {}
+  # The name of the service account to use.
+  name: ""
+
+# RBAC configuration
+rbac:
+  # Create ClusterRole and ClusterRoleBinding
+  create: true
+  # Scope of permissions
+  # - "cluster": Full cluster-wide read access (default)
+  # - "namespace": Limited to specific namespaces
+  scope: cluster
+  # Namespaces to grant access when scope is "namespace"
+  namespaces: []
+  # - default
+  # - kube-system
+
+podAnnotations: {}
+
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  fsGroup: 1000
+
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+  readOnlyRootFilesystem: true
+  runAsNonRoot: true
+  runAsUser: 1000
+
+service:
+  type: ClusterIP
+  port: 8000
+  annotations: {}
+
+# MCP Server configuration
+mcp:
+  # Transport mode: "streamable-http" or "stdio"
+  transport: streamable-http
+  # Server port (for streamable-http transport)
+  port: 8000
+  # Enable debug logging
+  debug: false
+  # Log to file (leave empty to disable)
+  logFile: ""
+
+# Safety mode configuration
+safety:
+  # Safety mode: "normal", "read-only", or "disable-destructive"
+  mode: normal
+
+# Browser tools configuration
+browser:
+  # Enable browser automation tools
+  enabled: false
+  # Cloud provider: "local", "browserbase", or "browseruse"
+  provider: local
+  # Browserbase configuration
+  browserbase:
+    apiKey: ""
+    projectId: ""
+  # Browser Use configuration
+  browseruse:
+    apiKey: ""
+
+# Metrics configuration
+metrics:
+  # Enable Prometheus metrics endpoint
+  enabled: false
+  # ServiceMonitor for Prometheus Operator
+  serviceMonitor:
+    enabled: false
+    interval: 30s
+    labels: {}
+    namespace: ""
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+    # kubernetes.io/ingress.class: nginx
+    # kubernetes.io/tls-acme: "true"
+  hosts:
+    - host: kubectl-mcp.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+  #  - secretName: kubectl-mcp-tls
+  #    hosts:
+  #      - kubectl-mcp.local
+
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
+
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 80
+  # targetMemoryUtilizationPercentage: 80
+
+# Pod Disruption Budget
+podDisruptionBudget:
+  enabled: false
+  minAvailable: 1
+  # maxUnavailable: 1
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+# Extra environment variables
+extraEnv: []
+  # - name: MY_VAR
+  #   value: "my-value"
+
+# Extra volume mounts
+extraVolumeMounts: []
+
+# Extra volumes
+extraVolumes: []
+
+# Liveness and readiness probes
+livenessProbe:
+  enabled: true
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+readinessProbe:
+  enabled: true
+  initialDelaySeconds: 5
+  periodSeconds: 5
+  timeoutSeconds: 3
+  failureThreshold: 3
+
+# ConfigMap for additional configuration
+config:
+  # Enable ConfigMap creation
+  enabled: false
+  # Custom configuration data
+  data: {}
