@@ -1,6 +1,8 @@
 # Kubectl MCP Server
 
-A Model Context Protocol (MCP) server for Kubernetes that enables AI assistants like Claude, Cursor, and others to interact with Kubernetes clusters through natural language.
+**Control your entire Kubernetes infrastructure through natural language conversations with AI.**
+
+Talk to your clusters like you talk to a DevOps expert. Debug crashed pods, optimize costs, deploy applications, audit security, manage Helm charts, and visualize dashboards, all through natural language in your favorite AI assistant or agents.
 
 [![GitHub Stars](https://img.shields.io/github/stars/rohitg00/kubectl-mcp-server?style=flat&logo=github)](https://github.com/rohitg00/kubectl-mcp-server)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -13,21 +15,102 @@ A Model Context Protocol (MCP) server for Kubernetes that enables AI assistants 
 [![Tests](https://img.shields.io/badge/tests-187%20passed-success)](https://github.com/rohitg00/kubectl-mcp-server)
 [![agentregistry](https://img.shields.io/badge/agentregistry-verified-blue?logo=data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgZmlsbD0id2hpdGUiIHZpZXdCb3g9IjAgMCAxNiAxNiI+PHBhdGggZD0iTTE1Ljk5MiA2LjAzN2wtMy4wMjEtLjQzOS0xLjM1LTIuNzM2Yy0uMzQ2LS43MDItMS41MDQtLjcwMi0xLjg1IDBMOC40MjEgNS41OTggNS40IDYuMDM3Yy0uNzc2LjExMy0xLjA4OCAxLjA1My0uNTI4IDEuNTkzbDIuMTg2IDIuMTI5LS41MTYgMy4wMWMtLjEzMy43NzUuNjgyIDEuMzY2IDEuMzc4Ljk5OGwyLjcwMi0xLjQyIDIuNzAyIDEuNDJjLjY5Ni4zNjggMS41MTEtLjIyMyAxLjM3OC0uOTk4bC0uNTE2LTMuMDEgMi4xODYtMi4xMjljLjU2LS41NCAwLjI0OC0xLjQ4LS41MjgtMS41OTN6Ii8+PC9zdmc+)](https://aregistry.ai)
 
-## MCP Client Compatibility
+---
 
-Works with all MCP-compatible AI assistants:
+## Installation
 
-| Client | Status | Client | Status |
-|--------|--------|--------|--------|
-| Claude Desktop | ✅ Native | Claude Code | ✅ Native |
-| Cursor | ✅ Native | Windsurf | ✅ Native |
-| GitHub Copilot | ✅ Native | OpenAI Codex | ✅ Native |
-| Gemini CLI | ✅ Native | Goose | ✅ Native |
-| Roo Code | ✅ Native | Kilo Code | ✅ Native |
-| Amp | ✅ Native | Trae | ✅ Native |
-| OpenCode | ✅ Native | Kiro CLI | ✅ Native |
-| Antigravity | ✅ Native | Clawdbot | ✅ Native |
-| Droid (Factory) | ✅ Native | Any MCP Client | ✅ Compatible |
+### Quick Start with npx (Recommended - Zero Install)
+
+```bash
+# Run directly without installation - works instantly!
+npx -y kubectl-mcp-server
+
+# Or install globally for faster startup
+npm install -g kubectl-mcp-server
+```
+
+### Or install with pip (Python)
+
+```bash
+# Standard installation
+pip install kubectl-mcp-server
+
+# With interactive UI dashboards (recommended)
+pip install kubectl-mcp-server[ui]
+```
+---
+
+## 📑 Table of Contents
+
+- [What Can You Do?](#what-can-you-do)
+- [Why kubectl-mcp-server?](#why-kubectl-mcp-server)
+- [Live Demos](#live-demos)
+- [Installation](#installation)
+  - [Quick Start with npx](#quick-start-with-npx-recommended---zero-install)
+  - [Install with pip](#or-install-with-pip-python)
+  - [Docker](#docker)
+- [Getting Started](#getting-started)
+- [Quick Setup with Your AI Assistant](#quick-setup-with-your-ai-assistant)
+- [All Supported AI Assistants](#all-supported-ai-assistants)
+- [Complete Feature Set](#complete-feature-set)
+- [Using the CLI](#using-the-cli)
+- [Advanced Configuration](#advanced-configuration)
+- [Optional Features](#optional-interactive-dashboards-6-ui-tools)
+  - [Interactive Dashboards](#optional-interactive-dashboards-6-ui-tools)
+  - [Browser Automation](#optional-browser-automation-26-tools)
+- [Enterprise](#enterprise-oauth-21-authentication)
+- [Integrations & Ecosystem](#integrations--ecosystem)
+- [In-Cluster Deployment](#in-cluster-deployment)
+- [Multi-Cluster Support](#multi-cluster-support)
+- [Architecture](#architecture)
+- [Development & Testing](#development--testing)
+- [Contributing](#contributing)
+- [Support & Community](#support--community)
+
+---
+
+## What Can You Do?
+
+Simply ask your AI assistant in natural language:
+
+💬 **"Why is my pod crashing?"**
+- Instant crash diagnosis with logs, events, and resource analysis
+- Root cause identification with actionable recommendations
+
+💬 **"Deploy a Redis cluster with 3 replicas"**
+- Creates deployment with best practices
+- Configures services, persistent storage, and health checks
+
+💬 **"Show me which pods are wasting resources"**
+- AI-powered cost optimization analysis
+- Resource recommendations with potential savings
+
+💬 **"Which services can't reach the database?"**
+- Network connectivity diagnostics with DNS resolution
+- Service chain tracing from ingress to pods
+
+💬 **"Audit security across all namespaces"**
+- RBAC permission analysis
+- Secret security scanning and pod security policies
+
+💬 **"Show me the cluster dashboard"**
+- Interactive HTML dashboards with live metrics
+- Visual timeline of events and resource usage
+
+**127 powerful tools** | **8 workflow prompts** | **8 data resources** | **Works with all major AI assistants**
+
+## Why kubectl-mcp-server?
+
+- **🚀 Stop context-switching** - Manage Kubernetes directly from your AI assistant conversations
+- **🧠 AI-powered diagnostics** - Get intelligent troubleshooting, not just raw data
+- **💰 Built-in cost optimization** - Identify waste and get actionable savings recommendations
+- **🔒 Enterprise-ready** - OAuth 2.1 auth, RBAC validation, non-destructive mode, secret masking
+- **⚡ Zero learning curve** - Natural language instead of memorizing kubectl commands
+- **🌐 Universal compatibility** - Works with Claude, Cursor, Windsurf, Copilot, and 15+ other AI tools
+- **📊 Visual insights** - Interactive dashboards and browser automation for web-based tools
+- **☸️ Production-grade** - Deploy in-cluster with kMCP, 187 passing tests, active maintenance
+
+From debugging crashed pods to optimizing cluster costs, kubectl-mcp-server is your AI-powered DevOps companion.
 
 ## Live Demos
 
@@ -40,188 +123,76 @@ Works with all MCP-compatible AI assistants:
 ### Windsurf
 ![Windsurf MCP](./docs/windsurf/windsurf-mcp.gif)
 
-## Features
-
-### 127 MCP Tools for Complete Kubernetes Management
-
-| Category | Tools |
-|----------|-------|
-| **Pods** | `get_pods`, `get_logs`, `get_pod_events`, `check_pod_health`, `exec_in_pod`, `cleanup_pods`, `get_pod_conditions`, `get_previous_logs` |
-| **Deployments** | `get_deployments`, `create_deployment`, `scale_deployment`, `kubectl_rollout`, `restart_deployment` |
-| **Workloads** | `get_statefulsets`, `get_daemonsets`, `get_jobs`, `get_replicasets` |
-| **Services & Networking** | `get_services`, `get_ingress`, `get_endpoints`, `diagnose_network_connectivity`, `check_dns_resolution`, `trace_service_chain` |
-| **Storage** | `get_persistent_volumes`, `get_pvcs`, `get_storage_classes` |
-| **Config** | `get_configmaps`, `get_secrets`, `get_resource_quotas`, `get_limit_ranges` |
-| **Cluster** | `get_nodes`, `get_namespaces`, `get_cluster_info`, `get_cluster_version`, `health_check`, `get_node_metrics`, `get_pod_metrics` |
-| **RBAC & Security** | `get_rbac_roles`, `get_cluster_roles`, `get_service_accounts`, `audit_rbac_permissions`, `check_secrets_security`, `get_pod_security_info`, `get_admission_webhooks` |
-| **CRDs** | `get_crds`, `get_priority_classes` |
-| **Helm Releases** | `helm_list`, `helm_status`, `helm_history`, `helm_get_values`, `helm_get_manifest`, `helm_get_notes`, `helm_get_hooks`, `helm_get_all` |
-| **Helm Charts** | `helm_show_chart`, `helm_show_values`, `helm_show_readme`, `helm_show_crds`, `helm_show_all`, `helm_search_repo`, `helm_search_hub` |
-| **Helm Repos** | `helm_repo_list`, `helm_repo_add`, `helm_repo_remove`, `helm_repo_update` |
-| **Helm Operations** | `install_helm_chart`, `upgrade_helm_chart`, `uninstall_helm_chart`, `helm_rollback`, `helm_test`, `helm_template`, `helm_template_apply` |
-| **Helm Development** | `helm_create`, `helm_lint`, `helm_package`, `helm_pull`, `helm_dependency_list`, `helm_dependency_update`, `helm_dependency_build`, `helm_version`, `helm_env` |
-| **Context** | `get_current_context`, `switch_context`, `list_contexts`, `list_kubeconfig_contexts` |
-| **Diagnostics** | `diagnose_pod_crash`, `detect_pending_pods`, `get_evicted_pods`, `compare_namespaces` |
-| **Operations** | `kubectl_apply`, `kubectl_create`, `kubectl_describe`, `kubectl_patch`, `delete_resource`, `kubectl_cp`, `backup_resource`, `label_resource`, `annotate_resource`, `taint_node`, `wait_for_condition` |
-| **Autoscaling** | `get_hpa`, `get_pdb` |
-| **Cost Optimization** | `get_resource_recommendations`, `get_idle_resources`, `get_resource_quotas_usage`, `get_cost_analysis`, `get_overprovisioned_resources`, `get_resource_trends`, `get_namespace_cost_allocation`, `optimize_resource_requests` |
-| **Advanced** | `kubectl_generic`, `kubectl_explain`, `get_api_resources`, `port_forward`, `get_resource_usage`, `node_management` |
-| **UI Dashboards** | `show_pod_logs_ui`, `show_pods_dashboard_ui`, `show_resource_yaml_ui`, `show_cluster_overview_ui`, `show_events_timeline_ui`, `render_k8s_dashboard_screenshot` |
-
-### MCP Resources (FastMCP 3)
-
-Access Kubernetes data as browsable resources:
-
-| Resource URI | Description |
-|--------------|-------------|
-| `kubeconfig://contexts` | List all available kubectl contexts |
-| `kubeconfig://current-context` | Get current active context |
-| `namespace://current` | Get current namespace |
-| `namespace://list` | List all namespaces |
-| `cluster://info` | Get cluster information |
-| `cluster://nodes` | Get detailed node information |
-| `cluster://version` | Get Kubernetes version |
-| `cluster://api-resources` | List available API resources |
-| `manifest://deployments/{ns}/{name}` | Get deployment YAML |
-| `manifest://services/{ns}/{name}` | Get service YAML |
-| `manifest://pods/{ns}/{name}` | Get pod YAML |
-| `manifest://configmaps/{ns}/{name}` | Get ConfigMap YAML |
-| `manifest://secrets/{ns}/{name}` | Get secret YAML (data masked) |
-| `manifest://ingresses/{ns}/{name}` | Get ingress YAML |
-
-### MCP Prompts (FastMCP 3)
-
-Pre-built workflow prompts for common Kubernetes operations:
-
-| Prompt | Description |
-|--------|-------------|
-| `troubleshoot_workload` | Comprehensive troubleshooting guide for pods/deployments |
-| `deploy_application` | Step-by-step deployment workflow |
-| `security_audit` | Security scanning and RBAC analysis workflow |
-| `cost_optimization` | Resource optimization and cost analysis workflow |
-| `disaster_recovery` | Backup and recovery planning workflow |
-| `debug_networking` | Network debugging for services and connectivity |
-| `scale_application` | Scaling guide with HPA/VPA best practices |
-| `upgrade_cluster` | Kubernetes cluster upgrade planning |
-
-### Key Capabilities
-
-- **Enhanced CLI**: 8 new subcommands for tool discovery, direct calling, and diagnostics
-- **Multi-Transport Support**: stdio, SSE, HTTP/streamable-http
-- **AI Assistant Integration**: Claude Desktop, Claude Code, Cursor, Windsurf
-- **Multi-Cluster**: Context switching between clusters
-- **Security**: Non-destructive mode, secrets masking, RBAC validation
-- **Diagnostics**: Pod crash analysis, network connectivity testing, DNS resolution checks
-- **Helm v3**: Full Helm chart lifecycle management
-- **Cost Optimization**: Resource recommendations, idle resource detection, usage analysis
-- **FastMCP 3**: MCP Resources and Prompts for enhanced AI workflows
-- **MCP-UI Support**: Interactive HTML dashboards for compatible hosts (Goose, LibreChat)
-- **Browser Automation**: 26 tools with cloud provider support (Browserbase, Browser Use)
-
-## CLI Usage
-
-kubectl-mcp-server now includes a powerful CLI for shell-friendly operation:
-
-```bash
-# List all tools with descriptions
-kubectl-mcp-server tools -d
-
-# Search for pod-related tools
-kubectl-mcp-server grep "*pod*"
-
-# Show specific tool schema
-kubectl-mcp-server tools get_pods
-
-# Call a tool directly
-kubectl-mcp-server call get_pods '{"namespace": "kube-system"}'
-
-# Pipe JSON from stdin
-echo '{"namespace": "default"}' | kubectl-mcp-server call get_pods
-
-# Check dependencies
-kubectl-mcp-server doctor
-
-# Show/switch Kubernetes context
-kubectl-mcp-server context
-kubectl-mcp-server context minikube
-
-# List resources and prompts
-kubectl-mcp-server resources
-kubectl-mcp-server prompts
-
-# Show server info
-kubectl-mcp-server info
-```
-
-### CLI Features
-
-- **Structured errors**: Actionable error messages with suggestions
-- **Colorized output**: Human-readable with JSON mode for scripting (`--json`)
-- **NO_COLOR support**: Respects `NO_COLOR` environment variable
-- **Stdin support**: Pipe JSON arguments to commands
-
 ## Installation
 
-### Prerequisites
-- Python 3.9+
-- kubectl CLI installed and configured
-- Access to a Kubernetes cluster
-
-### npm / npx (Recommended)
+### Quick Start with npx (Recommended - Zero Install)
 
 ```bash
-# Run directly without installation
-npx kubectl-mcp-server
+# Run directly without installation - works instantly!
+npx -y kubectl-mcp-server
 
-# Or install globally
+# Or install globally for faster startup
 npm install -g kubectl-mcp-server
 ```
 
-### pip (Python)
+### Or install with pip (Python)
 
 ```bash
+# Standard installation
 pip install kubectl-mcp-server
 
-# With MCP-UI support (interactive dashboards)
+# With interactive UI dashboards (recommended)
 pip install kubectl-mcp-server[ui]
-
-# Legacy alias (still works for backward compatibility)
-pip install kubectl-mcp-tool
 ```
+
+### Prerequisites
+- **Python 3.9+** (for pip installation)
+- **Node.js 14+** (for npx installation)
+- **kubectl** installed and configured
+- Access to a Kubernetes cluster
 
 ### Docker
 
 ```bash
-# Pull the latest image
+# Pull and run with Docker
 docker pull rohitghumare64/kubectl-mcp-server:latest
 
 # Run with stdio transport
 docker run -i -v $HOME/.kube:/root/.kube:ro rohitghumare64/kubectl-mcp-server:latest
 
-# Run with SSE transport
+# Run with HTTP transport
 docker run -p 8000:8000 -v $HOME/.kube:/root/.kube:ro rohitghumare64/kubectl-mcp-server:latest --transport sse
 ```
 
-## Quick Start
+## Getting Started
+
+### 1. Test the Server (Optional)
+
+Before integrating with your AI assistant, verify the installation:
+
+```bash
+# Check if kubectl is configured
+kubectl cluster-info
+
+# Test the MCP server directly
+kubectl-mcp-server info
+
+# List all available tools
+kubectl-mcp-server tools
+
+# Try calling a tool
+kubectl-mcp-server call get_pods '{"namespace": "kube-system"}'
+```
+
+### 2. Connect to Your AI Assistant
+
+Choose your favorite AI assistant and add the configuration:
+
+## Quick Setup with Your AI Assistant
 
 ### Claude Desktop
 
 Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
-
-```json
-{
-  "mcpServers": {
-    "kubernetes": {
-      "command": "npx",
-      "args": ["-y", "kubectl-mcp-server"]
-    }
-  }
-}
-```
-
-### Claude Code
-
-Add to `~/.config/claude-code/mcp.json`:
 
 ```json
 {
@@ -252,6 +223,107 @@ Add to `~/.cursor/mcp.json`:
 ### Windsurf
 
 Add to `~/.config/windsurf/mcp.json`:
+
+```json
+{
+  "mcpServers": {
+    "kubernetes": {
+      "command": "npx",
+      "args": ["-y", "kubectl-mcp-server"]
+    }
+  }
+}
+```
+
+### Using Python Instead of npx
+
+```json
+{
+  "mcpServers": {
+    "kubernetes": {
+      "command": "python",
+      "args": ["-m", "kubectl_mcp_tool.mcp_server"],
+      "env": {
+        "KUBECONFIG": "/path/to/.kube/config"
+      }
+    }
+  }
+}
+```
+
+**More integrations**: GitHub Copilot, Goose, Gemini CLI, Roo Code, and [15+ other clients](#mcp-client-compatibility) —> see [full configuration guide](#all-supported-ai-assistants) below.
+
+### 3. Restart Your AI Assistant
+
+After adding the configuration, restart your AI assistant **(GitHub Copilot, Claude Code,Claude Desktop, Cursor, etc.)** to load the MCP server.
+
+### 4. Try These Commands
+
+Start a conversation with your AI assistant and try these:
+
+**Troubleshooting:**
+```
+"Show me all pods in the kube-system namespace"
+"Why is the nginx-deployment pod crashing?"
+"Diagnose network connectivity issues in the default namespace"
+```
+
+**Deployments:**
+```
+"Create a deployment for nginx with 3 replicas"
+"Scale my frontend deployment to 5 replicas"
+"Roll back the api-server deployment to the previous version"
+```
+
+**Cost & Optimization:**
+```
+"Which pods are using the most resources?"
+"Show me idle resources that are wasting money"
+"Analyze cost optimization opportunities in the production namespace"
+```
+
+**Security:**
+```
+"Audit RBAC permissions in all namespaces"
+"Check for insecure secrets and configurations"
+"Show me pods running with privileged access"
+```
+
+**Helm:**
+```
+"List all Helm releases in the cluster"
+"Install Redis from the Bitnami chart repository"
+"Show me the values for my nginx-ingress Helm release"
+```
+
+**Multi-Cluster:**
+```
+"List all available Kubernetes contexts"
+"Switch to the production cluster context"
+"Show me cluster information and version"
+```
+
+## MCP Client Compatibility
+
+Works seamlessly with **all MCP-compatible AI assistants**:
+
+| Client | Status | Client | Status |
+|--------|--------|--------|--------|
+| Claude Desktop | ✅ Native | Claude Code | ✅ Native |
+| Cursor | ✅ Native | Windsurf | ✅ Native |
+| GitHub Copilot | ✅ Native | OpenAI Codex | ✅ Native |
+| Gemini CLI | ✅ Native | Goose | ✅ Native |
+| Roo Code | ✅ Native | Kilo Code | ✅ Native |
+| Amp | ✅ Native | Trae | ✅ Native |
+| OpenCode | ✅ Native | Kiro CLI | ✅ Native |
+| Antigravity | ✅ Native | Clawdbot | ✅ Native |
+| Droid (Factory) | ✅ Native | Any MCP Client | ✅ Compatible |
+
+## All Supported AI Assistants
+
+### Claude Code
+
+Add to `~/.config/claude-code/mcp.json`:
 
 ```json
 {
@@ -324,185 +396,246 @@ Add to `~/.config/roo-code/mcp.json` or `~/.config/kilo-code/mcp.json`:
 }
 ```
 
-### Using Python Directly
+## Complete Feature Set
 
-If you prefer Python over npx:
+### 127 MCP Tools for Complete Kubernetes Management
 
-```json
-{
-  "mcpServers": {
-    "kubernetes": {
-      "command": "python",
-      "args": ["-m", "kubectl_mcp_tool.mcp_server"],
-      "env": {
-        "KUBECONFIG": "/path/to/.kube/config"
-      }
-    }
-  }
-}
-```
+| Category | Tools |
+|----------|-------|
+| **Pods** | `get_pods`, `get_logs`, `get_pod_events`, `check_pod_health`, `exec_in_pod`, `cleanup_pods`, `get_pod_conditions`, `get_previous_logs` |
+| **Deployments** | `get_deployments`, `create_deployment`, `scale_deployment`, `kubectl_rollout`, `restart_deployment` |
+| **Workloads** | `get_statefulsets`, `get_daemonsets`, `get_jobs`, `get_replicasets` |
+| **Services & Networking** | `get_services`, `get_ingress`, `get_endpoints`, `diagnose_network_connectivity`, `check_dns_resolution`, `trace_service_chain` |
+| **Storage** | `get_persistent_volumes`, `get_pvcs`, `get_storage_classes` |
+| **Config** | `get_configmaps`, `get_secrets`, `get_resource_quotas`, `get_limit_ranges` |
+| **Cluster** | `get_nodes`, `get_namespaces`, `get_cluster_info`, `get_cluster_version`, `health_check`, `get_node_metrics`, `get_pod_metrics` |
+| **RBAC & Security** | `get_rbac_roles`, `get_cluster_roles`, `get_service_accounts`, `audit_rbac_permissions`, `check_secrets_security`, `get_pod_security_info`, `get_admission_webhooks` |
+| **CRDs** | `get_crds`, `get_priority_classes` |
+| **Helm Releases** | `helm_list`, `helm_status`, `helm_history`, `helm_get_values`, `helm_get_manifest`, `helm_get_notes`, `helm_get_hooks`, `helm_get_all` |
+| **Helm Charts** | `helm_show_chart`, `helm_show_values`, `helm_show_readme`, `helm_show_crds`, `helm_show_all`, `helm_search_repo`, `helm_search_hub` |
+| **Helm Repos** | `helm_repo_list`, `helm_repo_add`, `helm_repo_remove`, `helm_repo_update` |
+| **Helm Operations** | `install_helm_chart`, `upgrade_helm_chart`, `uninstall_helm_chart`, `helm_rollback`, `helm_test`, `helm_template`, `helm_template_apply` |
+| **Helm Development** | `helm_create`, `helm_lint`, `helm_package`, `helm_pull`, `helm_dependency_list`, `helm_dependency_update`, `helm_dependency_build`, `helm_version`, `helm_env` |
+| **Context** | `get_current_context`, `switch_context`, `list_contexts`, `list_kubeconfig_contexts` |
+| **Diagnostics** | `diagnose_pod_crash`, `detect_pending_pods`, `get_evicted_pods`, `compare_namespaces` |
+| **Operations** | `kubectl_apply`, `kubectl_create`, `kubectl_describe`, `kubectl_patch`, `delete_resource`, `kubectl_cp`, `backup_resource`, `label_resource`, `annotate_resource`, `taint_node`, `wait_for_condition` |
+| **Autoscaling** | `get_hpa`, `get_pdb` |
+| **Cost Optimization** | `get_resource_recommendations`, `get_idle_resources`, `get_resource_quotas_usage`, `get_cost_analysis`, `get_overprovisioned_resources`, `get_resource_trends`, `get_namespace_cost_allocation`, `optimize_resource_requests` |
+| **Advanced** | `kubectl_generic`, `kubectl_explain`, `get_api_resources`, `port_forward`, `get_resource_usage`, `node_management` |
+| **UI Dashboards** | `show_pod_logs_ui`, `show_pods_dashboard_ui`, `show_resource_yaml_ui`, `show_cluster_overview_ui`, `show_events_timeline_ui`, `render_k8s_dashboard_screenshot` |
 
-## Transport Modes
+### MCP Resources
+
+Access Kubernetes data as browsable resources:
+
+| Resource URI | Description |
+|--------------|-------------|
+| `kubeconfig://contexts` | List all available kubectl contexts |
+| `kubeconfig://current-context` | Get current active context |
+| `namespace://current` | Get current namespace |
+| `namespace://list` | List all namespaces |
+| `cluster://info` | Get cluster information |
+| `cluster://nodes` | Get detailed node information |
+| `cluster://version` | Get Kubernetes version |
+| `cluster://api-resources` | List available API resources |
+| `manifest://deployments/{ns}/{name}` | Get deployment YAML |
+| `manifest://services/{ns}/{name}` | Get service YAML |
+| `manifest://pods/{ns}/{name}` | Get pod YAML |
+| `manifest://configmaps/{ns}/{name}` | Get ConfigMap YAML |
+| `manifest://secrets/{ns}/{name}` | Get secret YAML (data masked) |
+| `manifest://ingresses/{ns}/{name}` | Get ingress YAML |
+
+### MCP Prompts
+
+Pre-built workflow prompts for common Kubernetes operations:
+
+| Prompt | Description |
+|--------|-------------|
+| `troubleshoot_workload` | Comprehensive troubleshooting guide for pods/deployments |
+| `deploy_application` | Step-by-step deployment workflow |
+| `security_audit` | Security scanning and RBAC analysis workflow |
+| `cost_optimization` | Resource optimization and cost analysis workflow |
+| `disaster_recovery` | Backup and recovery planning workflow |
+| `debug_networking` | Network debugging for services and connectivity |
+| `scale_application` | Scaling guide with HPA/VPA best practices |
+| `upgrade_cluster` | Kubernetes cluster upgrade planning |
+
+### Key Capabilities
+
+- 🤖 **127 Powerful Tools** - Complete Kubernetes management from pods to security
+- 🎯 **8 AI Workflow Prompts** - Pre-built workflows for common operations
+- 📊 **8 MCP Resources** - Browsable Kubernetes data exposure
+- 🎨 **6 Interactive Dashboards** - HTML UI tools for visual cluster management
+- 🌐 **26 Browser Tools** - Web automation with cloud provider support
+- ⚡ **Multi-Transport** - stdio, SSE, HTTP, streamable-http
+- 🔐 **Security First** - Non-destructive mode, secret masking, RBAC validation
+- 🏥 **Advanced Diagnostics** - AI-powered troubleshooting and cost optimization
+- ☸️ **Multi-Cluster** - Seamless context switching between clusters
+- 🎡 **Full Helm v3** - Complete chart lifecycle management
+- 🔧 **Powerful CLI** - Shell-friendly tool discovery and direct calling
+- 🐳 **Cloud Native** - Deploy in-cluster with kMCP or kagent
+
+## Using the CLI
+
+The built-in CLI lets you explore and test tools without an AI assistant:
 
 ```bash
-# stdio (default) - for Claude Desktop, Cursor, etc.
-python -m kubectl_mcp_tool.mcp_server
+# List all tools with descriptions
+kubectl-mcp-server tools -d
 
-# SSE - Server-Sent Events
-python -m kubectl_mcp_tool.mcp_server --transport sse --port 8000
+# Search for pod-related tools
+kubectl-mcp-server grep "*pod*"
 
-# HTTP
-python -m kubectl_mcp_tool.mcp_server --transport http --port 8000
+# Show specific tool schema
+kubectl-mcp-server tools get_pods
+
+# Call a tool directly
+kubectl-mcp-server call get_pods '{"namespace": "kube-system"}'
+
+# Pipe JSON from stdin
+echo '{"namespace": "default"}' | kubectl-mcp-server call get_pods
+
+# Check dependencies
+kubectl-mcp-server doctor
+
+# Show/switch Kubernetes context
+kubectl-mcp-server context
+kubectl-mcp-server context minikube
+
+# List resources and prompts
+kubectl-mcp-server resources
+kubectl-mcp-server prompts
+
+# Show server info
+kubectl-mcp-server info
 ```
 
-### Options
-- `--transport`: `stdio`, `sse`, `http`, `streamable-http` (default: `stdio`)
-- `--host`: Host to bind (default: `0.0.0.0`)
+### CLI Features
+
+- **Structured errors**: Actionable error messages with suggestions
+- **Colorized output**: Human-readable with JSON mode for scripting (`--json`)
+- **NO_COLOR support**: Respects `NO_COLOR` environment variable
+- **Stdin support**: Pipe JSON arguments to commands
+
+## Advanced Configuration
+
+### Transport Modes
+
+The server supports multiple transport protocols:
+
+```bash
+# stdio (default) - Best for Claude Desktop, Cursor, Windsurf
+kubectl-mcp-server
+# or: python -m kubectl_mcp_tool.mcp_server
+
+# SSE - Server-Sent Events for web clients
+kubectl-mcp-server --transport sse --port 8000
+
+# HTTP - Standard HTTP for REST clients
+kubectl-mcp-server --transport http --port 8000
+
+# streamable-http - For agentgateway integration
+kubectl-mcp-server --transport streamable-http --port 8000
+```
+
+**Transport Options:**
+- `--transport`: Choose from `stdio`, `sse`, `http`, `streamable-http` (default: `stdio`)
+- `--host`: Bind address (default: `0.0.0.0`)
 - `--port`: Port for network transports (default: `8000`)
-- `--non-destructive`: Block destructive operations (delete, apply, create)
+- `--non-destructive`: Enable read-only mode (blocks delete, apply, create operations)
 
-## Environment Variables
+### Environment Variables
 
-| Variable | Description |
-|----------|-------------|
-| `KUBECONFIG` | Path to kubeconfig file (default: `~/.kube/config`) |
-| `MCP_DEBUG` | Set to `1` for verbose logging |
-| `MCP_LOG_FILE` | Path to log file |
+**Core Settings:**
 
-### Authentication (Enterprise)
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `KUBECONFIG` | Path to kubeconfig file | `~/.kube/config` |
+| `MCP_DEBUG` | Enable verbose logging | `false` |
+| `MCP_LOG_FILE` | Log file path | None (stdout) |
 
-| Variable | Description |
-|----------|-------------|
-| `MCP_AUTH_ENABLED` | Enable OAuth 2.1 authentication (default: `false`) |
-| `MCP_AUTH_ISSUER` | OAuth 2.0 Authorization Server URL |
-| `MCP_AUTH_JWKS_URI` | JWKS endpoint (optional, derived from issuer) |
-| `MCP_AUTH_AUDIENCE` | Expected token audience (default: `kubectl-mcp-server`) |
-| `MCP_AUTH_REQUIRED_SCOPES` | Required scopes (default: `mcp:tools`) |
+**Authentication (Enterprise):**
 
-### Browser Automation (Optional)
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `MCP_AUTH_ENABLED` | Enable OAuth 2.1 authentication | `false` |
+| `MCP_AUTH_ISSUER` | OAuth 2.0 Authorization Server URL | - |
+| `MCP_AUTH_JWKS_URI` | JWKS endpoint URL | Auto-derived |
+| `MCP_AUTH_AUDIENCE` | Expected token audience | `kubectl-mcp-server` |
+| `MCP_AUTH_REQUIRED_SCOPES` | Required OAuth scopes | `mcp:tools` |
 
-| Variable | Description |
-|----------|-------------|
-| `MCP_BROWSER_ENABLED` | Enable browser automation tools (default: `false`) |
+**Browser Automation (Optional):**
 
-## MCP-UI Tools (Interactive Dashboards)
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `MCP_BROWSER_ENABLED` | Enable browser automation tools | `false` |
+| `MCP_BROWSER_PROVIDER` | Cloud provider (browserbase/browseruse) | None |
+| `MCP_BROWSER_PROFILE` | Persistent profile path | None |
+| `MCP_BROWSER_CDP_URL` | Remote CDP WebSocket URL | None |
+| `MCP_BROWSER_PROXY` | Proxy server URL | None |
 
-Enable rich HTML dashboards in MCP-UI compatible hosts (Goose, LibreChat, Nanobot).
+## Optional: Interactive Dashboards (6 UI Tools)
 
-### Installation
+Get beautiful HTML dashboards for visual cluster management.
+
+**Installation:**
 
 ```bash
-# Install with MCP-UI support
+# Install with UI support
 pip install kubectl-mcp-server[ui]
 ```
 
-### 6 UI Dashboard Tools
+**6 Dashboard Tools:**
+- 📊 `show_pods_dashboard_ui` - Real-time pod status table
+- 📝 `show_pod_logs_ui` - Interactive log viewer with search
+- 🎯 `show_cluster_overview_ui` - Complete cluster dashboard
+- ⚡ `show_events_timeline_ui` - Events timeline with filtering
+- 📄 `show_resource_yaml_ui` - YAML viewer with syntax highlighting
+- 📸 `render_k8s_dashboard_screenshot` - Export dashboards as PNG
 
-| Tool | Description |
-|------|-------------|
-| `show_pod_logs_ui` | Interactive log viewer with search and filtering |
-| `show_pods_dashboard_ui` | Pods table with status, restarts, and filtering |
-| `show_resource_yaml_ui` | YAML viewer with syntax highlighting |
-| `show_cluster_overview_ui` | Cluster dashboard with nodes, namespaces, workloads |
-| `show_events_timeline_ui` | Events timeline with severity filtering |
-| `render_k8s_dashboard_screenshot` | Render any dashboard as PNG screenshot |
+**Features:**
+- 🎨 Dark theme optimized for terminals (Catppuccin)
+- 🔄 Graceful fallback to JSON for incompatible clients
+- 🖼️ Screenshot rendering for universal compatibility
+- 🚀 Zero external dependencies
 
-### Features
+**Works With**: Goose, LibreChat, Nanobot (full HTML UI) | Claude Desktop, Cursor, others (JSON + screenshots)
 
-- **Dark theme**: Catppuccin-style dark UI optimized for terminals
-- **Graceful fallback**: Returns JSON data if MCP-UI not supported
-- **Screenshot rendering**: Works with agent-browser for universal compatibility
-- **No external dependencies**: Pure HTML/CSS/JS dashboards
+## Optional: Browser Automation (26 Tools)
 
-### Compatibility
+Automate web-based Kubernetes operations with [agent-browser](https://github.com/vercel-labs/agent-browser) integration.
 
-| Host | MCP-UI Support | Fallback |
-|------|----------------|----------|
-| Goose | ✅ Full | - |
-| LibreChat | ✅ Full | - |
-| Nanobot | ✅ Full | - |
-| Claude Desktop | ❌ | JSON + Screenshot |
-| Cursor | ❌ | JSON + Screenshot |
-| Other MCP Clients | ❌ | JSON + Screenshot |
-
-## Browser Tools (Optional Module)
-
-Enable browser automation for web-based K8s operations using [agent-browser](https://github.com/vercel-labs/agent-browser).
-
-### Setup
+**Quick Setup:**
 
 ```bash
 # Install agent-browser
 npm install -g agent-browser
-agent-browser install  # Download Chromium
+agent-browser install
 
 # Enable browser tools
 export MCP_BROWSER_ENABLED=true
 kubectl-mcp-server
 ```
 
-### 26 Browser Tools (agent-browser v0.7+)
+**What You Can Do:**
+- 🌐 Test deployed apps via Ingress URLs
+- 📸 Screenshot Grafana, ArgoCD, or any K8s dashboard
+- ☁️ Automate cloud console operations (EKS, GKE, AKS)
+- 🏥 Health check web applications
+- 📄 Export monitoring dashboards as PDF
+- 🔐 Test authentication flows with persistent sessions
 
-| Tool | Description |
-|------|-------------|
-| `browser_open` | Open URL in browser (with headers/session support) |
-| `browser_snapshot` | Get page accessibility tree |
-| `browser_click` | Click element by ref |
-| `browser_fill` | Fill form field |
-| `browser_screenshot` | Take screenshot |
-| `browser_get_text` | Get element text |
-| `browser_get_url` | Get current URL |
-| `browser_wait` | Wait for element/text/timeout |
-| `browser_close` | Close browser |
-| `browser_connect_cdp` | **NEW**: Connect to remote browser via CDP |
-| `browser_install` | **NEW**: Install Chromium browser |
-| `browser_set_provider` | **NEW**: Configure cloud provider (Browserbase/Browser Use) |
-| `browser_session_list` | **NEW**: List active browser sessions |
-| `browser_session_switch` | **NEW**: Switch to different session |
-| `browser_open_with_headers` | **NEW**: Open URL with auth headers |
-| `browser_set_viewport` | **NEW**: Set viewport or emulate device |
-| `browser_test_ingress` | Test K8s service via Ingress |
-| `browser_screenshot_service` | Screenshot K8s service UI |
-| `browser_screenshot_grafana` | Screenshot Grafana dashboard |
-| `browser_screenshot_argocd` | Screenshot ArgoCD app |
-| `browser_health_check` | Health check web app |
-| `browser_form_submit` | Fill and submit form |
-| `browser_session_save` | Save browser session |
-| `browser_session_load` | Load browser session |
-| `browser_open_cloud_console` | Open EKS/GKE/AKS console |
-| `browser_pdf_export` | Export page as PDF |
+**26 Available Tools**: `browser_open`, `browser_screenshot`, `browser_click`, `browser_fill`, `browser_test_ingress`, `browser_screenshot_grafana`, `browser_health_check`, and [19 more](https://github.com/rohitg00/kubectl-mcp-server#browser-tools)
 
-### Browser v0.7 Features
+**Advanced Features**:
+- Cloud providers: Browserbase, Browser Use
+- Persistent browser profiles
+- Remote CDP connections
+- Session management
 
-- **Cloud providers**: Browserbase, Browser Use
-- **Persistent profiles**: Keep cookies/storage across restarts
-- **Remote CDP**: Connect to existing browser instances
-- **Retry with exponential backoff**: Auto-retry transient errors
+## Enterprise: OAuth 2.1 Authentication
 
-#### Environment Variables
-
-| Variable | Description | Example |
-|----------|-------------|---------|
-| `MCP_BROWSER_ENABLED` | Enable browser tools | `true` |
-| `MCP_BROWSER_PROVIDER` | Cloud provider | `browserbase` / `browseruse` |
-| `MCP_BROWSER_PROFILE` | Persistent profile path | `~/.k8s-browser` |
-| `MCP_BROWSER_CDP_URL` | Remote CDP WebSocket | `wss://...` |
-| `MCP_BROWSER_PROXY` | Proxy server URL | `http://proxy:8080` |
-| `MCP_BROWSER_USER_AGENT` | Custom user agent | `Mozilla/5.0...` |
-| `MCP_BROWSER_SESSION` | Session name | `k8s-session` |
-| `MCP_BROWSER_HEADED` | Show browser window | `true` |
-
-### Use Cases
-
-- **Test deployed apps** via Ingress URLs
-- **Screenshot Grafana/ArgoCD** dashboards
-- **Automate cloud console** operations (EKS, GKE, AKS)
-- **Health check** web applications
-- **Export monitoring dashboards** as PDF
-
-## MCP Authorization (RFC 9728)
-
-For enterprise deployments, kubectl-mcp-server supports OAuth 2.1 authentication.
+Secure your MCP server with OAuth 2.1 authentication (RFC 9728).
 
 ```bash
 export MCP_AUTH_ENABLED=true
@@ -511,61 +644,47 @@ export MCP_AUTH_AUDIENCE=kubectl-mcp-server
 kubectl-mcp-server --transport http --port 8000
 ```
 
-Supported identity providers: **Okta**, **Auth0**, **Keycloak**, **Microsoft Entra ID**, **Google OAuth**, and any OIDC-compliant provider.
+**Supported Identity Providers**: Okta, Auth0, Keycloak, Microsoft Entra ID, Google OAuth, and any OIDC-compliant provider.
 
-## Docker MCP Toolkit
+**Use Case**: Multi-tenant environments, compliance requirements, audit logging.
 
-Compatible with [Docker MCP Toolkit](https://docs.docker.com/ai/mcp-catalog-and-toolkit/toolkit/):
+## Integrations & Ecosystem
+
+### Docker MCP Toolkit
+
+Works with [Docker MCP Toolkit](https://docs.docker.com/ai/mcp-catalog-and-toolkit/toolkit/):
 
 ```bash
-# Add server
 docker mcp server add kubectl-mcp-server mcp/kubectl-mcp-server:latest
-
-# Configure kubeconfig
 docker mcp server configure kubectl-mcp-server --volume "$HOME/.kube:/root/.kube:ro"
-
-# Enable and connect
 docker mcp server enable kubectl-mcp-server
 docker mcp client connect claude
 ```
 
-## agentregistry
+### agentregistry
 
-kubectl-mcp-server is published to [agentregistry](https://github.com/agentregistry-dev/agentregistry), a centralized registry for MCP servers.
-
-### Install with arctl
+Install from the centralized [agentregistry](https://aregistry.ai):
 
 ```bash
 # Install arctl CLI
 curl -fsSL https://raw.githubusercontent.com/agentregistry-dev/agentregistry/main/scripts/install.sh | bash
 
-# Search for kubectl-mcp-server
-arctl mcp search kubectl
-
-# Install the server
+# Install kubectl-mcp-server
 arctl mcp install io.github.rohitg00/kubectl-mcp-server
 ```
 
-### Available Packages
+**Available via**: PyPI (`uvx`), npm (`npx`), OCI (`docker.io/rohitghumare64/kubectl-mcp-server`)
 
-| Registry | Identifier |
-|----------|------------|
-| **PyPI** | `kubectl-mcp-server` (uvx) |
-| **npm** | `kubectl-mcp-server` (npx) |
-| **OCI** | `docker.io/rohitghumare64/kubectl-mcp-server` |
+### agentgateway
 
-### agentgateway Integration
-
-Use with [agentgateway](https://github.com/agentgateway/agentgateway) for unified MCP routing to multiple MCP servers.
+Route to multiple MCP servers through [agentgateway](https://github.com/agentgateway/agentgateway):
 
 ```bash
-# Start kubectl-mcp-server with streamable-http transport
+# Start with streamable-http
 kubectl-mcp-server --transport streamable-http --port 8000
-```
 
-Create `gateway.yaml`:
-
-```yaml
+# Configure gateway
+cat > gateway.yaml <<EOF
 binds:
 - port: 3000
   listeners:
@@ -576,49 +695,44 @@ binds:
           - name: kubectl-mcp-server
             mcp:
               host: http://localhost:8000/mcp
-```
+EOF
 
-```bash
-# Run agentgateway
+# Start gateway
 agentgateway --config gateway.yaml
 ```
 
-Connect MCP clients to `http://localhost:3000/mcp`. All 127 tools are discoverable through the gateway.
+Connect clients to `http://localhost:3000/mcp` for unified access to all 127 tools.
 
-## Kubernetes Deployment
+## In-Cluster Deployment
 
-Deploy kubectl-mcp-server directly in your Kubernetes cluster for centralized access.
+### Option 1: kMCP (Recommended)
 
-### kMCP Deployment (Recommended)
-
-[kMCP](https://github.com/kagent-dev/kmcp) is a development platform and control plane for MCP servers. See [kMCP quickstart](https://kagent.dev/docs/kmcp/quickstart).
+Deploy with [kMCP](https://github.com/kagent-dev/kmcp) - a control plane for MCP servers:
 
 ```bash
-# Install kmcp CLI
+# Install kMCP
 curl -fsSL https://raw.githubusercontent.com/kagent-dev/kmcp/refs/heads/main/scripts/get-kmcp.sh | bash
-
-# Install kmcp controller in your cluster
-helm install kmcp-crds oci://ghcr.io/kagent-dev/kmcp/helm/kmcp-crds \
-     --namespace kmcp-system --create-namespace
 kmcp install
 
-# Deploy kubectl-mcp-server using npx (easiest)
+# Deploy kubectl-mcp-server (easiest)
 kmcp deploy package --deployment-name kubectl-mcp-server \
    --manager npx --args kubectl-mcp-server
 
-# Or deploy using our Docker image with the MCPServer manifest
+# Or with Docker image
 kmcp deploy --file deploy/kmcp/kmcp.yaml --image rohitghumare64/kubectl-mcp-server:latest
 ```
 
-### Standard Kubernetes Deployment
+See [kMCP quickstart](https://kagent.dev/docs/kmcp/quickstart) for details.
 
-Deploy using kubectl/kustomize without kMCP:
+### Option 2: Standard Kubernetes
+
+Deploy with kubectl/kustomize:
 
 ```bash
 # Using kustomize (recommended)
 kubectl apply -k deploy/kubernetes/
 
-# Or apply individual manifests
+# Or individual manifests
 kubectl apply -f deploy/kubernetes/namespace.yaml
 kubectl apply -f deploy/kubernetes/rbac.yaml
 kubectl apply -f deploy/kubernetes/deployment.yaml
@@ -628,44 +742,25 @@ kubectl apply -f deploy/kubernetes/service.yaml
 kubectl port-forward -n kubectl-mcp svc/kubectl-mcp-server 8000:8000
 ```
 
-### MCPServer Custom Resource
+See [deploy/](deploy/) directory for all manifests and configuration options.
 
-For kMCP deployments, apply this MCPServer resource:
+### Option 3: kagent (AI Agent Framework)
 
-```yaml
-apiVersion: kagent.dev/v1alpha1
-kind: MCPServer
-metadata:
-  name: kubectl-mcp-server
-spec:
-  deployment:
-    image: "rohitghumare64/kubectl-mcp-server:latest"
-    port: 8000
-  transportType: http
-  httpTransport:
-    targetPort: 8000
-    path: /mcp
-```
-
-See [deploy/](deploy/) for full manifests and configuration options.
-
-### kagent Integration (AI Agents)
-
-[kagent](https://github.com/kagent-dev/kagent) is a Kubernetes-native AI agent framework (CNCF project). Register kubectl-mcp-server as a ToolServer to give your agents 127 K8s management tools.
+Integrate with [kagent](https://github.com/kagent-dev/kagent) - a CNCF Kubernetes-native AI agent framework:
 
 ```bash
 # Install kagent
 brew install kagent
 kagent install --profile demo
 
-# Register kubectl-mcp-server as a ToolServer
+# Register as ToolServer
 kubectl apply -f deploy/kagent/toolserver-stdio.yaml
 
-# Open kagent dashboard and chat with your K8s agent
+# Open dashboard
 kagent dashboard
 ```
 
-See [kagent quickstart](https://kagent.dev/docs/kagent/getting-started/quickstart) for full documentation.
+Your AI agents now have access to all 127 Kubernetes tools. See [kagent quickstart](https://kagent.dev/docs/kagent/getting-started/quickstart).
 
 ## Architecture
 
@@ -703,16 +798,24 @@ kubectl_mcp_tool/
 
 ## Multi-Cluster Support
 
-```bash
-# List contexts
-list_contexts
+Seamlessly manage multiple Kubernetes clusters through natural language:
 
-# Switch cluster
-switch_context --context_name production
-
-# Get context details
-get_context_details --context_name staging
+**Talk to your AI assistant:**
 ```
+"List all available Kubernetes contexts"
+"Switch to the production cluster"
+"Show me details about the staging context"
+"What's the current cluster I'm connected to?"
+```
+
+**Or use the CLI directly:**
+```bash
+kubectl-mcp-server context                    # Show current context
+kubectl-mcp-server context production         # Switch context
+list_contexts                                  # Available via MCP tools
+```
+
+The server automatically uses your `~/.kube/config` and respects the `KUBECONFIG` environment variable.
 
 ## Development & Testing
 
@@ -779,15 +882,52 @@ mypy kubectl_mcp_tool
 
 ## Contributing
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+We ❤️ contributions! Whether it's bug reports, feature requests, documentation improvements, or code contributions.
+
+**Ways to contribute:**
+- 🐛 Report bugs via [GitHub Issues](https://github.com/rohitg00/kubectl-mcp-server/issues)
+- 💡 Suggest features or improvements
+- 📝 Improve documentation
+- 🔧 Submit pull requests
+- ⭐ Star the project if you find it useful!
+
+**Development setup**: See [Development & Testing](#development--testing) section above.
+
+**Before submitting a PR:**
+1. Run tests: `pytest tests/ -v`
+2. Format code: `black kubectl_mcp_tool tests`
+3. Check linting: `flake8 kubectl_mcp_tool tests`
+
+## Support & Community
+
+- 📖 [Documentation](https://github.com/rohitg00/kubectl-mcp-server#readme)
+- 💬 [GitHub Discussions](https://github.com/rohitg00/kubectl-mcp-server/discussions)
+- 🐛 [Issue Tracker](https://github.com/rohitg00/kubectl-mcp-server/issues)
+- 🎯 [Feature Requests](https://github.com/rohitg00/kubectl-mcp-server/issues/new)
+- 🌟 [agentregistry Profile](https://aregistry.ai)
 
 ## License
 
 MIT License - see [LICENSE](LICENSE) for details.
 
-## Links
+## Links & Resources
 
-- [PyPI Package](https://pypi.org/project/kubectl-mcp-server/)
-- [npm Package](https://www.npmjs.com/package/kubectl-mcp-server)
-- [Docker Hub](https://hub.docker.com/r/rohitghumare64/kubectl-mcp-server)
-- [GitHub Issues](https://github.com/rohitg00/kubectl-mcp-server/issues)
+**Package Repositories:**
+- 🐍 [PyPI Package](https://pypi.org/project/kubectl-mcp-server/)
+- 📦 [npm Package](https://www.npmjs.com/package/kubectl-mcp-server)
+- 🐳 [Docker Hub](https://hub.docker.com/r/rohitghumare64/kubectl-mcp-server)
+
+**Project:**
+- 🔧 [GitHub Repository](https://github.com/rohitg00/kubectl-mcp-server)
+- 🐛 [Issue Tracker](https://github.com/rohitg00/kubectl-mcp-server/issues)
+- 📋 [Changelog](https://github.com/rohitg00/kubectl-mcp-server/releases)
+
+**Ecosystem:**
+- 📚 [Model Context Protocol](https://modelcontextprotocol.io)
+- ☸️ [Kubernetes Documentation](https://kubernetes.io/docs)
+
+---
+
+**Made with ❤️ for the Kubernetes and AI community**
+
+If **kubectl-mcp-server** makes your DevOps life easier, give it a ⭐ on [GitHub](https://github.com/rohitg00/kubectl-mcp-server)!
