@@ -105,8 +105,6 @@ def certs_list(
         spec = item.get("spec", {})
 
         not_after = _parse_timestamp(status.get("notAfter", ""))
-        not_before = _parse_timestamp(status.get("notBefore", ""))
-        renewal_time = _parse_timestamp(status.get("renewalTime", ""))
 
         days_until_expiry = None
         if not_after:
@@ -318,13 +316,6 @@ def certs_renew(
     if not crd_exists(CERTIFICATE_CRD, context):
         return {"success": False, "error": "cert-manager is not installed"}
 
-    timestamp = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
-    args = [
-        "annotate", "certificates.cert-manager.io",
-        name, "-n", namespace,
-        f"cert-manager.io/issuer-name-", "--overwrite"
-    ]
-
     cmctl_available = False
     try:
         check = subprocess.run(["cmctl", "version"], capture_output=True, timeout=5)
@@ -484,7 +475,7 @@ def certs_challenges_list(
     if not crd_exists(CHALLENGE_CRD, context):
         return {
             "success": False,
-            "error": "ACME challenges CRD not found (orders.acme.cert-manager.io)"
+            "error": "ACME challenges CRD not found (challenges.acme.cert-manager.io)"
         }
 
     challenges = []

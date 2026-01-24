@@ -271,7 +271,21 @@ def backup_create(
     if excluded_resources:
         backup_spec["spec"]["excludedResources"] = excluded_resources
     if label_selector:
-        backup_spec["spec"]["labelSelector"] = {"matchLabels": dict(l.split("=") for l in label_selector.split(","))}
+        # Validate and sanitize label_selector
+        parsed_labels = {}
+        for segment in label_selector.split(","):
+            segment = segment.strip()
+            if not segment:
+                continue
+            if segment.count("=") != 1:
+                return {"success": False, "error": f"Invalid label selector segment: '{segment}'. Expected format: key=value"}
+            key, value = segment.split("=")
+            key, value = key.strip(), value.strip()
+            if not key:
+                return {"success": False, "error": f"Invalid label selector: empty key in '{segment}'"}
+            parsed_labels[key] = value
+        if parsed_labels:
+            backup_spec["spec"]["labelSelector"] = {"matchLabels": parsed_labels}
     if storage_location:
         backup_spec["spec"]["storageLocation"] = storage_location
 

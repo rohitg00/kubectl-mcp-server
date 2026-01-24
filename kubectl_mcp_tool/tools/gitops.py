@@ -5,7 +5,7 @@ Provides tools for managing Flux and Argo CD applications.
 
 import subprocess
 import json
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List
 from datetime import datetime
 
 try:
