@@ -12,7 +12,7 @@ Talk to your clusters like you talk to a DevOps expert. Debug crashed pods, opti
 [![PyPI](https://img.shields.io/pypi/v/kubectl-mcp-server?color=blue&label=PyPI)](https://pypi.org/project/kubectl-mcp-server/)
 [![npm](https://img.shields.io/npm/v/kubectl-mcp-server?color=green&label=npm)](https://www.npmjs.com/package/kubectl-mcp-server)
 [![Docker](https://img.shields.io/docker/pulls/rohitghumare64/kubectl-mcp-server.svg)](https://hub.docker.com/r/rohitghumare64/kubectl-mcp-server)
-[![Tests](https://img.shields.io/badge/tests-203%20passed-success)](https://github.com/rohitg00/kubectl-mcp-server)
+[![Tests](https://img.shields.io/badge/tests-234%20passed-success)](https://github.com/rohitg00/kubectl-mcp-server)
 [![agentregistry](https://img.shields.io/badge/agentregistry-verified-blue?logo=data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgZmlsbD0id2hpdGUiIHZpZXdCb3g9IjAgMCAxNiAxNiI+PHBhdGggZD0iTTE1Ljk5MiA2LjAzN2wtMy4wMjEtLjQzOS0xLjM1LTIuNzM2Yy0uMzQ2LS43MDItMS41MDQtLjcwMi0xLjg1IDBMOC40MjEgNS41OTggNS40IDYuMDM3Yy0uNzc2LjExMy0xLjA4OCAxLjA1My0uNTI4IDEuNTkzbDIuMTg2IDIuMTI5LS41MTYgMy4wMWMtLjEzMy43NzUuNjgyIDEuMzY2IDEuMzc4Ljk5OGwyLjcwMi0xLjQyIDIuNzAyIDEuNDJjLjY5Ni4zNjggMS41MTEtLjIyMyAxLjM3OC0uOTk4bC0uNTE2LTMuMDEgMi4xODYtMi4xMjljLjU2LS41NCAwLjI0OC0xLjQ4LS41MjgtMS41OTN6Ii8+PC9zdmc+)](https://aregistry.ai)
 
 ---
@@ -97,7 +97,7 @@ Simply ask your AI assistant in natural language:
 - Interactive HTML dashboards with live metrics
 - Visual timeline of events and resource usage
 
-**164 powerful tools** | **8 workflow prompts** | **8 data resources** | **Works with all major AI assistants**
+**224 powerful tools** | **8 workflow prompts** | **8 data resources** | **Works with all major AI assistants**
 
 ## Why kubectl-mcp-server?
 
@@ -398,7 +398,7 @@ Add to `~/.config/roo-code/mcp.json` or `~/.config/kilo-code/mcp.json`:
 
 ## Complete Feature Set
 
-### 164 MCP Tools for Complete Kubernetes Management
+### 224 MCP Tools for Complete Kubernetes Management
 
 | Category | Tools |
 |----------|-------|
@@ -427,6 +427,12 @@ Add to `~/.config/roo-code/mcp.json` or `~/.config/kilo-code/mcp.json`:
 | **Cert-Manager** | `certs_list`, `certs_get`, `certs_issuers_list`, `certs_issuer_get`, `certs_renew`, `certs_status_explain`, `certs_challenges_list`, `certs_requests_list`, `certs_detect` |
 | **Policy (Kyverno/Gatekeeper)** | `policy_list`, `policy_get`, `policy_violations_list`, `policy_explain_denial`, `policy_audit`, `policy_detect` |
 | **Backup (Velero)** | `backup_list`, `backup_get`, `backup_create`, `backup_delete`, `restore_list`, `restore_create`, `restore_get`, `backup_locations_list`, `backup_schedules_list`, `backup_schedule_create`, `backup_detect` |
+| **KEDA Autoscaling** | `keda_scaledobjects_list`, `keda_scaledobject_get`, `keda_scaledjobs_list`, `keda_triggerauths_list`, `keda_triggerauth_get`, `keda_hpa_list`, `keda_detect` |
+| **Cilium/Hubble** | `cilium_policies_list`, `cilium_policy_get`, `cilium_endpoints_list`, `cilium_identities_list`, `cilium_nodes_list`, `cilium_status`, `hubble_flows_query`, `cilium_detect` |
+| **Argo Rollouts/Flagger** | `rollouts_list`, `rollout_get`, `rollout_status`, `rollout_promote`, `rollout_abort`, `rollout_retry`, `rollout_restart`, `analysis_runs_list`, `flagger_canaries_list`, `flagger_canary_get`, `rollouts_detect` |
+| **Cluster API** | `capi_clusters_list`, `capi_cluster_get`, `capi_machines_list`, `capi_machine_get`, `capi_machinedeployments_list`, `capi_machinedeployment_scale`, `capi_machinesets_list`, `capi_machinehealthchecks_list`, `capi_clusterclasses_list`, `capi_cluster_kubeconfig`, `capi_detect` |
+| **KubeVirt VMs** | `kubevirt_vms_list`, `kubevirt_vm_get`, `kubevirt_vmis_list`, `kubevirt_vm_start`, `kubevirt_vm_stop`, `kubevirt_vm_restart`, `kubevirt_vm_pause`, `kubevirt_vm_unpause`, `kubevirt_vm_migrate`, `kubevirt_datasources_list`, `kubevirt_instancetypes_list`, `kubevirt_datavolumes_list`, `kubevirt_detect` |
+| **Istio/Kiali** | `istio_virtualservices_list`, `istio_virtualservice_get`, `istio_destinationrules_list`, `istio_gateways_list`, `istio_peerauthentications_list`, `istio_authorizationpolicies_list`, `istio_proxy_status`, `istio_analyze`, `istio_sidecar_status`, `istio_detect` |
 
 ### MCP Resources
 
@@ -466,12 +472,12 @@ Pre-built workflow prompts for common Kubernetes operations:
 
 ### Key Capabilities
 
-- 🤖 **164 Powerful Tools** - Complete Kubernetes management from pods to security
+- 🤖 **224 Powerful Tools** - Complete Kubernetes management from pods to security
 - 🎯 **8 AI Workflow Prompts** - Pre-built workflows for common operations
 - 📊 **8 MCP Resources** - Browsable Kubernetes data exposure
 - 🎨 **6 Interactive Dashboards** - HTML UI tools for visual cluster management
 - 🌐 **26 Browser Tools** - Web automation with cloud provider support
-- 🔄 **33 Ecosystem Tools** - GitOps, Cert-Manager, Policy, and Backup toolsets
+- 🔄 **93 Ecosystem Tools** - GitOps, Cert-Manager, Policy, Backup, KEDA, Cilium, Rollouts, CAPI, KubeVirt, Istio
 - ⚡ **Multi-Transport** - stdio, SSE, HTTP, streamable-http
 - 🔐 **Security First** - Non-destructive mode, secret masking, RBAC validation
 - 🏥 **Advanced Diagnostics** - AI-powered troubleshooting and cost optimization
@@ -706,7 +712,7 @@ EOF
 agentgateway --config gateway.yaml
 ```
 
-Connect clients to `http://localhost:3000/mcp` for unified access to all 131 tools.
+Connect clients to `http://localhost:3000/mcp` for unified access to all 224 tools.
 
 ## In-Cluster Deployment
 
@@ -765,7 +771,7 @@ kubectl apply -f deploy/kagent/toolserver-stdio.yaml
 kagent dashboard
 ```
 
-Your AI agents now have access to all 131 Kubernetes tools. See [kagent quickstart](https://kagent.dev/docs/kagent/getting-started/quickstart).
+Your AI agents now have access to all 224 Kubernetes tools. See [kagent quickstart](https://kagent.dev/docs/kagent/getting-started/quickstart).
 
 ## Architecture
 
@@ -783,7 +789,7 @@ The MCP server implements the [Model Context Protocol](https://github.com/modelc
 ```
 kubectl_mcp_tool/
 ├── mcp_server.py          # Main server (FastMCP, transports)
-├── tools/                  # 131 MCP tools organized by category
+├── tools/                  # 224 MCP tools organized by category
 │   ├── pods.py            # Pod management & diagnostics
 │   ├── deployments.py     # Deployments, StatefulSets, DaemonSets
 │   ├── core.py            # Namespaces, ConfigMaps, Secrets
@@ -795,7 +801,17 @@ kubectl_mcp_tool/
 │   ├── operations.py      # kubectl apply/patch/describe/etc
 │   ├── diagnostics.py     # Metrics, namespace comparison
 │   ├── cost.py            # Resource optimization & cost analysis
-│   └── ui.py              # MCP-UI interactive dashboards
+│   ├── ui.py              # MCP-UI interactive dashboards
+│   ├── gitops.py          # GitOps (Flux/ArgoCD)
+│   ├── certs.py           # Cert-Manager
+│   ├── policy.py          # Policy (Kyverno/Gatekeeper)
+│   ├── backup.py          # Backup (Velero)
+│   ├── keda.py            # KEDA autoscaling
+│   ├── cilium.py          # Cilium/Hubble network observability
+│   ├── rollouts.py        # Argo Rollouts/Flagger
+│   ├── capi.py            # Cluster API
+│   ├── kubevirt.py        # KubeVirt VMs
+│   └── kiali.py           # Istio/Kiali service mesh
 ├── resources/              # 8 MCP Resources for data exposure
 ├── prompts/                # 8 MCP Prompts for workflows
 └── cli/                    # CLI interface
@@ -807,7 +823,7 @@ Seamlessly manage multiple Kubernetes clusters through natural language. **Every
 
 ### Context Parameter (v1.15.0)
 
-All 131 tools accept an optional `context` parameter to target specific clusters:
+All 224 tools accept an optional `context` parameter to target specific clusters:
 
 **Talk to your AI assistant:**
 ```
@@ -896,13 +912,13 @@ pytest tests/ -v -m unit
 tests/
 ├── __init__.py          # Test package
 ├── conftest.py          # Shared fixtures and mocks
-├── test_tools.py        # Unit tests for 131 MCP tools
+├── test_tools.py        # Unit tests for 224 MCP tools
 ├── test_resources.py    # Tests for 8 MCP Resources
 ├── test_prompts.py      # Tests for 8 MCP Prompts
 └── test_server.py       # Server initialization tests
 ```
 
-**216 tests covering**: tool registration, resource exposure, prompt generation, server initialization, non-destructive mode, secret masking, error handling, transport methods, CLI commands, and browser automation.
+**234 tests covering**: tool registration, resource exposure, prompt generation, server initialization, non-destructive mode, secret masking, error handling, transport methods, CLI commands, browser automation, and ecosystem tools.
 
 ### Code Quality
 

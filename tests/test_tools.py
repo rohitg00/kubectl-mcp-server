@@ -2,7 +2,7 @@
 Unit tests for all MCP tools in kubectl-mcp-server.
 
 This module contains comprehensive tests for all Kubernetes tools
-provided by the MCP server (164 total with ecosystem tools).
+provided by the MCP server (224 total with ecosystem tools).
 """
 
 import pytest
@@ -12,7 +12,7 @@ from unittest.mock import patch, MagicMock
 from datetime import datetime
 
 
-# Complete list of all 164 tools that must be registered (125 core + 6 UI + 33 ecosystem)
+# Complete list of all 224 tools that must be registered (125 core + 6 UI + 93 ecosystem)
 EXPECTED_TOOLS = [
     # Pods (pods.py)
     "get_pods", "get_logs", "get_pod_events", "check_pod_health", "exec_in_pod",
@@ -79,15 +79,41 @@ EXPECTED_TOOLS = [
     "backup_list_tool", "backup_get_tool", "backup_create_tool", "backup_delete_tool",
     "restore_list_tool", "restore_create_tool", "restore_get_tool", "backup_locations_list_tool",
     "backup_schedules_list_tool", "backup_schedule_create_tool", "backup_detect_tool",
+    # KEDA tools (keda.py) - 7 tools for autoscaling
+    "keda_scaledobjects_list_tool", "keda_scaledobject_get_tool", "keda_scaledjobs_list_tool",
+    "keda_triggerauths_list_tool", "keda_triggerauth_get_tool", "keda_hpa_list_tool", "keda_detect_tool",
+    # Cilium tools (cilium.py) - 8 tools for network observability
+    "cilium_policies_list_tool", "cilium_policy_get_tool", "cilium_endpoints_list_tool",
+    "cilium_identities_list_tool", "cilium_nodes_list_tool", "cilium_status_tool",
+    "hubble_flows_query_tool", "cilium_detect_tool",
+    # Rollouts tools (rollouts.py) - 11 tools for progressive delivery
+    "rollouts_list_tool", "rollout_get_tool", "rollout_status_tool", "rollout_promote_tool",
+    "rollout_abort_tool", "rollout_retry_tool", "rollout_restart_tool", "analysis_runs_list_tool",
+    "flagger_canaries_list_tool", "flagger_canary_get_tool", "rollouts_detect_tool",
+    # Cluster API tools (capi.py) - 11 tools for cluster lifecycle
+    "capi_clusters_list_tool", "capi_cluster_get_tool", "capi_machines_list_tool",
+    "capi_machine_get_tool", "capi_machinedeployments_list_tool", "capi_machinedeployment_scale_tool",
+    "capi_machinesets_list_tool", "capi_machinehealthchecks_list_tool", "capi_clusterclasses_list_tool",
+    "capi_cluster_kubeconfig_tool", "capi_detect_tool",
+    # KubeVirt tools (kubevirt.py) - 13 tools for VM management
+    "kubevirt_vms_list_tool", "kubevirt_vm_get_tool", "kubevirt_vmis_list_tool",
+    "kubevirt_vm_start_tool", "kubevirt_vm_stop_tool", "kubevirt_vm_restart_tool",
+    "kubevirt_vm_pause_tool", "kubevirt_vm_unpause_tool", "kubevirt_vm_migrate_tool",
+    "kubevirt_datasources_list_tool", "kubevirt_instancetypes_list_tool",
+    "kubevirt_datavolumes_list_tool", "kubevirt_detect_tool",
+    # Istio/Kiali tools (kiali.py) - 10 tools for service mesh
+    "istio_virtualservices_list_tool", "istio_virtualservice_get_tool", "istio_destinationrules_list_tool",
+    "istio_gateways_list_tool", "istio_peerauthentications_list_tool", "istio_authorizationpolicies_list_tool",
+    "istio_proxy_status_tool", "istio_analyze_tool", "istio_sidecar_status_tool", "istio_detect_tool",
 ]
 
 
 class TestAllToolsRegistered:
-    """Comprehensive tests to verify all 164 tools are registered (125 core + 6 UI + 33 ecosystem)."""
+    """Comprehensive tests to verify all 224 tools are registered (125 core + 6 UI + 93 ecosystem)."""
 
     @pytest.mark.unit
     def test_all_164_tools_registered(self):
-        """Verify all 164 expected tools are registered (excluding optional browser tools)."""
+        """Verify all 224 expected tools are registered (excluding optional browser tools)."""
         import os
         from kubectl_mcp_tool.mcp_server import MCPServer
 
@@ -108,8 +134,8 @@ class TestAllToolsRegistered:
             tools = asyncio.run(get_tools())
             tool_names = {t.name for t in tools}
 
-            # Verify count (164 tools = 125 core + 6 UI + 33 ecosystem, browser tools disabled)
-            assert len(tools) == 164, f"Expected 164 tools, got {len(tools)}"
+            # Verify count (224 tools = 125 core + 6 UI + 93 ecosystem, browser tools disabled)
+            assert len(tools) == 224, f"Expected 224 tools, got {len(tools)}"
 
             # Check for missing tools
             missing_tools = set(EXPECTED_TOOLS) - tool_names
@@ -138,6 +164,12 @@ class TestAllToolsRegistered:
             register_certs_tools,
             register_policy_tools,
             register_backup_tools,
+            register_keda_tools,
+            register_cilium_tools,
+            register_rollouts_tools,
+            register_capi_tools,
+            register_kubevirt_tools,
+            register_istio_tools,
         )
         # All imports should succeed
         assert callable(register_helm_tools)
@@ -156,6 +188,13 @@ class TestAllToolsRegistered:
         assert callable(register_certs_tools)
         assert callable(register_policy_tools)
         assert callable(register_backup_tools)
+        # Advanced ecosystem tools
+        assert callable(register_keda_tools)
+        assert callable(register_cilium_tools)
+        assert callable(register_rollouts_tools)
+        assert callable(register_capi_tools)
+        assert callable(register_kubevirt_tools)
+        assert callable(register_istio_tools)
 
     @pytest.mark.unit
     def test_all_tools_have_descriptions(self):
