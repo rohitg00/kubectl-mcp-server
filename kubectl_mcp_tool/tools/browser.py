@@ -5,6 +5,7 @@ import logging
 import os
 import shutil
 import subprocess
+import tempfile
 import time
 from typing import Any, Dict, List, Optional
 
@@ -58,23 +59,23 @@ def _debug(message: str) -> None:
 
 def _get_global_options() -> List[str]:
     opts = []
-    if MCP_BROWSER_PROVIDER:
-        opts.extend(["-p", MCP_BROWSER_PROVIDER])
-    if MCP_BROWSER_PROFILE:
-        opts.extend(["--profile", os.path.expanduser(MCP_BROWSER_PROFILE)])
-    if MCP_BROWSER_SESSION:
-        opts.extend(["--session", MCP_BROWSER_SESSION])
-    if MCP_BROWSER_CDP_URL:
-        opts.extend(["--cdp", MCP_BROWSER_CDP_URL])
-    if MCP_BROWSER_PROXY:
-        opts.extend(["--proxy", MCP_BROWSER_PROXY])
-    if MCP_BROWSER_PROXY_BYPASS:
-        opts.extend(["--proxy-bypass", MCP_BROWSER_PROXY_BYPASS])
-    if MCP_BROWSER_USER_AGENT:
-        opts.extend(["--user-agent", MCP_BROWSER_USER_AGENT])
-    if MCP_BROWSER_ARGS:
-        opts.extend(["--args", MCP_BROWSER_ARGS])
-    if MCP_BROWSER_HEADED:
+    if provider := os.environ.get("MCP_BROWSER_PROVIDER"):
+        opts.extend(["-p", provider])
+    if profile := os.environ.get("MCP_BROWSER_PROFILE"):
+        opts.extend(["--profile", os.path.expanduser(profile)])
+    if session := os.environ.get("MCP_BROWSER_SESSION"):
+        opts.extend(["--session", session])
+    if cdp := os.environ.get("MCP_BROWSER_CDP_URL"):
+        opts.extend(["--cdp", cdp])
+    if proxy := os.environ.get("MCP_BROWSER_PROXY"):
+        opts.extend(["--proxy", proxy])
+    if proxy_bypass := os.environ.get("MCP_BROWSER_PROXY_BYPASS"):
+        opts.extend(["--proxy-bypass", proxy_bypass])
+    if user_agent := os.environ.get("MCP_BROWSER_USER_AGENT"):
+        opts.extend(["--user-agent", user_agent])
+    if args := os.environ.get("MCP_BROWSER_ARGS"):
+        opts.extend(["--args", args])
+    if os.environ.get("MCP_BROWSER_HEADED", "").lower() in ("1", "true"):
         opts.append("--headed")
     return opts
 
@@ -193,6 +194,7 @@ def _get_service_url(service: str, namespace: str) -> Optional[str]:
 
 
 def register_browser_tools(server, non_destructive: bool):
+    _ = non_destructive
 
     @server.tool(annotations=ToolAnnotations(title="Browser Open URL", readOnlyHint=True))
     def browser_open(
@@ -264,17 +266,20 @@ def register_browser_tools(server, non_destructive: bool):
 
     @server.tool(annotations=ToolAnnotations(title="Browser Screenshot", readOnlyHint=True))
     def browser_screenshot(
-        output_path: str = "/tmp/screenshot.png",
+        output_path: Optional[str] = None,
         full_page: bool = False,
         ref: Optional[str] = None
     ) -> Dict[str, Any]:
         """Take a screenshot of the current page or element.
 
         Args:
-            output_path: Path to save screenshot
+            output_path: Path to save screenshot (auto-generated if None)
             full_page: Capture full scrollable page
             ref: Element ref to screenshot (from snapshot)
         """
+        if not output_path:
+            fd, output_path = tempfile.mkstemp(suffix=".png", prefix="screenshot_")
+            os.close(fd)
         args = ["screenshot", output_path]
         if full_page:
             args.append("--full")
@@ -639,8 +644,11 @@ def register_browser_tools(server, non_destructive: bool):
         return {**result, "provider": provider, "url": url}
 
     @server.tool(annotations=ToolAnnotations(title="Browser PDF Export", readOnlyHint=True))
-    def browser_pdf_export(url: str, output_path: str = "/tmp/page.pdf") -> Dict[str, Any]:
+    def browser_pdf_export(url: str, output_path: Optional[str] = None) -> Dict[str, Any]:
         """Export a web page as PDF."""
+        if not output_path:
+            fd, output_path = tempfile.mkstemp(suffix=".pdf", prefix="page_")
+            os.close(fd)
         _run_browser_with_retry(["open", url])
         _run_browser(["wait", "--load", "networkidle"])
         _run_browser(["wait", "2000"])

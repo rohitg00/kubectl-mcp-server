@@ -243,7 +243,6 @@ class TestCliCommands:
     def test_cmd_doctor_checks_kubectl(self):
         """Test that doctor command checks for kubectl."""
         from kubectl_mcp_tool.cli.cli import cmd_doctor
-        from unittest.mock import MagicMock
 
         args = MagicMock()
         args.json = True
@@ -260,7 +259,7 @@ class TestCliCommands:
 
                 with patch("kubectl_mcp_tool.cli.cli.format_doctor_results") as mock_format:
                     mock_format.return_value = "{}"
-                    result = cmd_doctor(args)
+                    cmd_doctor(args)
 
                 # Should have called shutil.which for kubectl
                 mock_which.assert_any_call("kubectl")

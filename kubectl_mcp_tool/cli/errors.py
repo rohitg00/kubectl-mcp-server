@@ -174,7 +174,7 @@ def invalid_json_error(input_str: str, parse_error: str) -> CliError:
 
 def missing_argument_error(command: str, argument: str) -> CliError:
     suggestions = {
-        "call": f"Use 'kubectl-mcp-server call <tool> '{{\"key\": \"value\"}}'",
+        "call": "Use 'kubectl-mcp-server call <tool> '{\"key\": \"value\"}'",
         "tools": "Use 'kubectl-mcp-server tools <name>' to inspect a tool",
         "grep": "Use 'kubectl-mcp-server grep \"*pattern*\"' to search tools",
         "context": "Use 'kubectl-mcp-server context <name>' to switch context",
