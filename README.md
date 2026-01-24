@@ -106,6 +106,7 @@ Pre-built workflow prompts for common Kubernetes operations:
 
 ### Key Capabilities
 
+- **Enhanced CLI**: 8 new subcommands for tool discovery, direct calling, and diagnostics
 - **Multi-Transport Support**: stdio, SSE, HTTP/streamable-http
 - **AI Assistant Integration**: Claude Desktop, Claude Code, Cursor, Windsurf
 - **Multi-Cluster**: Context switching between clusters
@@ -115,6 +116,49 @@ Pre-built workflow prompts for common Kubernetes operations:
 - **Cost Optimization**: Resource recommendations, idle resource detection, usage analysis
 - **FastMCP 3**: MCP Resources and Prompts for enhanced AI workflows
 - **MCP-UI Support**: Interactive HTML dashboards for compatible hosts (Goose, LibreChat)
+- **Browser Automation**: 26 tools with cloud provider support (Browserbase, Browser Use)
+
+## CLI Usage
+
+kubectl-mcp-server now includes a powerful CLI for shell-friendly operation:
+
+```bash
+# List all tools with descriptions
+kubectl-mcp-server tools -d
+
+# Search for pod-related tools
+kubectl-mcp-server grep "*pod*"
+
+# Show specific tool schema
+kubectl-mcp-server tools get_pods
+
+# Call a tool directly
+kubectl-mcp-server call get_pods '{"namespace": "kube-system"}'
+
+# Pipe JSON from stdin
+echo '{"namespace": "default"}' | kubectl-mcp-server call get_pods
+
+# Check dependencies
+kubectl-mcp-server doctor
+
+# Show/switch Kubernetes context
+kubectl-mcp-server context
+kubectl-mcp-server context minikube
+
+# List resources and prompts
+kubectl-mcp-server resources
+kubectl-mcp-server prompts
+
+# Show server info
+kubectl-mcp-server info
+```
+
+### CLI Features
+
+- **Structured errors**: Actionable error messages with suggestions
+- **Colorized output**: Human-readable with JSON mode for scripting (`--json`)
+- **NO_COLOR support**: Respects `NO_COLOR` environment variable
+- **Stdin support**: Pipe JSON arguments to commands
 
 ## Installation
 
@@ -397,11 +441,11 @@ export MCP_BROWSER_ENABLED=true
 kubectl-mcp-server
 ```
 
-### 19 Browser Tools
+### 26 Browser Tools (agent-browser v0.7+)
 
 | Tool | Description |
 |------|-------------|
-| `browser_open` | Open URL in browser |
+| `browser_open` | Open URL in browser (with headers/session support) |
 | `browser_snapshot` | Get page accessibility tree |
 | `browser_click` | Click element by ref |
 | `browser_fill` | Fill form field |
@@ -410,6 +454,13 @@ kubectl-mcp-server
 | `browser_get_url` | Get current URL |
 | `browser_wait` | Wait for element/text/timeout |
 | `browser_close` | Close browser |
+| `browser_connect_cdp` | **NEW**: Connect to remote browser via CDP |
+| `browser_install` | **NEW**: Install Chromium browser |
+| `browser_set_provider` | **NEW**: Configure cloud provider (Browserbase/Browser Use) |
+| `browser_session_list` | **NEW**: List active browser sessions |
+| `browser_session_switch` | **NEW**: Switch to different session |
+| `browser_open_with_headers` | **NEW**: Open URL with auth headers |
+| `browser_set_viewport` | **NEW**: Set viewport or emulate device |
 | `browser_test_ingress` | Test K8s service via Ingress |
 | `browser_screenshot_service` | Screenshot K8s service UI |
 | `browser_screenshot_grafana` | Screenshot Grafana dashboard |
@@ -420,6 +471,26 @@ kubectl-mcp-server
 | `browser_session_load` | Load browser session |
 | `browser_open_cloud_console` | Open EKS/GKE/AKS console |
 | `browser_pdf_export` | Export page as PDF |
+
+### Browser v0.7 Features
+
+- **Cloud providers**: Browserbase, Browser Use
+- **Persistent profiles**: Keep cookies/storage across restarts
+- **Remote CDP**: Connect to existing browser instances
+- **Retry with exponential backoff**: Auto-retry transient errors
+
+#### Environment Variables
+
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `MCP_BROWSER_ENABLED` | Enable browser tools | `true` |
+| `MCP_BROWSER_PROVIDER` | Cloud provider | `browserbase` / `browseruse` |
+| `MCP_BROWSER_PROFILE` | Persistent profile path | `~/.k8s-browser` |
+| `MCP_BROWSER_CDP_URL` | Remote CDP WebSocket | `wss://...` |
+| `MCP_BROWSER_PROXY` | Proxy server URL | `http://proxy:8080` |
+| `MCP_BROWSER_USER_AGENT` | Custom user agent | `Mozilla/5.0...` |
+| `MCP_BROWSER_SESSION` | Session name | `k8s-session` |
+| `MCP_BROWSER_HEADED` | Show browser window | `true` |
 
 ### Use Cases
 
