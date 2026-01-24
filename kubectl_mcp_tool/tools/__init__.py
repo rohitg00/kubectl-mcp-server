@@ -15,6 +15,12 @@ from .gitops import register_gitops_tools
 from .certs import register_certs_tools
 from .policy import register_policy_tools
 from .backup import register_backup_tools
+from .keda import register_keda_tools
+from .cilium import register_cilium_tools
+from .rollouts import register_rollouts_tools
+from .capi import register_capi_tools
+from .kubevirt import register_kubevirt_tools
+from .kiali import register_istio_tools
 
 __all__ = [
     "register_helm_tools",
@@ -36,4 +42,10 @@ __all__ = [
     "register_certs_tools",
     "register_policy_tools",
     "register_backup_tools",
+    "register_keda_tools",
+    "register_cilium_tools",
+    "register_rollouts_tools",
+    "register_capi_tools",
+    "register_kubevirt_tools",
+    "register_istio_tools",
 ]
