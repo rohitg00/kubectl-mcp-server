@@ -7,7 +7,7 @@ with Kubernetes clusters through natural language commands.
 For more information, see: https://github.com/rohitg00/kubectl-mcp-server
 """
 
-__version__ = "1.18.0"
+__version__ = "1.16.0"
 
 from .mcp_server import MCPServer
 from .diagnostics import run_diagnostics, check_kubectl_installation, check_cluster_connection

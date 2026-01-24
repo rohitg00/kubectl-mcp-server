@@ -1,6 +1,6 @@
 {
   "name": "kubectl-mcp-server",
-  "version": "1.18.0",
+  "version": "1.16.0",
   "description": "A Model Context Protocol (MCP) server for Kubernetes with 220+ tools, 8 resources, and 8 prompts for AI assistants",
   "keywords": [
     "kubernetes",
