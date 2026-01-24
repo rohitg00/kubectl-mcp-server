@@ -587,3 +587,327 @@ def register_cluster_tools(server, non_destructive: bool):
         except Exception as e:
             logger.error(f"Error getting nodes summary: {e}")
             return {"success": False, "error": str(e)}
+
+    # ========== Node Kubelet Tools ==========
+
+    @server.tool(
+        annotations=ToolAnnotations(
+            title="Get Node Logs",
+            readOnlyHint=True,
+        ),
+    )
+    def node_logs_tool(
+        name: str,
+        query: str = "kubelet",
+        tail_lines: int = 100,
+        context: str = ""
+    ) -> Dict[str, Any]:
+        """Get logs from a Kubernetes node via kubelet API proxy.
+
+        This tool retrieves logs from a node's kubelet service or system log files.
+        Common service names: kubelet, kube-proxy, containerd, docker.
+        For file paths, use the full path like /var/log/syslog or /var/log/messages.
+
+        Args:
+            name: Node name
+            query: Service name (kubelet, kube-proxy) or log file path (/var/log/syslog)
+            tail_lines: Number of lines from end (0 = all lines)
+            context: Kubernetes context to use (uses current context if not specified)
+        """
+        try:
+            ctx_args = _get_kubectl_context_args(context)
+
+            # Build the proxy URL path
+            log_path = query.lstrip("/") if query.startswith("/var/log") else query
+
+            # Use kubectl proxy to access kubelet logs
+            cmd = ["kubectl"] + ctx_args + [
+                "get", "--raw",
+                f"/api/v1/nodes/{name}/proxy/logs/{log_path}"
+            ]
+
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
+
+            if result.returncode != 0:
+                error_msg = result.stderr.strip()
+                if "not found" in error_msg.lower():
+                    return {
+                        "success": False,
+                        "error": f"Node '{name}' not found or log path '{query}' is invalid",
+                        "hint": "Try: kubelet, kube-proxy, or /var/log/syslog"
+                    }
+                return {"success": False, "error": error_msg}
+
+            logs = result.stdout
+            lines = logs.strip().split("\n")
+
+            # Apply tail_lines if specified
+            if tail_lines > 0 and len(lines) > tail_lines:
+                lines = lines[-tail_lines:]
+                truncated = True
+            else:
+                truncated = False
+
+            return {
+                "success": True,
+                "context": context or "current",
+                "node": name,
+                "query": query,
+                "tailLines": tail_lines,
+                "truncated": truncated,
+                "totalLines": len(lines),
+                "logs": "\n".join(lines)
+            }
+        except subprocess.TimeoutExpired:
+            return {"success": False, "error": "Log retrieval timed out after 60 seconds"}
+        except Exception as e:
+            logger.error(f"Error getting node logs: {e}")
+            return {"success": False, "error": str(e)}
+
+    @server.tool(
+        annotations=ToolAnnotations(
+            title="Get Node Stats Summary",
+            readOnlyHint=True,
+        ),
+    )
+    def node_stats_summary_tool(
+        name: str,
+        context: str = ""
+    ) -> Dict[str, Any]:
+        """Get resource usage statistics from node via kubelet Summary API.
+
+        Returns CPU, memory, filesystem, and network usage at node, pod, and
+        container levels. On systems with cgroup v2 and kernel 4.20+, may include
+        PSI (Pressure Stall Information) metrics.
+
+        This provides more detailed metrics than 'kubectl top nodes' including:
+        - Node-level: CPU, memory, filesystem, network, runtime stats
+        - Pod-level: CPU, memory, network, volume stats for each pod
+        - Container-level: CPU, memory, rootfs, logs usage for each container
+
+        Args:
+            name: Node name
+            context: Kubernetes context to use (uses current context if not specified)
+        """
+        try:
+            ctx_args = _get_kubectl_context_args(context)
+
+            cmd = ["kubectl"] + ctx_args + [
+                "get", "--raw",
+                f"/api/v1/nodes/{name}/proxy/stats/summary"
+            ]
+
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
+
+            if result.returncode != 0:
+                error_msg = result.stderr.strip()
+                if "not found" in error_msg.lower():
+                    return {"success": False, "error": f"Node '{name}' not found"}
+                return {"success": False, "error": error_msg}
+
+            stats = json.loads(result.stdout)
+            node_stats = stats.get("node", {})
+            pods_stats = stats.get("pods", [])
+
+            formatted_node = {
+                "nodeName": node_stats.get("nodeName"),
+                "startTime": node_stats.get("startTime"),
+                "cpu": _format_cpu_stats(node_stats.get("cpu", {})),
+                "memory": _format_memory_stats(node_stats.get("memory", {})),
+                "network": _format_network_stats(node_stats.get("network", {})),
+                "fs": _format_fs_stats(node_stats.get("fs", {})),
+                "runtime": _format_runtime_stats(node_stats.get("runtime", {})),
+                "rlimit": node_stats.get("rlimit", {}),
+            }
+
+            formatted_pods = []
+            for pod in pods_stats[:50]:
+                pod_summary = {
+                    "podRef": pod.get("podRef", {}),
+                    "startTime": pod.get("startTime"),
+                    "cpu": _format_cpu_stats(pod.get("cpu", {})),
+                    "memory": _format_memory_stats(pod.get("memory", {})),
+                    "network": _format_network_stats(pod.get("network", {})),
+                    "containers": []
+                }
+
+                for container in pod.get("containers", [])[:5]:
+                    pod_summary["containers"].append({
+                        "name": container.get("name"),
+                        "cpu": _format_cpu_stats(container.get("cpu", {})),
+                        "memory": _format_memory_stats(container.get("memory", {})),
+                        "rootfs": _format_fs_stats(container.get("rootfs", {})),
+                    })
+
+                formatted_pods.append(pod_summary)
+
+            return {
+                "success": True,
+                "context": context or "current",
+                "nodeName": name,
+                "nodeStats": formatted_node,
+                "podCount": len(pods_stats),
+                "pods": formatted_pods,
+                "rawStatsAvailable": True
+            }
+        except json.JSONDecodeError as e:
+            return {"success": False, "error": f"Failed to parse stats: {e}"}
+        except subprocess.TimeoutExpired:
+            return {"success": False, "error": "Stats retrieval timed out after 120 seconds"}
+        except Exception as e:
+            logger.error(f"Error getting node stats summary: {e}")
+            return {"success": False, "error": str(e)}
+
+    @server.tool(
+        annotations=ToolAnnotations(
+            title="Get Node Top",
+            readOnlyHint=True,
+        ),
+    )
+    def node_top_tool(
+        name: str = "",
+        label_selector: str = "",
+        context: str = ""
+    ) -> Dict[str, Any]:
+        """Get resource consumption (CPU, memory) for nodes from Metrics Server.
+
+        Similar to 'kubectl top nodes' command. Requires metrics-server to be
+        installed in the cluster.
+
+        Args:
+            name: Specific node name (optional, all nodes if empty)
+            label_selector: Label selector to filter nodes (e.g., 'node-role.kubernetes.io/control-plane')
+            context: Kubernetes context to use (uses current context if not specified)
+        """
+        try:
+            ctx_args = _get_kubectl_context_args(context)
+            cmd = ["kubectl"] + ctx_args + ["top", "nodes", "--no-headers"]
+
+            if label_selector:
+                cmd.extend(["-l", label_selector])
+
+            if name:
+                cmd.append(name)
+
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
+
+            if result.returncode != 0:
+                error_msg = result.stderr.strip()
+                if "metrics" in error_msg.lower() or "not available" in error_msg.lower():
+                    return {
+                        "success": False,
+                        "error": "Metrics server not available or not ready",
+                        "hint": "Install metrics-server: kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml"
+                    }
+                if "not found" in error_msg.lower() and name:
+                    return {"success": False, "error": f"Node '{name}' not found"}
+                return {"success": False, "error": error_msg}
+
+            metrics = []
+            for line in result.stdout.strip().split("\n"):
+                if not line.strip():
+                    continue
+                parts = line.split()
+                if len(parts) >= 5:
+                    node_metric = {
+                        "node": parts[0],
+                        "cpuCores": parts[1],
+                        "cpuPercent": parts[2].rstrip("%"),
+                        "memoryBytes": parts[3],
+                        "memoryPercent": parts[4].rstrip("%"),
+                    }
+                    metrics.append(node_metric)
+
+            total_cpu_percent = 0
+            total_memory_percent = 0
+            for m in metrics:
+                try:
+                    total_cpu_percent += float(m["cpuPercent"])
+                    total_memory_percent += float(m["memoryPercent"])
+                except (ValueError, TypeError):
+                    pass
+
+            return {
+                "success": True,
+                "context": context or "current",
+                "filter": {
+                    "name": name or None,
+                    "labelSelector": label_selector or None
+                },
+                "nodeCount": len(metrics),
+                "nodes": metrics,
+                "clusterAverage": {
+                    "cpuPercent": round(total_cpu_percent / len(metrics), 1) if metrics else 0,
+                    "memoryPercent": round(total_memory_percent / len(metrics), 1) if metrics else 0
+                } if len(metrics) > 1 else None
+            }
+        except subprocess.TimeoutExpired:
+            return {"success": False, "error": "Metrics retrieval timed out after 60 seconds"}
+        except Exception as e:
+            logger.error(f"Error getting node top metrics: {e}")
+            return {"success": False, "error": str(e)}
+
+
+# Helper functions for formatting kubelet stats
+
+def _format_cpu_stats(cpu: Dict) -> Dict[str, Any]:
+    """Format CPU statistics from kubelet stats."""
+    if not cpu:
+        return {}
+    return {
+        "time": cpu.get("time"),
+        "usageNanoCores": cpu.get("usageNanoCores"),
+        "usageCoreNanoSeconds": cpu.get("usageCoreNanoSeconds"),
+    }
+
+
+def _format_memory_stats(memory: Dict) -> Dict[str, Any]:
+    """Format memory statistics from kubelet stats."""
+    if not memory:
+        return {}
+    return {
+        "time": memory.get("time"),
+        "availableBytes": memory.get("availableBytes"),
+        "usageBytes": memory.get("usageBytes"),
+        "workingSetBytes": memory.get("workingSetBytes"),
+        "rssBytes": memory.get("rssBytes"),
+        "pageFaults": memory.get("pageFaults"),
+        "majorPageFaults": memory.get("majorPageFaults"),
+    }
+
+
+def _format_network_stats(network: Dict) -> Dict[str, Any]:
+    """Format network statistics from kubelet stats."""
+    if not network:
+        return {}
+    return {
+        "time": network.get("time"),
+        "rxBytes": network.get("rxBytes"),
+        "rxErrors": network.get("rxErrors"),
+        "txBytes": network.get("txBytes"),
+        "txErrors": network.get("txErrors"),
+    }
+
+
+def _format_fs_stats(fs: Dict) -> Dict[str, Any]:
+    """Format filesystem statistics from kubelet stats."""
+    if not fs:
+        return {}
+    return {
+        "time": fs.get("time"),
+        "availableBytes": fs.get("availableBytes"),
+        "capacityBytes": fs.get("capacityBytes"),
+        "usedBytes": fs.get("usedBytes"),
+        "inodesFree": fs.get("inodesFree"),
+        "inodes": fs.get("inodes"),
+        "inodesUsed": fs.get("inodesUsed"),
+    }
+
+
+def _format_runtime_stats(runtime: Dict) -> Dict[str, Any]:
+    """Format runtime (container runtime) statistics from kubelet stats."""
+    if not runtime:
+        return {}
+    return {
+        "imageFs": _format_fs_stats(runtime.get("imageFs", {})),
+    }
