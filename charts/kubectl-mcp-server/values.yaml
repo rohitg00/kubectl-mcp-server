@@ -25,14 +25,8 @@ serviceAccount:
 rbac:
   # Create ClusterRole and ClusterRoleBinding
   create: true
-  # Scope of permissions
-  # - "cluster": Full cluster-wide read access (default)
-  # - "namespace": Limited to specific namespaces
-  scope: cluster
-  # Namespaces to grant access when scope is "namespace"
-  namespaces: []
-  # - default
-  # - kube-system
+  # Note: Currently only cluster-wide RBAC is supported.
+  # The MCP server needs read access across all namespaces to function properly.
 
 podAnnotations: {}
 

@@ -1,9 +1,10 @@
 {{- if .Values.ingress.enabled -}}
 {{- $fullName := include "kubectl-mcp-server.fullname" . -}}
 {{- $svcPort := .Values.service.port -}}
+{{- $annotations := .Values.ingress.annotations | default dict -}}
 {{- if and .Values.ingress.className (not (semverCompare ">=1.18-0" .Capabilities.KubeVersion.GitVersion)) }}
-  {{- if not (hasKey .Values.ingress.annotations "kubernetes.io/ingress.class") }}
-  {{- $_ := set .Values.ingress.annotations "kubernetes.io/ingress.class" .Values.ingress.className}}
+  {{- if not (hasKey $annotations "kubernetes.io/ingress.class") }}
+  {{- $annotations = merge (dict "kubernetes.io/ingress.class" .Values.ingress.className) $annotations }}
   {{- end }}
 {{- end }}
 {{- if semverCompare ">=1.19-0" .Capabilities.KubeVersion.GitVersion -}}
@@ -18,7 +19,7 @@ metadata:
   name: {{ $fullName }}
   labels:
     {{- include "kubectl-mcp-server.labels" . | nindent 4 }}
-  {{- with .Values.ingress.annotations }}
+  {{- with $annotations }}
   annotations:
     {{- toYaml . | nindent 4 }}
   {{- end }}

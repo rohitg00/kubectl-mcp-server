@@ -6,11 +6,16 @@ metadata:
   labels:
     {{- include "kubectl-mcp-server.labels" . | nindent 4 }}
 spec:
+  {{- if or .Values.podDisruptionBudget.minAvailable .Values.podDisruptionBudget.maxUnavailable }}
   {{- if .Values.podDisruptionBudget.minAvailable }}
   minAvailable: {{ .Values.podDisruptionBudget.minAvailable }}
   {{- end }}
   {{- if .Values.podDisruptionBudget.maxUnavailable }}
   maxUnavailable: {{ .Values.podDisruptionBudget.maxUnavailable }}
+  {{- end }}
+  {{- else }}
+  # Default to minAvailable: 1 if neither is specified
+  minAvailable: 1
   {{- end }}
   selector:
     matchLabels:

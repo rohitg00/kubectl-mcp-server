@@ -9,7 +9,7 @@ Safety Mode: {{ .Values.safety.mode }}
 Access the MCP server at:
 {{- range $host := .Values.ingress.hosts }}
   {{- range .paths }}
-  http{{ if $.Values.ingress.tls }}s{{ end }}://{{ $host.host }}{{ .path }}mcp
+  http{{ if $.Values.ingress.tls }}s{{ end }}://{{ $host.host }}{{ trimSuffix "/" .path }}/mcp
   {{- end }}
 {{- end }}
 {{- else if contains "NodePort" .Values.service.type }}
