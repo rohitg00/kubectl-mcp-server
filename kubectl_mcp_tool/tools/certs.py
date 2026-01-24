@@ -41,8 +41,17 @@ def _run_kubectl(args: List[str], context: str = "") -> Dict[str, Any]:
         return {"success": False, "error": str(e)}
 
 
+class CertsResourceError(Exception):
+    """Exception raised when fetching cert-manager resources fails."""
+    pass
+
+
 def _get_resources(kind: str, namespace: str = "", context: str = "", label_selector: str = "") -> List[Dict]:
-    """Get Kubernetes resources of a specific kind."""
+    """Get Kubernetes resources of a specific kind.
+
+    Raises:
+        CertsResourceError: If kubectl command fails or output cannot be parsed
+    """
     args = ["get", kind, "-o", "json"]
     if namespace:
         args.extend(["-n", namespace])
@@ -52,13 +61,21 @@ def _get_resources(kind: str, namespace: str = "", context: str = "", label_sele
         args.extend(["-l", label_selector])
 
     result = _run_kubectl(args, context)
-    if result["success"]:
-        try:
-            data = json.loads(result["output"])
-            return data.get("items", [])
-        except json.JSONDecodeError:
-            return []
-    return []
+    if not result["success"]:
+        error_msg = result.get("error", "Unknown error")
+        raise CertsResourceError(
+            f"Failed to get {kind} (namespace={namespace or 'all'}, context={context or 'current'}, "
+            f"label_selector={label_selector or 'none'}): {error_msg}"
+        )
+
+    try:
+        data = json.loads(result["output"])
+        return data.get("items", [])
+    except json.JSONDecodeError as e:
+        raise CertsResourceError(
+            f"Failed to parse JSON response for {kind} (namespace={namespace or 'all'}, "
+            f"context={context or 'current'}): {e}"
+        )
 
 
 def _get_condition(conditions: List[Dict], condition_type: str) -> Optional[Dict]:
@@ -97,8 +114,13 @@ def certs_list(
             "error": "cert-manager is not installed (certificates.cert-manager.io CRD not found)"
         }
 
+    try:
+        resources = _get_resources("certificates.cert-manager.io", namespace, context, label_selector)
+    except CertsResourceError as e:
+        return {"success": False, "error": str(e)}
+
     certs = []
-    for item in _get_resources("certificates.cert-manager.io", namespace, context, label_selector):
+    for item in resources:
         status = item.get("status", {})
         conditions = status.get("conditions", [])
         ready_cond = _get_condition(conditions, "Ready")
@@ -191,7 +213,12 @@ def certs_issuers_list(
     issuers = []
 
     if crd_exists(ISSUER_CRD, context):
-        for item in _get_resources("issuers.cert-manager.io", namespace, context):
+        try:
+            issuer_resources = _get_resources("issuers.cert-manager.io", namespace, context)
+        except CertsResourceError as e:
+            return {"success": False, "error": str(e)}
+
+        for item in issuer_resources:
             status = item.get("status", {})
             conditions = status.get("conditions", [])
             ready_cond = _get_condition(conditions, "Ready")
@@ -220,7 +247,12 @@ def certs_issuers_list(
             })
 
     if include_cluster_issuers and crd_exists(CLUSTER_ISSUER_CRD, context):
-        for item in _get_resources("clusterissuers.cert-manager.io", "", context):
+        try:
+            cluster_issuer_resources = _get_resources("clusterissuers.cert-manager.io", "", context)
+        except CertsResourceError as e:
+            return {"success": False, "error": str(e)}
+
+        for item in cluster_issuer_resources:
             status = item.get("status", {})
             conditions = status.get("conditions", [])
             ready_cond = _get_condition(conditions, "Ready")
@@ -276,6 +308,9 @@ def certs_issuer_get(
         crd = "clusterissuers.cert-manager.io"
         args = ["get", crd, name, "-o", "json"]
     else:
+        # Issuers are namespaced resources, namespace is required
+        if not namespace or not namespace.strip():
+            return {"success": False, "error": "namespace is required for Issuer lookups"}
         crd = "issuers.cert-manager.io"
         args = ["get", crd, name, "-n", namespace, "-o", "json"]
 
