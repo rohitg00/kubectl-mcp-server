@@ -1,9 +1,22 @@
 import logging
+import subprocess
 from typing import Any, Dict, List, Optional
 
 from mcp.types import ToolAnnotations
 
+from ..k8s_config import (
+    get_k8s_client,
+    get_apiextensions_client,
+)
+
 logger = logging.getLogger("mcp-server")
+
+
+def _get_kubectl_context_args(context: str) -> List[str]:
+    """Get kubectl context arguments if context is specified."""
+    if context:
+        return ["--context", context]
+    return []
 
 
 def register_core_tools(server, non_destructive: bool):
@@ -15,15 +28,18 @@ def register_core_tools(server, non_destructive: bool):
             readOnlyHint=True,
         ),
     )
-    def get_namespaces() -> Dict[str, Any]:
-        """Get all Kubernetes namespaces."""
+    def get_namespaces(context: str = "") -> Dict[str, Any]:
+        """Get all Kubernetes namespaces.
+
+        Args:
+            context: Kubernetes context to use (uses current context if not specified)
+        """
         try:
-            from kubernetes import client, config
-            config.load_kube_config()
-            v1 = client.CoreV1Api()
+            v1 = get_k8s_client(context)
             namespaces = v1.list_namespace()
             return {
                 "success": True,
+                "context": context or "current",
                 "namespaces": [ns.metadata.name for ns in namespaces.items]
             }
         except Exception as e:
@@ -36,18 +52,25 @@ def register_core_tools(server, non_destructive: bool):
             readOnlyHint=True,
         ),
     )
-    def get_services(namespace: Optional[str] = None) -> Dict[str, Any]:
-        """Get all services in the specified namespace."""
+    def get_services(
+        namespace: Optional[str] = None,
+        context: str = ""
+    ) -> Dict[str, Any]:
+        """Get all services in the specified namespace.
+
+        Args:
+            namespace: Namespace to list services from (all namespaces if not specified)
+            context: Kubernetes context to use (uses current context if not specified)
+        """
         try:
-            from kubernetes import client, config
-            config.load_kube_config()
-            v1 = client.CoreV1Api()
+            v1 = get_k8s_client(context)
             if namespace:
                 services = v1.list_namespaced_service(namespace)
             else:
                 services = v1.list_service_for_all_namespaces()
             return {
                 "success": True,
+                "context": context or "current",
                 "services": [
                     {
                         "name": svc.metadata.name,
@@ -67,15 +90,18 @@ def register_core_tools(server, non_destructive: bool):
             readOnlyHint=True,
         ),
     )
-    def get_nodes() -> Dict[str, Any]:
-        """Get all nodes in the cluster."""
+    def get_nodes(context: str = "") -> Dict[str, Any]:
+        """Get all nodes in the cluster.
+
+        Args:
+            context: Kubernetes context to use (uses current context if not specified)
+        """
         try:
-            from kubernetes import client, config
-            config.load_kube_config()
-            v1 = client.CoreV1Api()
+            v1 = get_k8s_client(context)
             nodes = v1.list_node()
             return {
                 "success": True,
+                "context": context or "current",
                 "nodes": [
                     {
                         "name": node.metadata.name,
@@ -104,18 +130,25 @@ def register_core_tools(server, non_destructive: bool):
             readOnlyHint=True,
         ),
     )
-    def get_configmaps(namespace: Optional[str] = None) -> Dict[str, Any]:
-        """Get all ConfigMaps in the specified namespace."""
+    def get_configmaps(
+        namespace: Optional[str] = None,
+        context: str = ""
+    ) -> Dict[str, Any]:
+        """Get all ConfigMaps in the specified namespace.
+
+        Args:
+            namespace: Namespace to list ConfigMaps from (all namespaces if not specified)
+            context: Kubernetes context to use (uses current context if not specified)
+        """
         try:
-            from kubernetes import client, config
-            config.load_kube_config()
-            v1 = client.CoreV1Api()
+            v1 = get_k8s_client(context)
             if namespace:
                 cms = v1.list_namespaced_config_map(namespace)
             else:
                 cms = v1.list_config_map_for_all_namespaces()
             return {
                 "success": True,
+                "context": context or "current",
                 "configmaps": [
                     {
                         "name": cm.metadata.name,
@@ -134,18 +167,25 @@ def register_core_tools(server, non_destructive: bool):
             readOnlyHint=True,
         ),
     )
-    def get_secrets(namespace: Optional[str] = None) -> Dict[str, Any]:
-        """Get all Secrets in the specified namespace."""
+    def get_secrets(
+        namespace: Optional[str] = None,
+        context: str = ""
+    ) -> Dict[str, Any]:
+        """Get all Secrets in the specified namespace.
+
+        Args:
+            namespace: Namespace to list Secrets from (all namespaces if not specified)
+            context: Kubernetes context to use (uses current context if not specified)
+        """
         try:
-            from kubernetes import client, config
-            config.load_kube_config()
-            v1 = client.CoreV1Api()
+            v1 = get_k8s_client(context)
             if namespace:
                 secrets = v1.list_namespaced_secret(namespace)
             else:
                 secrets = v1.list_secret_for_all_namespaces()
             return {
                 "success": True,
+                "context": context or "current",
                 "secrets": [
                     {
                         "name": secret.metadata.name,
@@ -164,18 +204,25 @@ def register_core_tools(server, non_destructive: bool):
             readOnlyHint=True,
         ),
     )
-    def get_events(namespace: Optional[str] = None) -> Dict[str, Any]:
-        """Get Kubernetes events."""
+    def get_events(
+        namespace: Optional[str] = None,
+        context: str = ""
+    ) -> Dict[str, Any]:
+        """Get Kubernetes events.
+
+        Args:
+            namespace: Namespace to list events from (all namespaces if not specified)
+            context: Kubernetes context to use (uses current context if not specified)
+        """
         try:
-            from kubernetes import client, config
-            config.load_kube_config()
-            v1 = client.CoreV1Api()
+            v1 = get_k8s_client(context)
             if namespace:
                 events = v1.list_namespaced_event(namespace)
             else:
                 events = v1.list_event_for_all_namespaces()
             return {
                 "success": True,
+                "context": context or "current",
                 "events": [
                     {
                         "name": event.metadata.name,
@@ -197,11 +244,19 @@ def register_core_tools(server, non_destructive: bool):
             readOnlyHint=True,
         ),
     )
-    def get_resource_usage(namespace: Optional[str] = None) -> Dict[str, Any]:
-        """Get resource usage metrics for pods."""
+    def get_resource_usage(
+        namespace: Optional[str] = None,
+        context: str = ""
+    ) -> Dict[str, Any]:
+        """Get resource usage metrics for pods.
+
+        Args:
+            namespace: Namespace to get metrics from (all namespaces if not specified)
+            context: Kubernetes context to use (uses current context if not specified)
+        """
         try:
-            import subprocess
             cmd = ["kubectl", "top", "pods"]
+            cmd.extend(_get_kubectl_context_args(context))
             if namespace:
                 cmd.extend(["-n", namespace])
             else:
@@ -233,7 +288,11 @@ def register_core_tools(server, non_destructive: bool):
                             "memory": parts[3]
                         })
 
-            return {"success": True, "pods": pods}
+            return {
+                "success": True,
+                "context": context or "current",
+                "pods": pods
+            }
         except subprocess.TimeoutExpired:
             return {"success": False, "error": "Metrics retrieval timed out"}
         except Exception as e:
@@ -246,12 +305,18 @@ def register_core_tools(server, non_destructive: bool):
             readOnlyHint=True,
         ),
     )
-    def get_service_accounts(namespace: Optional[str] = None) -> Dict[str, Any]:
-        """Get service accounts in a namespace or cluster-wide."""
+    def get_service_accounts(
+        namespace: Optional[str] = None,
+        context: str = ""
+    ) -> Dict[str, Any]:
+        """Get service accounts in a namespace or cluster-wide.
+
+        Args:
+            namespace: Namespace to list service accounts from (all namespaces if not specified)
+            context: Kubernetes context to use (uses current context if not specified)
+        """
         try:
-            from kubernetes import client, config
-            config.load_kube_config()
-            v1 = client.CoreV1Api()
+            v1 = get_k8s_client(context)
 
             if namespace:
                 sas = v1.list_namespaced_service_account(namespace)
@@ -260,6 +325,7 @@ def register_core_tools(server, non_destructive: bool):
 
             return {
                 "success": True,
+                "context": context or "current",
                 "serviceAccounts": [
                     {
                         "name": sa.metadata.name,
@@ -281,12 +347,18 @@ def register_core_tools(server, non_destructive: bool):
             readOnlyHint=True,
         ),
     )
-    def get_crds(group: Optional[str] = None) -> Dict[str, Any]:
-        """Get Custom Resource Definitions in the cluster."""
+    def get_crds(
+        group: Optional[str] = None,
+        context: str = ""
+    ) -> Dict[str, Any]:
+        """Get Custom Resource Definitions in the cluster.
+
+        Args:
+            group: Filter CRDs by API group
+            context: Kubernetes context to use (uses current context if not specified)
+        """
         try:
-            from kubernetes import client, config
-            config.load_kube_config()
-            api = client.ApiextensionsV1Api()
+            api = get_apiextensions_client(context)
 
             crds = api.list_custom_resource_definition()
 
@@ -307,7 +379,11 @@ def register_core_tools(server, non_destructive: bool):
                     )
                 })
 
-            return {"success": True, "crds": result}
+            return {
+                "success": True,
+                "context": context or "current",
+                "crds": result
+            }
         except Exception as e:
             logger.error(f"Error getting CRDs: {e}")
             return {"success": False, "error": str(e)}
@@ -318,12 +394,18 @@ def register_core_tools(server, non_destructive: bool):
             readOnlyHint=True,
         ),
     )
-    def get_resource_quotas(namespace: Optional[str] = None) -> Dict[str, Any]:
-        """Get resource quotas for namespaces."""
+    def get_resource_quotas(
+        namespace: Optional[str] = None,
+        context: str = ""
+    ) -> Dict[str, Any]:
+        """Get resource quotas for namespaces.
+
+        Args:
+            namespace: Namespace to list resource quotas from (all namespaces if not specified)
+            context: Kubernetes context to use (uses current context if not specified)
+        """
         try:
-            from kubernetes import client, config
-            config.load_kube_config()
-            v1 = client.CoreV1Api()
+            v1 = get_k8s_client(context)
 
             if namespace:
                 quotas = v1.list_namespaced_resource_quota(namespace)
@@ -332,6 +414,7 @@ def register_core_tools(server, non_destructive: bool):
 
             return {
                 "success": True,
+                "context": context or "current",
                 "quotas": [
                     {
                         "name": q.metadata.name,
@@ -352,12 +435,18 @@ def register_core_tools(server, non_destructive: bool):
             readOnlyHint=True,
         ),
     )
-    def get_limit_ranges(namespace: Optional[str] = None) -> Dict[str, Any]:
-        """Get limit ranges for namespaces."""
+    def get_limit_ranges(
+        namespace: Optional[str] = None,
+        context: str = ""
+    ) -> Dict[str, Any]:
+        """Get limit ranges for namespaces.
+
+        Args:
+            namespace: Namespace to list limit ranges from (all namespaces if not specified)
+            context: Kubernetes context to use (uses current context if not specified)
+        """
         try:
-            from kubernetes import client, config
-            config.load_kube_config()
-            v1 = client.CoreV1Api()
+            v1 = get_k8s_client(context)
 
             if namespace:
                 limits = v1.list_namespaced_limit_range(namespace)
@@ -366,6 +455,7 @@ def register_core_tools(server, non_destructive: bool):
 
             return {
                 "success": True,
+                "context": context or "current",
                 "limitRanges": [
                     {
                         "name": lr.metadata.name,
@@ -394,17 +484,24 @@ def register_core_tools(server, non_destructive: bool):
             readOnlyHint=True,
         ),
     )
-    def get_priority_classes() -> Dict[str, Any]:
-        """Get priority classes in the cluster."""
+    def get_priority_classes(context: str = "") -> Dict[str, Any]:
+        """Get priority classes in the cluster.
+
+        Args:
+            context: Kubernetes context to use (uses current context if not specified)
+        """
         try:
-            from kubernetes import client, config
-            config.load_kube_config()
-            api = client.SchedulingV1Api()
+            from kubernetes import client
+            from ..k8s_config import _load_config_for_context
+
+            api_client = _load_config_for_context(context)
+            api = client.SchedulingV1Api(api_client=api_client)
 
             pcs = api.list_priority_class()
 
             return {
                 "success": True,
+                "context": context or "current",
                 "priorityClasses": [
                     {
                         "name": pc.metadata.name,

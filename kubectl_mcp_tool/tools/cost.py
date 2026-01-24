@@ -2,11 +2,20 @@ import logging
 import subprocess
 import re
 from datetime import datetime
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 from mcp.types import ToolAnnotations
 
+from ..k8s_config import get_k8s_client, get_apps_client
+
 logger = logging.getLogger("mcp-server")
+
+
+def _get_kubectl_context_args(context: str) -> List[str]:
+    """Get kubectl context arguments if context is specified."""
+    if context:
+        return ["--context", context]
+    return []
 
 
 def _parse_cpu(cpu_str: str) -> int:
@@ -67,13 +76,19 @@ def register_cost_tools(server, non_destructive: bool):
     )
     def get_resource_recommendations(
         namespace: Optional[str] = None,
-        resource_type: str = "all"
+        resource_type: str = "all",
+        context: str = ""
     ) -> Dict[str, Any]:
-        """Analyze resource usage and provide optimization recommendations for pods/deployments."""
+        """Analyze resource usage and provide optimization recommendations for pods/deployments.
+
+        Args:
+            namespace: Target namespace (optional, all namespaces if not specified)
+            resource_type: Type of resource to analyze
+            context: Kubernetes context to use (optional, uses current context if not specified)
+        """
         try:
-            from kubernetes import client, config
-            config.load_kube_config()
-            v1 = client.CoreV1Api()
+            from kubernetes import client
+            v1 = get_k8s_client(context)
 
             recommendations = []
 
@@ -135,6 +150,7 @@ def register_cost_tools(server, non_destructive: bool):
 
             return {
                 "success": True,
+                "context": context or "current",
                 "totalAnalyzed": len(pods),
                 "issuesFound": len(recommendations),
                 "recommendations": recommendations[:50]
@@ -152,11 +168,19 @@ def register_cost_tools(server, non_destructive: bool):
     def get_idle_resources(
         namespace: Optional[str] = None,
         cpu_threshold: float = 10.0,
-        memory_threshold: float = 10.0
+        memory_threshold: float = 10.0,
+        context: str = ""
     ) -> Dict[str, Any]:
-        """Find underutilized pods using less than threshold percentage of requested resources."""
+        """Find underutilized pods using less than threshold percentage of requested resources.
+
+        Args:
+            namespace: Target namespace (optional, all namespaces if not specified)
+            cpu_threshold: CPU usage threshold percentage
+            memory_threshold: Memory usage threshold percentage
+            context: Kubernetes context to use (optional, uses current context if not specified)
+        """
         try:
-            cmd = ["kubectl", "top", "pods", "--no-headers"]
+            cmd = ["kubectl"] + _get_kubectl_context_args(context) + ["top", "pods", "--no-headers"]
             if namespace:
                 cmd.extend(["-n", namespace])
             else:
@@ -196,6 +220,7 @@ def register_cost_tools(server, non_destructive: bool):
 
             return {
                 "success": True,
+                "context": context or "current",
                 "thresholds": {
                     "cpu": f"{cpu_threshold}%",
                     "memory": f"{memory_threshold}%"
@@ -215,12 +240,15 @@ def register_cost_tools(server, non_destructive: bool):
             readOnlyHint=True,
         ),
     )
-    def get_resource_quotas_usage(namespace: Optional[str] = None) -> Dict[str, Any]:
-        """Show resource quota usage and availability across namespaces."""
+    def get_resource_quotas_usage(namespace: Optional[str] = None, context: str = "") -> Dict[str, Any]:
+        """Show resource quota usage and availability across namespaces.
+
+        Args:
+            namespace: Target namespace (optional, all namespaces if not specified)
+            context: Kubernetes context to use (optional, uses current context if not specified)
+        """
         try:
-            from kubernetes import client, config
-            config.load_kube_config()
-            v1 = client.CoreV1Api()
+            v1 = get_k8s_client(context)
 
             if namespace:
                 quotas = v1.list_namespaced_resource_quota(namespace).items
@@ -250,6 +278,7 @@ def register_cost_tools(server, non_destructive: bool):
 
             return {
                 "success": True,
+                "context": context or "current",
                 "count": len(quota_usage),
                 "quotas": quota_usage
             }
@@ -263,12 +292,15 @@ def register_cost_tools(server, non_destructive: bool):
             readOnlyHint=True,
         ),
     )
-    def get_cost_analysis(namespace: Optional[str] = None) -> Dict[str, Any]:
-        """Analyze resource costs by namespace and workload based on resource requests."""
+    def get_cost_analysis(namespace: Optional[str] = None, context: str = "") -> Dict[str, Any]:
+        """Analyze resource costs by namespace and workload based on resource requests.
+
+        Args:
+            namespace: Target namespace (optional, all namespaces if not specified)
+            context: Kubernetes context to use (optional, uses current context if not specified)
+        """
         try:
-            from kubernetes import client, config
-            config.load_kube_config()
-            v1 = client.CoreV1Api()
+            v1 = get_k8s_client(context)
 
             if namespace:
                 pods = v1.list_namespaced_pod(namespace).items
@@ -325,6 +357,7 @@ def register_cost_tools(server, non_destructive: bool):
 
             return {
                 "success": True,
+                "context": context or "current",
                 "note": "Cost estimates based on resource requests. Integrate with cloud billing for actual costs.",
                 "byNamespace": ns_summary,
                 "topWorkloads": sorted(workload_costs, key=lambda x: x["cpuMillicores"], reverse=True)[:20]
@@ -341,15 +374,20 @@ def register_cost_tools(server, non_destructive: bool):
     )
     def get_overprovisioned_resources(
         namespace: Optional[str] = None,
-        threshold: float = 50.0
+        threshold: float = 50.0,
+        context: str = ""
     ) -> Dict[str, Any]:
-        """Find pods using significantly less resources than requested (over-provisioned)."""
-        try:
-            from kubernetes import client, config
-            config.load_kube_config()
-            v1 = client.CoreV1Api()
+        """Find pods using significantly less resources than requested (over-provisioned).
 
-            cmd = ["kubectl", "top", "pods", "--no-headers"]
+        Args:
+            namespace: Target namespace (optional, all namespaces if not specified)
+            threshold: Utilization threshold percentage below which resources are considered over-provisioned
+            context: Kubernetes context to use (optional, uses current context if not specified)
+        """
+        try:
+            v1 = get_k8s_client(context)
+
+            cmd = ["kubectl"] + _get_kubectl_context_args(context) + ["top", "pods", "--no-headers"]
             if namespace:
                 cmd.extend(["-n", namespace])
             else:
@@ -418,6 +456,7 @@ def register_cost_tools(server, non_destructive: bool):
 
             return {
                 "success": True,
+                "context": context or "current",
                 "threshold": f"{threshold}%",
                 "count": len(overprovisioned),
                 "overprovisioned": overprovisioned[:50]
@@ -436,14 +475,21 @@ def register_cost_tools(server, non_destructive: bool):
     )
     def get_resource_trends(
         namespace: Optional[str] = None,
-        resource_type: str = "pods"
+        resource_type: str = "pods",
+        context: str = ""
     ) -> Dict[str, Any]:
-        """Get current resource usage snapshot for trend analysis (requires metrics-server)."""
+        """Get current resource usage snapshot for trend analysis (requires metrics-server).
+
+        Args:
+            namespace: Target namespace (optional, all namespaces if not specified)
+            resource_type: Type of resource to analyze (pods or nodes)
+            context: Kubernetes context to use (optional, uses current context if not specified)
+        """
         try:
             if resource_type == "nodes":
-                cmd = ["kubectl", "top", "nodes", "--no-headers"]
+                cmd = ["kubectl"] + _get_kubectl_context_args(context) + ["top", "nodes", "--no-headers"]
             else:
-                cmd = ["kubectl", "top", "pods", "--no-headers"]
+                cmd = ["kubectl"] + _get_kubectl_context_args(context) + ["top", "pods", "--no-headers"]
                 if namespace:
                     cmd.extend(["-n", namespace])
                 else:
@@ -501,6 +547,7 @@ def register_cost_tools(server, non_destructive: bool):
 
             return {
                 "success": True,
+                "context": context or "current",
                 "timestamp": datetime.utcnow().isoformat() + "Z",
                 "resourceType": resource_type,
                 "summary": {
@@ -523,12 +570,14 @@ def register_cost_tools(server, non_destructive: bool):
             readOnlyHint=True,
         ),
     )
-    def get_namespace_cost_allocation() -> Dict[str, Any]:
-        """Calculate resource allocation percentages across all namespaces."""
+    def get_namespace_cost_allocation(context: str = "") -> Dict[str, Any]:
+        """Calculate resource allocation percentages across all namespaces.
+
+        Args:
+            context: Kubernetes context to use (optional, uses current context if not specified)
+        """
         try:
-            from kubernetes import client, config
-            config.load_kube_config()
-            v1 = client.CoreV1Api()
+            v1 = get_k8s_client(context)
 
             pods = v1.list_pod_for_all_namespaces().items
 
@@ -573,6 +622,7 @@ def register_cost_tools(server, non_destructive: bool):
 
             return {
                 "success": True,
+                "context": context or "current",
                 "clusterTotals": {
                     "totalCpuMillicores": total_cpu,
                     "totalMemoryMi": round(total_memory / (1024 * 1024), 2),
@@ -592,21 +642,26 @@ def register_cost_tools(server, non_destructive: bool):
     )
     def optimize_resource_requests(
         namespace: str,
-        deployment_name: Optional[str] = None
+        deployment_name: Optional[str] = None,
+        context: str = ""
     ) -> Dict[str, Any]:
-        """Suggest optimal resource requests based on current usage patterns."""
+        """Suggest optimal resource requests based on current usage patterns.
+
+        Args:
+            namespace: Target namespace
+            deployment_name: Specific deployment to analyze (optional, all deployments if not specified)
+            context: Kubernetes context to use (optional, uses current context if not specified)
+        """
         try:
-            from kubernetes import client, config
-            config.load_kube_config()
-            apps = client.AppsV1Api()
-            v1 = client.CoreV1Api()
+            apps = get_apps_client(context)
+            v1 = get_k8s_client(context)
 
             if deployment_name:
                 deployments = [apps.read_namespaced_deployment(deployment_name, namespace)]
             else:
                 deployments = apps.list_namespaced_deployment(namespace).items
 
-            cmd = ["kubectl", "top", "pods", "-n", namespace, "--no-headers"]
+            cmd = ["kubectl"] + _get_kubectl_context_args(context) + ["top", "pods", "-n", namespace, "--no-headers"]
             result = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
 
             usage_map = {}
@@ -669,6 +724,7 @@ def register_cost_tools(server, non_destructive: bool):
 
             return {
                 "success": True,
+                "context": context or "current",
                 "namespace": namespace,
                 "note": "Suggestions based on current usage + 20% buffer. Monitor over time for accuracy.",
                 "suggestions": suggestions

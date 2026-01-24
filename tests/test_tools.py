@@ -1,8 +1,8 @@
 """
 Unit tests for all MCP tools in kubectl-mcp-server.
 
-This module contains comprehensive tests for all 121 Kubernetes tools
-provided by the MCP server.
+This module contains comprehensive tests for all 125 Kubernetes tools
+provided by the MCP server (131 total with UI tools).
 """
 
 import pytest
@@ -12,7 +12,7 @@ from unittest.mock import patch, MagicMock
 from datetime import datetime
 
 
-# Complete list of all 127 tools that must be registered (121 core + 6 UI)
+# Complete list of all 131 tools that must be registered (125 core + 6 UI)
 EXPECTED_TOOLS = [
     # Pods (pods.py)
     "get_pods", "get_logs", "get_pod_events", "check_pod_health", "exec_in_pod",
@@ -24,10 +24,11 @@ EXPECTED_TOOLS = [
     # Core (core.py)
     "get_namespaces", "get_configmaps", "get_secrets", "get_events",
     "get_resource_quotas", "get_limit_ranges",
-    # Cluster (cluster.py)
-    "get_current_context", "switch_context", "list_contexts", "list_kubeconfig_contexts",
+    # Cluster (cluster.py) - includes multi-cluster config tools
+    "get_current_context", "switch_context", "list_contexts_tool",
     "get_context_details", "set_namespace_for_context", "get_cluster_info",
     "get_cluster_version", "get_nodes", "get_api_resources", "health_check",
+    "kubeconfig_view", "get_api_versions", "check_crd_exists", "list_crds", "get_nodes_summary",
     # Networking (networking.py)
     "get_services", "get_endpoints", "get_ingress", "port_forward",
     "diagnose_network_connectivity", "check_dns_resolution", "trace_service_chain",
@@ -68,11 +69,11 @@ EXPECTED_TOOLS = [
 
 
 class TestAllToolsRegistered:
-    """Comprehensive tests to verify all 127 tools are registered (121 core + 6 UI)."""
+    """Comprehensive tests to verify all 131 tools are registered (125 core + 6 UI)."""
 
     @pytest.mark.unit
     def test_all_127_tools_registered(self):
-        """Verify all 127 expected tools are registered (excluding optional browser tools)."""
+        """Verify all 131 expected tools are registered (excluding optional browser tools)."""
         import os
         from kubectl_mcp_tool.mcp_server import MCPServer
 
@@ -93,8 +94,8 @@ class TestAllToolsRegistered:
             tools = asyncio.run(get_tools())
             tool_names = {t.name for t in tools}
 
-            # Verify count (127 tools = 121 core + 6 UI, browser tools disabled)
-            assert len(tools) == 127, f"Expected 127 tools, got {len(tools)}"
+            # Verify count (131 tools = 125 core + 6 UI, browser tools disabled)
+            assert len(tools) == 131, f"Expected 131 tools, got {len(tools)}"
 
             # Check for missing tools
             missing_tools = set(EXPECTED_TOOLS) - tool_names

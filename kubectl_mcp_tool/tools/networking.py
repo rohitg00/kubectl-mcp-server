@@ -1,10 +1,19 @@
 import logging
 import subprocess
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 from mcp.types import ToolAnnotations
 
+from ..k8s_config import get_k8s_client, get_networking_client
+
 logger = logging.getLogger("mcp-server")
+
+
+def _get_kubectl_context_args(context: str) -> List[str]:
+    """Get kubectl context arguments if context is specified."""
+    if context:
+        return ["--context", context]
+    return []
 
 
 def register_networking_tools(server, non_destructive: bool):
@@ -16,12 +25,18 @@ def register_networking_tools(server, non_destructive: bool):
             readOnlyHint=True,
         ),
     )
-    def get_ingress(namespace: Optional[str] = None) -> Dict[str, Any]:
-        """Get Ingress resources in a namespace or cluster-wide."""
+    def get_ingress(
+        namespace: Optional[str] = None,
+        context: str = ""
+    ) -> Dict[str, Any]:
+        """Get Ingress resources in a namespace or cluster-wide.
+
+        Args:
+            namespace: Namespace to list ingresses from (all namespaces if not specified)
+            context: Kubernetes context to use (uses current context if not specified)
+        """
         try:
-            from kubernetes import client, config
-            config.load_kube_config()
-            networking = client.NetworkingV1Api()
+            networking = get_networking_client(context)
 
             if namespace:
                 ingresses = networking.list_namespaced_ingress(namespace)
@@ -30,6 +45,7 @@ def register_networking_tools(server, non_destructive: bool):
 
             return {
                 "success": True,
+                "context": context or "current",
                 "ingresses": [
                     {
                         "name": ing.metadata.name,
@@ -70,12 +86,20 @@ def register_networking_tools(server, non_destructive: bool):
             readOnlyHint=True,
         ),
     )
-    def get_endpoints(namespace: Optional[str] = None, service_name: Optional[str] = None) -> Dict[str, Any]:
-        """Get Endpoints for services."""
+    def get_endpoints(
+        namespace: Optional[str] = None,
+        service_name: Optional[str] = None,
+        context: str = ""
+    ) -> Dict[str, Any]:
+        """Get Endpoints for services.
+
+        Args:
+            namespace: Namespace to list endpoints from (all namespaces if not specified)
+            service_name: Filter by specific service name
+            context: Kubernetes context to use (uses current context if not specified)
+        """
         try:
-            from kubernetes import client, config
-            config.load_kube_config()
-            v1 = client.CoreV1Api()
+            v1 = get_k8s_client(context)
 
             if namespace:
                 endpoints = v1.list_namespaced_endpoints(namespace)
@@ -107,7 +131,11 @@ def register_networking_tools(server, non_destructive: bool):
                     "addresses": addresses
                 })
 
-            return {"success": True, "endpoints": result}
+            return {
+                "success": True,
+                "context": context or "current",
+                "endpoints": result
+            }
         except Exception as e:
             logger.error(f"Error getting Endpoints: {e}")
             return {"success": False, "error": str(e)}
@@ -122,14 +150,24 @@ def register_networking_tools(server, non_destructive: bool):
         source_pod: str,
         target: str,
         source_namespace: str = "default",
-        port: Optional[int] = None
+        port: Optional[int] = None,
+        context: str = ""
     ) -> Dict[str, Any]:
-        """Diagnose network connectivity between pods or to external endpoints."""
+        """Diagnose network connectivity between pods or to external endpoints.
+
+        Args:
+            source_pod: Name of the pod to test from
+            target: Target hostname or IP to test connectivity to
+            source_namespace: Namespace of the source pod
+            port: Optional port number to test
+            context: Kubernetes context to use (uses current context if not specified)
+        """
         try:
-            results = {"success": True, "tests": []}
+            results = {"success": True, "context": context or "current", "tests": []}
+            ctx_args = _get_kubectl_context_args(context)
 
             # Test DNS resolution
-            dns_cmd = ["kubectl", "exec", source_pod, "-n", source_namespace, "--", "nslookup", target]
+            dns_cmd = ["kubectl"] + ctx_args + ["exec", source_pod, "-n", source_namespace, "--", "nslookup", target]
             dns_result = subprocess.run(dns_cmd, capture_output=True, text=True, timeout=30)
             results["tests"].append({
                 "test": "DNS Resolution",
@@ -139,10 +177,10 @@ def register_networking_tools(server, non_destructive: bool):
 
             # Test connectivity
             if port:
-                conn_cmd = ["kubectl", "exec", source_pod, "-n", source_namespace, "--",
+                conn_cmd = ["kubectl"] + ctx_args + ["exec", source_pod, "-n", source_namespace, "--",
                            "nc", "-zv", "-w", "5", target, str(port)]
             else:
-                conn_cmd = ["kubectl", "exec", source_pod, "-n", source_namespace, "--",
+                conn_cmd = ["kubectl"] + ctx_args + ["exec", source_pod, "-n", source_namespace, "--",
                            "ping", "-c", "3", target]
 
             conn_result = subprocess.run(conn_cmd, capture_output=True, text=True, timeout=30)
@@ -166,24 +204,35 @@ def register_networking_tools(server, non_destructive: bool):
             readOnlyHint=True,
         ),
     )
-    def check_dns_resolution(hostname: str, namespace: str = "default", pod_name: Optional[str] = None) -> Dict[str, Any]:
-        """Check DNS resolution from within the cluster."""
+    def check_dns_resolution(
+        hostname: str,
+        namespace: str = "default",
+        pod_name: Optional[str] = None,
+        context: str = ""
+    ) -> Dict[str, Any]:
+        """Check DNS resolution from within the cluster.
+
+        Args:
+            hostname: Hostname to resolve
+            namespace: Namespace to find a pod in
+            pod_name: Specific pod to use for testing (optional)
+            context: Kubernetes context to use (uses current context if not specified)
+        """
         try:
             if not pod_name:
                 # Find a running pod in the namespace
-                from kubernetes import client, config
-                config.load_kube_config()
-                v1 = client.CoreV1Api()
+                v1 = get_k8s_client(context)
                 pods = v1.list_namespaced_pod(namespace, field_selector="status.phase=Running")
                 if not pods.items:
                     return {"success": False, "error": f"No running pods in namespace {namespace}"}
                 pod_name = pods.items[0].metadata.name
 
-            cmd = ["kubectl", "exec", pod_name, "-n", namespace, "--", "nslookup", hostname]
+            cmd = ["kubectl"] + _get_kubectl_context_args(context) + ["exec", pod_name, "-n", namespace, "--", "nslookup", hostname]
             result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
 
             return {
                 "success": result.returncode == 0,
+                "context": context or "current",
                 "hostname": hostname,
                 "pod": pod_name,
                 "namespace": namespace,
@@ -201,12 +250,20 @@ def register_networking_tools(server, non_destructive: bool):
             readOnlyHint=True,
         ),
     )
-    def trace_service_chain(service_name: str, namespace: str = "default") -> Dict[str, Any]:
-        """Trace the connection chain from service to pods."""
+    def trace_service_chain(
+        service_name: str,
+        namespace: str = "default",
+        context: str = ""
+    ) -> Dict[str, Any]:
+        """Trace the connection chain from service to pods.
+
+        Args:
+            service_name: Name of the service to trace
+            namespace: Namespace of the service
+            context: Kubernetes context to use (uses current context if not specified)
+        """
         try:
-            from kubernetes import client, config
-            config.load_kube_config()
-            v1 = client.CoreV1Api()
+            v1 = get_k8s_client(context)
 
             # Get service
             service = v1.read_namespaced_service(service_name, namespace)
@@ -227,6 +284,7 @@ def register_networking_tools(server, non_destructive: bool):
 
             result = {
                 "success": True,
+                "context": context or "current",
                 "service": {
                     "name": service.metadata.name,
                     "type": service.spec.type,
@@ -280,14 +338,30 @@ def register_networking_tools(server, non_destructive: bool):
             destructiveHint=True,
         ),
     )
-    def port_forward(pod_name: str, local_port: int, pod_port: int, namespace: Optional[str] = "default") -> Dict[str, Any]:
-        """Start port forwarding to a pod (note: this starts a background process)."""
+    def port_forward(
+        pod_name: str,
+        local_port: int,
+        pod_port: int,
+        namespace: Optional[str] = "default",
+        context: str = ""
+    ) -> Dict[str, Any]:
+        """Start port forwarding to a pod (note: this starts a background process).
+
+        Args:
+            pod_name: Name of the pod to forward to
+            local_port: Local port to listen on
+            pod_port: Pod port to forward to
+            namespace: Namespace of the pod
+            context: Kubernetes context to use (uses current context if not specified)
+        """
         try:
             import os
-            cmd = f"kubectl port-forward {pod_name} {local_port}:{pod_port} -n {namespace} &"
+            ctx_args = " ".join(_get_kubectl_context_args(context))
+            cmd = f"kubectl {ctx_args} port-forward {pod_name} {local_port}:{pod_port} -n {namespace} &"
             os.system(cmd)
             return {
                 "success": True,
+                "context": context or "current",
                 "message": f"Port forwarding started: localhost:{local_port} -> {pod_name}:{pod_port}",
                 "note": "Port forwarding is running in background. Use 'pkill -f port-forward' to stop."
             }

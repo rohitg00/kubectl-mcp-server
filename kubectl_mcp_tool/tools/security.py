@@ -3,6 +3,12 @@ from typing import Any, Dict, List, Optional
 
 from mcp.types import ToolAnnotations
 
+from ..k8s_config import (
+    get_k8s_client,
+    get_rbac_client,
+    get_networking_client,
+)
+
 logger = logging.getLogger("mcp-server")
 
 
@@ -15,12 +21,18 @@ def register_security_tools(server, non_destructive: bool):
             readOnlyHint=True,
         ),
     )
-    def get_rbac_roles(namespace: Optional[str] = None) -> Dict[str, Any]:
-        """Get RBAC Roles in a namespace or cluster-wide."""
+    def get_rbac_roles(
+        namespace: Optional[str] = None,
+        context: str = ""
+    ) -> Dict[str, Any]:
+        """Get RBAC Roles in a namespace or cluster-wide.
+
+        Args:
+            namespace: Namespace to list roles from (all namespaces if not specified)
+            context: Kubernetes context to use (uses current context if not specified)
+        """
         try:
-            from kubernetes import client, config
-            config.load_kube_config()
-            rbac = client.RbacAuthorizationV1Api()
+            rbac = get_rbac_client(context)
 
             if namespace:
                 roles = rbac.list_namespaced_role(namespace)
@@ -29,6 +41,7 @@ def register_security_tools(server, non_destructive: bool):
 
             return {
                 "success": True,
+                "context": context or "current",
                 "roles": [
                     {
                         "name": role.metadata.name,
@@ -55,16 +68,19 @@ def register_security_tools(server, non_destructive: bool):
             readOnlyHint=True,
         ),
     )
-    def get_cluster_roles() -> Dict[str, Any]:
-        """Get ClusterRoles in the cluster."""
+    def get_cluster_roles(context: str = "") -> Dict[str, Any]:
+        """Get ClusterRoles in the cluster.
+
+        Args:
+            context: Kubernetes context to use (uses current context if not specified)
+        """
         try:
-            from kubernetes import client, config
-            config.load_kube_config()
-            rbac = client.RbacAuthorizationV1Api()
+            rbac = get_rbac_client(context)
             roles = rbac.list_cluster_role()
 
             return {
                 "success": True,
+                "context": context or "current",
                 "clusterRoles": [
                     {
                         "name": role.metadata.name,
@@ -90,12 +106,18 @@ def register_security_tools(server, non_destructive: bool):
             readOnlyHint=True,
         ),
     )
-    def analyze_pod_security(namespace: Optional[str] = None) -> Dict[str, Any]:
-        """Analyze pod security configurations."""
+    def analyze_pod_security(
+        namespace: Optional[str] = None,
+        context: str = ""
+    ) -> Dict[str, Any]:
+        """Analyze pod security configurations.
+
+        Args:
+            namespace: Namespace to analyze pods in (all namespaces if not specified)
+            context: Kubernetes context to use (uses current context if not specified)
+        """
         try:
-            from kubernetes import client, config
-            config.load_kube_config()
-            v1 = client.CoreV1Api()
+            v1 = get_k8s_client(context)
 
             if namespace:
                 pods = v1.list_namespaced_pod(namespace)
@@ -133,6 +155,7 @@ def register_security_tools(server, non_destructive: bool):
 
             return {
                 "success": True,
+                "context": context or "current",
                 "totalPods": len(pods.items),
                 "podsWithIssues": len(issues),
                 "issues": issues[:50]
@@ -147,13 +170,19 @@ def register_security_tools(server, non_destructive: bool):
             readOnlyHint=True,
         ),
     )
-    def analyze_network_policies(namespace: Optional[str] = None) -> Dict[str, Any]:
-        """Analyze network policies in the cluster."""
+    def analyze_network_policies(
+        namespace: Optional[str] = None,
+        context: str = ""
+    ) -> Dict[str, Any]:
+        """Analyze network policies in the cluster.
+
+        Args:
+            namespace: Namespace to analyze policies in (all namespaces if not specified)
+            context: Kubernetes context to use (uses current context if not specified)
+        """
         try:
-            from kubernetes import client, config
-            config.load_kube_config()
-            networking = client.NetworkingV1Api()
-            v1 = client.CoreV1Api()
+            networking = get_networking_client(context)
+            v1 = get_k8s_client(context)
 
             if namespace:
                 policies = networking.list_namespaced_network_policy(namespace)
@@ -174,6 +203,7 @@ def register_security_tools(server, non_destructive: bool):
 
             return {
                 "success": True,
+                "context": context or "current",
                 "totalPolicies": len(policies.items),
                 "protectedNamespaces": list(protected_namespaces),
                 "unprotectedNamespaces": unprotected,
@@ -197,12 +227,20 @@ def register_security_tools(server, non_destructive: bool):
             readOnlyHint=True,
         ),
     )
-    def audit_rbac_permissions(namespace: Optional[str] = None, subject: Optional[str] = None) -> Dict[str, Any]:
-        """Audit RBAC permissions for subjects."""
+    def audit_rbac_permissions(
+        namespace: Optional[str] = None,
+        subject: Optional[str] = None,
+        context: str = ""
+    ) -> Dict[str, Any]:
+        """Audit RBAC permissions for subjects.
+
+        Args:
+            namespace: Namespace to audit (cluster-wide if not specified)
+            subject: Filter by subject name
+            context: Kubernetes context to use (uses current context if not specified)
+        """
         try:
-            from kubernetes import client, config
-            config.load_kube_config()
-            rbac = client.RbacAuthorizationV1Api()
+            rbac = get_rbac_client(context)
 
             cluster_bindings = rbac.list_cluster_role_binding()
             if namespace:
@@ -238,6 +276,7 @@ def register_security_tools(server, non_destructive: bool):
 
             return {
                 "success": True,
+                "context": context or "current",
                 "permissions": permissions[:100]
             }
         except Exception as e:
@@ -250,12 +289,18 @@ def register_security_tools(server, non_destructive: bool):
             readOnlyHint=True,
         ),
     )
-    def check_secrets_security(namespace: Optional[str] = None) -> Dict[str, Any]:
-        """Check security posture of secrets."""
+    def check_secrets_security(
+        namespace: Optional[str] = None,
+        context: str = ""
+    ) -> Dict[str, Any]:
+        """Check security posture of secrets.
+
+        Args:
+            namespace: Namespace to check secrets in (all namespaces if not specified)
+            context: Kubernetes context to use (uses current context if not specified)
+        """
         try:
-            from kubernetes import client, config
-            config.load_kube_config()
-            v1 = client.CoreV1Api()
+            v1 = get_k8s_client(context)
 
             if namespace:
                 secrets = v1.list_namespaced_secret(namespace)
@@ -282,6 +327,7 @@ def register_security_tools(server, non_destructive: bool):
 
             return {
                 "success": True,
+                "context": context or "current",
                 "totalSecrets": len(secrets.items),
                 "secretsWithIssues": len(findings),
                 "findings": findings[:50]
@@ -296,12 +342,18 @@ def register_security_tools(server, non_destructive: bool):
             readOnlyHint=True,
         ),
     )
-    def get_pod_security_info(namespace: Optional[str] = None) -> Dict[str, Any]:
-        """Get Pod Security Standards information for namespaces."""
+    def get_pod_security_info(
+        namespace: Optional[str] = None,
+        context: str = ""
+    ) -> Dict[str, Any]:
+        """Get Pod Security Standards information for namespaces.
+
+        Args:
+            namespace: Namespace to check (all namespaces if not specified)
+            context: Kubernetes context to use (uses current context if not specified)
+        """
         try:
-            from kubernetes import client, config
-            config.load_kube_config()
-            v1 = client.CoreV1Api()
+            v1 = get_k8s_client(context)
 
             if namespace:
                 namespaces = [v1.read_namespace(namespace)]
@@ -325,6 +377,7 @@ def register_security_tools(server, non_destructive: bool):
 
             return {
                 "success": True,
+                "context": context or "current",
                 "note": "Pod Security Policies are deprecated. Using Pod Security Standards (PSS) labels.",
                 "namespacesWithPSS": result
             }

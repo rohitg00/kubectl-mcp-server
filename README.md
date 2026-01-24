@@ -12,7 +12,7 @@ Talk to your clusters like you talk to a DevOps expert. Debug crashed pods, opti
 [![PyPI](https://img.shields.io/pypi/v/kubectl-mcp-server?color=blue&label=PyPI)](https://pypi.org/project/kubectl-mcp-server/)
 [![npm](https://img.shields.io/npm/v/kubectl-mcp-server?color=green&label=npm)](https://www.npmjs.com/package/kubectl-mcp-server)
 [![Docker](https://img.shields.io/docker/pulls/rohitghumare64/kubectl-mcp-server.svg)](https://hub.docker.com/r/rohitghumare64/kubectl-mcp-server)
-[![Tests](https://img.shields.io/badge/tests-187%20passed-success)](https://github.com/rohitg00/kubectl-mcp-server)
+[![Tests](https://img.shields.io/badge/tests-216%20passed-success)](https://github.com/rohitg00/kubectl-mcp-server)
 [![agentregistry](https://img.shields.io/badge/agentregistry-verified-blue?logo=data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgZmlsbD0id2hpdGUiIHZpZXdCb3g9IjAgMCAxNiAxNiI+PHBhdGggZD0iTTE1Ljk5MiA2LjAzN2wtMy4wMjEtLjQzOS0xLjM1LTIuNzM2Yy0uMzQ2LS43MDItMS41MDQtLjcwMi0xLjg1IDBMOC40MjEgNS41OTggNS40IDYuMDM3Yy0uNzc2LjExMy0xLjA4OCAxLjA1My0uNTI4IDEuNTkzbDIuMTg2IDIuMTI5LS41MTYgMy4wMWMtLjEzMy43NzUuNjgyIDEuMzY2IDEuMzc4Ljk5OGwyLjcwMi0xLjQyIDIuNzAyIDEuNDJjLjY5Ni4zNjggMS41MTEtLjIyMyAxLjM3OC0uOTk4bC0uNTE2LTMuMDEgMi4xODYtMi4xMjljLjU2LS41NCAwLjI0OC0xLjQ4LS41MjgtMS41OTN6Ii8+PC9zdmc+)](https://aregistry.ai)
 
 ---
@@ -97,7 +97,7 @@ Simply ask your AI assistant in natural language:
 - Interactive HTML dashboards with live metrics
 - Visual timeline of events and resource usage
 
-**127 powerful tools** | **8 workflow prompts** | **8 data resources** | **Works with all major AI assistants**
+**131 powerful tools** | **8 workflow prompts** | **8 data resources** | **Works with all major AI assistants**
 
 ## Why kubectl-mcp-server?
 
@@ -108,7 +108,7 @@ Simply ask your AI assistant in natural language:
 - **⚡ Zero learning curve** - Natural language instead of memorizing kubectl commands
 - **🌐 Universal compatibility** - Works with Claude, Cursor, Windsurf, Copilot, and 15+ other AI tools
 - **📊 Visual insights** - Interactive dashboards and browser automation for web-based tools
-- **☸️ Production-grade** - Deploy in-cluster with kMCP, 187 passing tests, active maintenance
+- **☸️ Production-grade** - Deploy in-cluster with kMCP, 216 passing tests, active maintenance
 
 From debugging crashed pods to optimizing cluster costs, kubectl-mcp-server is your AI-powered DevOps companion.
 
@@ -398,7 +398,7 @@ Add to `~/.config/roo-code/mcp.json` or `~/.config/kilo-code/mcp.json`:
 
 ## Complete Feature Set
 
-### 127 MCP Tools for Complete Kubernetes Management
+### 131 MCP Tools for Complete Kubernetes Management
 
 | Category | Tools |
 |----------|-------|
@@ -462,7 +462,7 @@ Pre-built workflow prompts for common Kubernetes operations:
 
 ### Key Capabilities
 
-- 🤖 **127 Powerful Tools** - Complete Kubernetes management from pods to security
+- 🤖 **131 Powerful Tools** - Complete Kubernetes management from pods to security
 - 🎯 **8 AI Workflow Prompts** - Pre-built workflows for common operations
 - 📊 **8 MCP Resources** - Browsable Kubernetes data exposure
 - 🎨 **6 Interactive Dashboards** - HTML UI tools for visual cluster management
@@ -470,7 +470,7 @@ Pre-built workflow prompts for common Kubernetes operations:
 - ⚡ **Multi-Transport** - stdio, SSE, HTTP, streamable-http
 - 🔐 **Security First** - Non-destructive mode, secret masking, RBAC validation
 - 🏥 **Advanced Diagnostics** - AI-powered troubleshooting and cost optimization
-- ☸️ **Multi-Cluster** - Seamless context switching between clusters
+- ☸️ **Multi-Cluster** - Target any cluster via context parameter in every tool
 - 🎡 **Full Helm v3** - Complete chart lifecycle management
 - 🔧 **Powerful CLI** - Shell-friendly tool discovery and direct calling
 - 🐳 **Cloud Native** - Deploy in-cluster with kMCP or kagent
@@ -701,7 +701,7 @@ EOF
 agentgateway --config gateway.yaml
 ```
 
-Connect clients to `http://localhost:3000/mcp` for unified access to all 127 tools.
+Connect clients to `http://localhost:3000/mcp` for unified access to all 131 tools.
 
 ## In-Cluster Deployment
 
@@ -760,7 +760,7 @@ kubectl apply -f deploy/kagent/toolserver-stdio.yaml
 kagent dashboard
 ```
 
-Your AI agents now have access to all 127 Kubernetes tools. See [kagent quickstart](https://kagent.dev/docs/kagent/getting-started/quickstart).
+Your AI agents now have access to all 131 Kubernetes tools. See [kagent quickstart](https://kagent.dev/docs/kagent/getting-started/quickstart).
 
 ## Architecture
 
@@ -778,7 +778,7 @@ The MCP server implements the [Model Context Protocol](https://github.com/modelc
 ```
 kubectl_mcp_tool/
 ├── mcp_server.py          # Main server (FastMCP, transports)
-├── tools/                  # 127 MCP tools organized by category
+├── tools/                  # 131 MCP tools organized by category
 │   ├── pods.py            # Pod management & diagnostics
 │   ├── deployments.py     # Deployments, StatefulSets, DaemonSets
 │   ├── core.py            # Namespaces, ConfigMaps, Secrets
@@ -798,7 +798,36 @@ kubectl_mcp_tool/
 
 ## Multi-Cluster Support
 
-Seamlessly manage multiple Kubernetes clusters through natural language:
+Seamlessly manage multiple Kubernetes clusters through natural language. **Every tool** supports an optional `context` parameter to target any cluster without switching contexts.
+
+### Context Parameter (v1.15.0)
+
+All 131 tools accept an optional `context` parameter to target specific clusters:
+
+**Talk to your AI assistant:**
+```
+"List pods in the production cluster"
+"Get deployments from staging context"
+"Show logs from the api-pod in the dev cluster"
+"Compare namespaces between production and staging clusters"
+```
+
+**Direct tool calls with context:**
+```bash
+# Target a specific cluster context
+kubectl-mcp-server call get_pods '{"namespace": "default", "context": "production"}'
+
+# Get deployments from staging
+kubectl-mcp-server call get_deployments '{"namespace": "app", "context": "staging"}'
+
+# Install Helm chart to production cluster
+kubectl-mcp-server call install_helm_chart '{"name": "redis", "chart": "bitnami/redis", "namespace": "cache", "context": "production"}'
+
+# Compare resources across clusters
+kubectl-mcp-server call compare_namespaces '{"namespace1": "prod-ns", "namespace2": "staging-ns", "context": "production"}'
+```
+
+### Context Management
 
 **Talk to your AI assistant:**
 ```
@@ -812,10 +841,16 @@ Seamlessly manage multiple Kubernetes clusters through natural language:
 ```bash
 kubectl-mcp-server context                    # Show current context
 kubectl-mcp-server context production         # Switch context
-list_contexts                                  # Available via MCP tools
+kubectl-mcp-server call list_contexts_tool    # List all contexts via MCP
 ```
 
-The server automatically uses your `~/.kube/config` and respects the `KUBECONFIG` environment variable.
+### How It Works
+
+- If `context` is omitted, the tool uses your current kubectl context
+- If `context` is specified, the tool targets that cluster directly
+- Response includes `"context": "production"` or `"context": "current"` for clarity
+- Works with all kubeconfig setups and respects `KUBECONFIG` environment variable
+- No need to switch contexts for cross-cluster operations
 
 ## Development & Testing
 
@@ -856,13 +891,13 @@ pytest tests/ -v -m unit
 tests/
 ├── __init__.py          # Test package
 ├── conftest.py          # Shared fixtures and mocks
-├── test_tools.py        # Unit tests for 121 MCP tools
+├── test_tools.py        # Unit tests for 131 MCP tools
 ├── test_resources.py    # Tests for 8 MCP Resources
 ├── test_prompts.py      # Tests for 8 MCP Prompts
 └── test_server.py       # Server initialization tests
 ```
 
-**138 tests covering**: tool registration, resource exposure, prompt generation, server initialization, non-destructive mode, secret masking, error handling, and transport methods.
+**216 tests covering**: tool registration, resource exposure, prompt generation, server initialization, non-destructive mode, secret masking, error handling, transport methods, CLI commands, and browser automation.
 
 ### Code Quality
 

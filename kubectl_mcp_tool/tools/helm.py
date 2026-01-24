@@ -11,6 +11,20 @@ from mcp.types import ToolAnnotations
 logger = logging.getLogger("mcp-server")
 
 
+def _get_helm_context_args(context: str) -> List[str]:
+    """Get helm kube-context arguments if context is specified."""
+    if context:
+        return ["--kube-context", context]
+    return []
+
+
+def _get_kubectl_context_args(context: str) -> List[str]:
+    """Get kubectl context arguments if context is specified."""
+    if context:
+        return ["--context", context]
+    return []
+
+
 def register_helm_tools(
     server,
     non_destructive: bool,
@@ -35,9 +49,19 @@ def register_helm_tools(
         chart: str,
         namespace: str,
         repo: Optional[str] = None,
-        values: Optional[dict] = None
+        values: Optional[dict] = None,
+        context: str = ""
     ) -> Dict[str, Any]:
-        """Install a Helm chart."""
+        """Install a Helm chart.
+
+        Args:
+            name: Release name
+            chart: Chart reference
+            namespace: Target namespace
+            repo: Repository in format 'repo_name=repo_url'
+            values: Values to override
+            context: Kubernetes context to use (optional, uses current context if not specified)
+        """
         if non_destructive:
             return {"success": False, "error": "Blocked: non-destructive mode"}
         if not check_helm_fn():
@@ -65,14 +89,14 @@ def register_helm_tools(
                     logger.error(f"Error adding Helm repo: {e.stderr if hasattr(e, 'stderr') else str(e)}")
                     return {"success": False, "error": f"Failed to add Helm repo: {e.stderr if hasattr(e, 'stderr') else str(e)}"}
 
-            cmd = ["helm", "install", name, chart, "-n", namespace]
+            cmd = ["helm"] + _get_helm_context_args(context) + ["install", name, chart, "-n", namespace]
 
             try:
-                ns_cmd = ["kubectl", "get", "namespace", namespace]
+                ns_cmd = ["kubectl"] + _get_kubectl_context_args(context) + ["get", "namespace", namespace]
                 subprocess.check_output(ns_cmd, stderr=subprocess.PIPE, text=True)
             except subprocess.CalledProcessError:
                 logger.info(f"Namespace {namespace} not found, creating it")
-                create_ns_cmd = ["kubectl", "create", "namespace", namespace]
+                create_ns_cmd = ["kubectl"] + _get_kubectl_context_args(context) + ["create", "namespace", namespace]
                 try:
                     subprocess.check_output(create_ns_cmd, stderr=subprocess.PIPE, text=True)
                 except subprocess.CalledProcessError as e:
@@ -92,6 +116,7 @@ def register_helm_tools(
 
                 return {
                     "success": True,
+                    "context": context or "current",
                     "message": f"Helm chart {chart} installed as {name} in {namespace}",
                     "details": result
                 }
@@ -117,9 +142,19 @@ def register_helm_tools(
         chart: str,
         namespace: str,
         repo: Optional[str] = None,
-        values: Optional[dict] = None
+        values: Optional[dict] = None,
+        context: str = ""
     ) -> Dict[str, Any]:
-        """Upgrade a Helm release."""
+        """Upgrade a Helm release.
+
+        Args:
+            name: Release name
+            chart: Chart reference
+            namespace: Target namespace
+            repo: Repository in format 'repo_name=repo_url'
+            values: Values to override
+            context: Kubernetes context to use (optional, uses current context if not specified)
+        """
         if non_destructive:
             return {"success": False, "error": "Blocked: non-destructive mode"}
         if not check_helm_fn():
@@ -147,7 +182,7 @@ def register_helm_tools(
                     logger.error(f"Error adding Helm repo: {e.stderr if hasattr(e, 'stderr') else str(e)}")
                     return {"success": False, "error": f"Failed to add Helm repo: {e.stderr if hasattr(e, 'stderr') else str(e)}"}
 
-            cmd = ["helm", "upgrade", name, chart, "-n", namespace]
+            cmd = ["helm"] + _get_helm_context_args(context) + ["upgrade", name, chart, "-n", namespace]
 
             values_file = None
             try:
@@ -162,6 +197,7 @@ def register_helm_tools(
 
                 return {
                     "success": True,
+                    "context": context or "current",
                     "message": f"Helm release {name} upgraded with chart {chart} in {namespace}",
                     "details": result
                 }
@@ -182,21 +218,28 @@ def register_helm_tools(
             destructiveHint=True,
         ),
     )
-    def uninstall_helm_chart(name: str, namespace: str) -> Dict[str, Any]:
-        """Uninstall a Helm release."""
+    def uninstall_helm_chart(name: str, namespace: str, context: str = "") -> Dict[str, Any]:
+        """Uninstall a Helm release.
+
+        Args:
+            name: Release name to uninstall
+            namespace: Target namespace
+            context: Kubernetes context to use (optional, uses current context if not specified)
+        """
         if non_destructive:
             return {"success": False, "error": "Blocked: non-destructive mode"}
         if not check_helm_fn():
             return {"success": False, "error": "Helm is not available on this system"}
 
         try:
-            cmd = ["helm", "uninstall", name, "-n", namespace]
+            cmd = ["helm"] + _get_helm_context_args(context) + ["uninstall", name, "-n", namespace]
             logger.debug(f"Running command: {' '.join(cmd)}")
 
             try:
                 result = subprocess.check_output(cmd, stderr=subprocess.PIPE, text=True)
                 return {
                     "success": True,
+                    "context": context or "current",
                     "message": f"Helm release {name} uninstalled from {namespace}",
                     "details": result
                 }
@@ -222,7 +265,8 @@ def register_helm_tools(
         failed: bool = False,
         pending: bool = False,
         uninstalled: bool = False,
-        superseded: bool = False
+        superseded: bool = False,
+        context: str = ""
     ) -> Dict[str, Any]:
         """List Helm releases with optional filtering.
 
@@ -235,12 +279,13 @@ def register_helm_tools(
             pending: Show pending releases only
             uninstalled: Show uninstalled releases (if kept with --keep-history)
             superseded: Show superseded releases only
+            context: Kubernetes context to use (optional, uses current context if not specified)
         """
         if not check_helm_fn():
             return {"success": False, "error": "Helm is not available on this system"}
 
         try:
-            cmd = ["helm", "list", "--output", "json"]
+            cmd = ["helm"] + _get_helm_context_args(context) + ["list", "--output", "json"]
 
             if all_namespaces:
                 cmd.append("--all-namespaces")
@@ -270,6 +315,7 @@ def register_helm_tools(
                 releases = json.loads(result.stdout) if result.stdout.strip() else []
                 return {
                     "success": True,
+                    "context": context or "current",
                     "releases": releases,
                     "count": len(releases)
                 }
@@ -290,7 +336,8 @@ def register_helm_tools(
         namespace: str = "default",
         revision: Optional[int] = None,
         show_desc: bool = False,
-        show_resources: bool = False
+        show_resources: bool = False,
+        context: str = ""
     ) -> Dict[str, Any]:
         """Get the status of a Helm release.
 
@@ -300,12 +347,13 @@ def register_helm_tools(
             revision: Show status for a specific revision (default: latest)
             show_desc: Show description of the release
             show_resources: Show resources created by the release
+            context: Kubernetes context to use (optional, uses current context if not specified)
         """
         if not check_helm_fn():
             return {"success": False, "error": "Helm is not available on this system"}
 
         try:
-            cmd = ["helm", "status", release_name, "-n", namespace, "--output", "json"]
+            cmd = ["helm"] + _get_helm_context_args(context) + ["status", release_name, "-n", namespace, "--output", "json"]
 
             if revision:
                 cmd.extend(["--revision", str(revision)])
@@ -319,7 +367,7 @@ def register_helm_tools(
 
             if result.returncode == 0:
                 status = json.loads(result.stdout) if result.stdout.strip() else {}
-                return {"success": True, "status": status}
+                return {"success": True, "context": context or "current", "status": status}
             else:
                 return {"success": False, "error": result.stderr.strip()}
         except Exception as e:
@@ -335,7 +383,8 @@ def register_helm_tools(
     def helm_history(
         release_name: str,
         namespace: str = "default",
-        max_revisions: int = 256
+        max_revisions: int = 256,
+        context: str = ""
     ) -> Dict[str, Any]:
         """Get the revision history of a Helm release.
 
@@ -343,12 +392,13 @@ def register_helm_tools(
             release_name: Name of the release
             namespace: Kubernetes namespace
             max_revisions: Maximum number of revisions to return
+            context: Kubernetes context to use (optional, uses current context if not specified)
         """
         if not check_helm_fn():
             return {"success": False, "error": "Helm is not available on this system"}
 
         try:
-            cmd = ["helm", "history", release_name, "-n", namespace, "--output", "json", "--max", str(max_revisions)]
+            cmd = ["helm"] + _get_helm_context_args(context) + ["history", release_name, "-n", namespace, "--output", "json", "--max", str(max_revisions)]
 
             logger.debug(f"Running command: {' '.join(cmd)}")
             result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
@@ -357,6 +407,7 @@ def register_helm_tools(
                 history = json.loads(result.stdout) if result.stdout.strip() else []
                 return {
                     "success": True,
+                    "context": context or "current",
                     "history": history,
                     "revisions": len(history)
                 }
@@ -376,7 +427,8 @@ def register_helm_tools(
         release_name: str,
         namespace: str = "default",
         all_values: bool = False,
-        revision: Optional[int] = None
+        revision: Optional[int] = None,
+        context: str = ""
     ) -> Dict[str, Any]:
         """Get the values used for a Helm release.
 
@@ -385,12 +437,13 @@ def register_helm_tools(
             namespace: Kubernetes namespace
             all_values: Include computed (default + user) values
             revision: Get values for a specific revision
+            context: Kubernetes context to use (optional, uses current context if not specified)
         """
         if not check_helm_fn():
             return {"success": False, "error": "Helm is not available on this system"}
 
         try:
-            cmd = ["helm", "get", "values", release_name, "-n", namespace, "--output", "yaml"]
+            cmd = ["helm"] + _get_helm_context_args(context) + ["get", "values", release_name, "-n", namespace, "--output", "yaml"]
 
             if all_values:
                 cmd.append("--all")
@@ -402,7 +455,7 @@ def register_helm_tools(
 
             if result.returncode == 0:
                 values = yaml.safe_load(result.stdout) if result.stdout.strip() else {}
-                return {"success": True, "values": values, "raw": result.stdout}
+                return {"success": True, "context": context or "current", "values": values, "raw": result.stdout}
             else:
                 return {"success": False, "error": result.stderr.strip()}
         except Exception as e:
@@ -418,7 +471,8 @@ def register_helm_tools(
     def helm_get_manifest(
         release_name: str,
         namespace: str = "default",
-        revision: Optional[int] = None
+        revision: Optional[int] = None,
+        context: str = ""
     ) -> Dict[str, Any]:
         """Get the manifest (rendered templates) of a Helm release.
 
@@ -426,12 +480,13 @@ def register_helm_tools(
             release_name: Name of the release
             namespace: Kubernetes namespace
             revision: Get manifest for a specific revision
+            context: Kubernetes context to use (optional, uses current context if not specified)
         """
         if not check_helm_fn():
             return {"success": False, "error": "Helm is not available on this system"}
 
         try:
-            cmd = ["helm", "get", "manifest", release_name, "-n", namespace]
+            cmd = ["helm"] + _get_helm_context_args(context) + ["get", "manifest", release_name, "-n", namespace]
 
             if revision:
                 cmd.extend(["--revision", str(revision)])
@@ -440,7 +495,7 @@ def register_helm_tools(
             result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
 
             if result.returncode == 0:
-                return {"success": True, "manifest": result.stdout}
+                return {"success": True, "context": context or "current", "manifest": result.stdout}
             else:
                 return {"success": False, "error": result.stderr.strip()}
         except Exception as e:
@@ -456,7 +511,8 @@ def register_helm_tools(
     def helm_get_notes(
         release_name: str,
         namespace: str = "default",
-        revision: Optional[int] = None
+        revision: Optional[int] = None,
+        context: str = ""
     ) -> Dict[str, Any]:
         """Get the notes (post-install message) of a Helm release.
 
@@ -464,12 +520,13 @@ def register_helm_tools(
             release_name: Name of the release
             namespace: Kubernetes namespace
             revision: Get notes for a specific revision
+            context: Kubernetes context to use (optional, uses current context if not specified)
         """
         if not check_helm_fn():
             return {"success": False, "error": "Helm is not available on this system"}
 
         try:
-            cmd = ["helm", "get", "notes", release_name, "-n", namespace]
+            cmd = ["helm"] + _get_helm_context_args(context) + ["get", "notes", release_name, "-n", namespace]
 
             if revision:
                 cmd.extend(["--revision", str(revision)])
@@ -478,7 +535,7 @@ def register_helm_tools(
             result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
 
             if result.returncode == 0:
-                return {"success": True, "notes": result.stdout}
+                return {"success": True, "context": context or "current", "notes": result.stdout}
             else:
                 return {"success": False, "error": result.stderr.strip()}
         except Exception as e:
@@ -494,7 +551,8 @@ def register_helm_tools(
     def helm_get_hooks(
         release_name: str,
         namespace: str = "default",
-        revision: Optional[int] = None
+        revision: Optional[int] = None,
+        context: str = ""
     ) -> Dict[str, Any]:
         """Get the hooks of a Helm release.
 
@@ -502,12 +560,13 @@ def register_helm_tools(
             release_name: Name of the release
             namespace: Kubernetes namespace
             revision: Get hooks for a specific revision
+            context: Kubernetes context to use (optional, uses current context if not specified)
         """
         if not check_helm_fn():
             return {"success": False, "error": "Helm is not available on this system"}
 
         try:
-            cmd = ["helm", "get", "hooks", release_name, "-n", namespace]
+            cmd = ["helm"] + _get_helm_context_args(context) + ["get", "hooks", release_name, "-n", namespace]
 
             if revision:
                 cmd.extend(["--revision", str(revision)])
@@ -516,7 +575,7 @@ def register_helm_tools(
             result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
 
             if result.returncode == 0:
-                return {"success": True, "hooks": result.stdout}
+                return {"success": True, "context": context or "current", "hooks": result.stdout}
             else:
                 return {"success": False, "error": result.stderr.strip()}
         except Exception as e:
@@ -532,7 +591,8 @@ def register_helm_tools(
     def helm_get_all(
         release_name: str,
         namespace: str = "default",
-        revision: Optional[int] = None
+        revision: Optional[int] = None,
+        context: str = ""
     ) -> Dict[str, Any]:
         """Get all information about a Helm release (values, manifest, hooks, notes).
 
@@ -540,12 +600,13 @@ def register_helm_tools(
             release_name: Name of the release
             namespace: Kubernetes namespace
             revision: Get info for a specific revision
+            context: Kubernetes context to use (optional, uses current context if not specified)
         """
         if not check_helm_fn():
             return {"success": False, "error": "Helm is not available on this system"}
 
         try:
-            cmd = ["helm", "get", "all", release_name, "-n", namespace]
+            cmd = ["helm"] + _get_helm_context_args(context) + ["get", "all", release_name, "-n", namespace]
 
             if revision:
                 cmd.extend(["--revision", str(revision)])
@@ -554,7 +615,7 @@ def register_helm_tools(
             result = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
 
             if result.returncode == 0:
-                return {"success": True, "release_info": result.stdout}
+                return {"success": True, "context": context or "current", "release_info": result.stdout}
             else:
                 return {"success": False, "error": result.stderr.strip()}
         except Exception as e:
@@ -1031,7 +1092,8 @@ def register_helm_tools(
         recreate_pods: bool = False,
         cleanup_on_fail: bool = False,
         wait: bool = False,
-        timeout: str = "5m0s"
+        timeout: str = "5m0s",
+        context: str = ""
     ) -> Dict[str, Any]:
         """Rollback a Helm release to a previous revision.
 
@@ -1044,6 +1106,7 @@ def register_helm_tools(
             cleanup_on_fail: Delete newly created resources on failure
             wait: Wait until all resources are ready
             timeout: Timeout for waiting
+            context: Kubernetes context to use (optional, uses current context if not specified)
         """
         if non_destructive:
             return {"success": False, "error": "Blocked: non-destructive mode"}
@@ -1051,7 +1114,7 @@ def register_helm_tools(
             return {"success": False, "error": "Helm is not available on this system"}
 
         try:
-            cmd = ["helm", "rollback", release_name, str(revision), "-n", namespace]
+            cmd = ["helm"] + _get_helm_context_args(context) + ["rollback", release_name, str(revision), "-n", namespace]
 
             if force:
                 cmd.append("--force")
@@ -1069,6 +1132,7 @@ def register_helm_tools(
             if result.returncode == 0:
                 return {
                     "success": True,
+                    "context": context or "current",
                     "message": f"Release '{release_name}' rolled back to revision {revision}",
                     "details": result.stdout.strip()
                 }
@@ -1089,7 +1153,8 @@ def register_helm_tools(
         namespace: str = "default",
         timeout: str = "5m0s",
         logs: bool = True,
-        filter: Optional[str] = None
+        filter: Optional[str] = None,
+        context: str = ""
     ) -> Dict[str, Any]:
         """Run tests for a Helm release.
 
@@ -1099,12 +1164,13 @@ def register_helm_tools(
             timeout: Timeout for tests
             logs: Show test pod logs
             filter: Filter tests by name
+            context: Kubernetes context to use (optional, uses current context if not specified)
         """
         if not check_helm_fn():
             return {"success": False, "error": "Helm is not available on this system"}
 
         try:
-            cmd = ["helm", "test", release_name, "-n", namespace, "--timeout", timeout]
+            cmd = ["helm"] + _get_helm_context_args(context) + ["test", release_name, "-n", namespace, "--timeout", timeout]
 
             if logs:
                 cmd.append("--logs")
@@ -1117,6 +1183,7 @@ def register_helm_tools(
             if result.returncode == 0:
                 return {
                     "success": True,
+                    "context": context or "current",
                     "message": f"Tests passed for release '{release_name}'",
                     "output": result.stdout.strip()
                 }
@@ -1507,18 +1574,28 @@ def register_helm_tools(
         name: str,
         namespace: str = "default",
         repo: Optional[str] = None,
-        values: Optional[str] = None
+        values: Optional[str] = None,
+        context: str = ""
     ) -> Dict[str, Any]:
-        """Render Helm chart templates locally without installing."""
+        """Render Helm chart templates locally without installing.
+
+        Args:
+            chart: Chart reference
+            name: Release name for template
+            namespace: Target namespace
+            repo: Repository URL
+            values: Set values on command line
+            context: Kubernetes context to use (optional, uses current context if not specified)
+        """
         try:
-            cmd = ["helm", "template", name, chart, "-n", namespace]
+            cmd = ["helm"] + _get_helm_context_args(context) + ["template", name, chart, "-n", namespace]
             if repo:
                 cmd.extend(["--repo", repo])
             if values:
                 cmd.extend(["--set", values])
             result = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
             if result.returncode == 0:
-                return {"success": True, "manifest": result.stdout}
+                return {"success": True, "context": context or "current", "manifest": result.stdout}
             else:
                 return {"success": False, "error": result.stderr.strip()}
         except Exception as e:
@@ -1536,13 +1613,23 @@ def register_helm_tools(
         name: str,
         namespace: str = "default",
         repo: Optional[str] = None,
-        values: Optional[str] = None
+        values: Optional[str] = None,
+        context: str = ""
     ) -> Dict[str, Any]:
-        """Render and apply Helm chart (bypasses Tiller/auth issues)."""
+        """Render and apply Helm chart (bypasses Tiller/auth issues).
+
+        Args:
+            chart: Chart reference
+            name: Release name for template
+            namespace: Target namespace
+            repo: Repository URL
+            values: Set values on command line
+            context: Kubernetes context to use (optional, uses current context if not specified)
+        """
         if non_destructive:
             return {"success": False, "error": "Operation blocked: non-destructive mode enabled"}
         try:
-            cmd = ["helm", "template", name, chart, "-n", namespace]
+            cmd = ["helm"] + _get_helm_context_args(context) + ["template", name, chart, "-n", namespace]
             if repo:
                 cmd.extend(["--repo", repo])
             if values:
@@ -1550,10 +1637,10 @@ def register_helm_tools(
             template_result = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
             if template_result.returncode != 0:
                 return {"success": False, "error": template_result.stderr.strip()}
-            apply_cmd = ["kubectl", "apply", "-f", "-", "-n", namespace]
+            apply_cmd = ["kubectl"] + _get_kubectl_context_args(context) + ["apply", "-f", "-", "-n", namespace]
             apply_result = subprocess.run(apply_cmd, input=template_result.stdout, capture_output=True, text=True, timeout=60)
             if apply_result.returncode == 0:
-                return {"success": True, "output": apply_result.stdout.strip()}
+                return {"success": True, "context": context or "current", "output": apply_result.stdout.strip()}
             else:
                 return {"success": False, "error": apply_result.stderr.strip()}
         except Exception as e:

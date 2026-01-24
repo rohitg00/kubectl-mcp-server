@@ -1,7 +1,9 @@
 import logging
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 from mcp.types import ToolAnnotations
+
+from ..k8s_config import get_k8s_client, get_storage_client
 
 logger = logging.getLogger("mcp-server")
 
@@ -15,12 +17,18 @@ def register_storage_tools(server, non_destructive: bool):
             readOnlyHint=True,
         ),
     )
-    def get_persistent_volumes(name: Optional[str] = None) -> Dict[str, Any]:
-        """Get Persistent Volumes in the cluster."""
+    def get_persistent_volumes(
+        name: Optional[str] = None,
+        context: str = ""
+    ) -> Dict[str, Any]:
+        """Get Persistent Volumes in the cluster.
+
+        Args:
+            name: Specific PV name to get (all PVs if not specified)
+            context: Kubernetes context to use (uses current context if not specified)
+        """
         try:
-            from kubernetes import client, config
-            config.load_kube_config()
-            v1 = client.CoreV1Api()
+            v1 = get_k8s_client(context)
 
             if name:
                 pv = v1.read_persistent_volume(name)
@@ -39,6 +47,7 @@ def register_storage_tools(server, non_destructive: bool):
 
             return {
                 "success": True,
+                "context": context or "current",
                 "persistentVolumes": [
                     {
                         "name": pv.metadata.name,
@@ -66,12 +75,18 @@ def register_storage_tools(server, non_destructive: bool):
             readOnlyHint=True,
         ),
     )
-    def get_pvcs(namespace: Optional[str] = None) -> Dict[str, Any]:
-        """Get Persistent Volume Claims in a namespace or cluster-wide."""
+    def get_pvcs(
+        namespace: Optional[str] = None,
+        context: str = ""
+    ) -> Dict[str, Any]:
+        """Get Persistent Volume Claims in a namespace or cluster-wide.
+
+        Args:
+            namespace: Namespace to list PVCs from (all namespaces if not specified)
+            context: Kubernetes context to use (uses current context if not specified)
+        """
         try:
-            from kubernetes import client, config
-            config.load_kube_config()
-            v1 = client.CoreV1Api()
+            v1 = get_k8s_client(context)
 
             if namespace:
                 pvcs = v1.list_namespaced_persistent_volume_claim(namespace)
@@ -80,6 +95,7 @@ def register_storage_tools(server, non_destructive: bool):
 
             return {
                 "success": True,
+                "context": context or "current",
                 "pvcs": [
                     {
                         "name": pvc.metadata.name,
@@ -103,17 +119,20 @@ def register_storage_tools(server, non_destructive: bool):
             readOnlyHint=True,
         ),
     )
-    def get_storage_classes() -> Dict[str, Any]:
-        """Get Storage Classes in the cluster."""
+    def get_storage_classes(context: str = "") -> Dict[str, Any]:
+        """Get Storage Classes in the cluster.
+
+        Args:
+            context: Kubernetes context to use (uses current context if not specified)
+        """
         try:
-            from kubernetes import client, config
-            config.load_kube_config()
-            storage = client.StorageV1Api()
+            storage = get_storage_client(context)
 
             scs = storage.list_storage_class()
 
             return {
                 "success": True,
+                "context": context or "current",
                 "storageClasses": [
                     {
                         "name": sc.metadata.name,

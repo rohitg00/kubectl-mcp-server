@@ -1,10 +1,19 @@
 import logging
 import subprocess
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 from mcp.types import ToolAnnotations
 
+from ..k8s_config import get_k8s_client, get_apps_client
+
 logger = logging.getLogger("mcp-server")
+
+
+def _get_kubectl_context_args(context: str) -> List[str]:
+    """Get kubectl context arguments if context is specified."""
+    if context:
+        return ["--context", context]
+    return []
 
 
 def register_diagnostics_tools(server, non_destructive: bool):
@@ -21,13 +30,18 @@ def register_diagnostics_tools(server, non_destructive: bool):
             readOnlyHint=True,
         ),
     )
-    def compare_namespaces(namespace1: str, namespace2: str, resource_type: str = "deployment") -> Dict[str, Any]:
-        """Compare resources between two namespaces."""
+    def compare_namespaces(namespace1: str, namespace2: str, resource_type: str = "deployment", context: str = "") -> Dict[str, Any]:
+        """Compare resources between two namespaces.
+
+        Args:
+            namespace1: First namespace to compare
+            namespace2: Second namespace to compare
+            resource_type: Type of resource to compare (deployment, service, configmap, secret)
+            context: Kubernetes context to use (optional, uses current context if not specified)
+        """
         try:
-            from kubernetes import client, config
-            config.load_kube_config()
-            apps = client.AppsV1Api()
-            v1 = client.CoreV1Api()
+            apps = get_apps_client(context)
+            v1 = get_k8s_client(context)
 
             def get_resources(ns, res_type):
                 if res_type == "deployment":
@@ -63,6 +77,7 @@ def register_diagnostics_tools(server, non_destructive: bool):
 
             return {
                 "success": True,
+                "context": context or "current",
                 "resourceType": resource_type,
                 "namespaces": [namespace1, namespace2],
                 "summary": {
@@ -85,10 +100,16 @@ def register_diagnostics_tools(server, non_destructive: bool):
             readOnlyHint=True,
         ),
     )
-    def get_pod_metrics(namespace: Optional[str] = None, pod_name: Optional[str] = None) -> Dict[str, Any]:
-        """Get pod resource usage metrics (requires metrics-server)."""
+    def get_pod_metrics(namespace: Optional[str] = None, pod_name: Optional[str] = None, context: str = "") -> Dict[str, Any]:
+        """Get pod resource usage metrics (requires metrics-server).
+
+        Args:
+            namespace: Target namespace (optional, all namespaces if not specified)
+            pod_name: Filter by specific pod name (optional)
+            context: Kubernetes context to use (optional, uses current context if not specified)
+        """
         try:
-            cmd = ["kubectl", "top", "pods", "--no-headers"]
+            cmd = ["kubectl"] + _get_kubectl_context_args(context) + ["top", "pods", "--no-headers"]
             if namespace:
                 cmd.extend(["-n", namespace])
             else:
@@ -124,6 +145,7 @@ def register_diagnostics_tools(server, non_destructive: bool):
 
             return {
                 "success": True,
+                "context": context or "current",
                 "count": len(metrics),
                 "metrics": metrics
             }
@@ -139,10 +161,14 @@ def register_diagnostics_tools(server, non_destructive: bool):
             readOnlyHint=True,
         ),
     )
-    def get_node_metrics() -> Dict[str, Any]:
-        """Get node resource usage metrics (requires metrics-server)."""
+    def get_node_metrics(context: str = "") -> Dict[str, Any]:
+        """Get node resource usage metrics (requires metrics-server).
+
+        Args:
+            context: Kubernetes context to use (optional, uses current context if not specified)
+        """
         try:
-            cmd = ["kubectl", "top", "nodes", "--no-headers"]
+            cmd = ["kubectl"] + _get_kubectl_context_args(context) + ["top", "nodes", "--no-headers"]
             result = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
 
             if result.returncode != 0:
@@ -164,6 +190,7 @@ def register_diagnostics_tools(server, non_destructive: bool):
 
             return {
                 "success": True,
+                "context": context or "current",
                 "count": len(metrics),
                 "metrics": metrics
             }

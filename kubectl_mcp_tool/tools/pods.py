@@ -1,3 +1,9 @@
+"""
+Pod management tools for kubectl-mcp-server.
+
+All tools support multi-cluster operations via the optional 'context' parameter.
+"""
+
 import json
 import logging
 import shlex
@@ -6,7 +12,16 @@ from typing import Any, Callable, Dict, List, Optional
 
 from mcp.types import ToolAnnotations
 
+from kubectl_mcp_tool.k8s_config import get_k8s_client
+
 logger = logging.getLogger("mcp-server")
+
+
+def _get_kubectl_context_args(context: str = "") -> List[str]:
+    """Get kubectl context arguments."""
+    if context:
+        return ["--context", context]
+    return []
 
 
 def register_pod_tools(
@@ -26,12 +41,18 @@ def register_pod_tools(
             readOnlyHint=True,
         ),
     )
-    def get_pods(namespace: Optional[str] = None) -> Dict[str, Any]:
-        """Get all pods in the specified namespace."""
+    def get_pods(
+        namespace: Optional[str] = None,
+        context: str = ""
+    ) -> Dict[str, Any]:
+        """Get all pods in the specified namespace.
+
+        Args:
+            namespace: Namespace to list pods from (all namespaces if not specified)
+            context: Kubernetes context to use (uses current context if not specified)
+        """
         try:
-            from kubernetes import client, config
-            config.load_kube_config()
-            v1 = client.CoreV1Api()
+            v1 = get_k8s_client(context)
 
             if namespace:
                 pods = v1.list_namespaced_pod(namespace)
@@ -40,6 +61,7 @@ def register_pod_tools(
 
             return {
                 "success": True,
+                "context": context or "current",
                 "pods": [
                     {
                         "name": pod.metadata.name,
@@ -64,13 +86,20 @@ def register_pod_tools(
         pod_name: str,
         namespace: Optional[str] = "default",
         container: Optional[str] = None,
-        tail: Optional[int] = None
+        tail: Optional[int] = None,
+        context: str = ""
     ) -> Dict[str, Any]:
-        """Get logs from a pod."""
+        """Get logs from a pod.
+
+        Args:
+            pod_name: Name of the pod
+            namespace: Namespace of the pod
+            container: Container name (for multi-container pods)
+            tail: Number of lines to show from end of logs
+            context: Kubernetes context to use (uses current context if not specified)
+        """
         try:
-            from kubernetes import client, config
-            config.load_kube_config()
-            v1 = client.CoreV1Api()
+            v1 = get_k8s_client(context)
 
             logs = v1.read_namespaced_pod_log(
                 name=pod_name,
@@ -81,6 +110,7 @@ def register_pod_tools(
 
             return {
                 "success": True,
+                "context": context or "current",
                 "logs": logs
             }
         except Exception as e:
@@ -93,16 +123,25 @@ def register_pod_tools(
             readOnlyHint=True,
         ),
     )
-    def get_pod_events(pod_name: str, namespace: str = "default") -> Dict[str, Any]:
-        """Get events for a specific pod."""
+    def get_pod_events(
+        pod_name: str,
+        namespace: str = "default",
+        context: str = ""
+    ) -> Dict[str, Any]:
+        """Get events for a specific pod.
+
+        Args:
+            pod_name: Name of the pod
+            namespace: Namespace of the pod
+            context: Kubernetes context to use (uses current context if not specified)
+        """
         try:
-            from kubernetes import client, config
-            config.load_kube_config()
-            v1 = client.CoreV1Api()
+            v1 = get_k8s_client(context)
             field_selector = f"involvedObject.name={pod_name}"
             events = v1.list_namespaced_event(namespace, field_selector=field_selector)
             return {
                 "success": True,
+                "context": context or "current",
                 "events": [
                     {
                         "name": event.metadata.name,
@@ -123,16 +162,25 @@ def register_pod_tools(
             readOnlyHint=True,
         ),
     )
-    def check_pod_health(pod_name: str, namespace: str = "default") -> Dict[str, Any]:
-        """Check the health status of a pod."""
+    def check_pod_health(
+        pod_name: str,
+        namespace: str = "default",
+        context: str = ""
+    ) -> Dict[str, Any]:
+        """Check the health status of a pod.
+
+        Args:
+            pod_name: Name of the pod
+            namespace: Namespace of the pod
+            context: Kubernetes context to use (uses current context if not specified)
+        """
         try:
-            from kubernetes import client, config
-            config.load_kube_config()
-            v1 = client.CoreV1Api()
+            v1 = get_k8s_client(context)
             pod = v1.read_namespaced_pod(pod_name, namespace)
             status = pod.status
             return {
                 "success": True,
+                "context": context or "current",
                 "phase": status.phase,
                 "conditions": [c.type for c in status.conditions] if status.conditions else []
             }
@@ -150,11 +198,22 @@ def register_pod_tools(
         pod_name: str,
         command: str,
         namespace: Optional[str] = "default",
-        container: Optional[str] = None
+        container: Optional[str] = None,
+        context: str = ""
     ) -> Dict[str, Any]:
-        """Execute a command inside a pod."""
+        """Execute a command inside a pod.
+
+        Args:
+            pod_name: Name of the pod
+            command: Command to execute
+            namespace: Namespace of the pod
+            container: Container name (for multi-container pods)
+            context: Kubernetes context to use (uses current context if not specified)
+        """
         try:
-            cmd = ["kubectl", "exec", pod_name, "-n", namespace]
+            cmd = ["kubectl"] + _get_kubectl_context_args(context) + [
+                "exec", pod_name, "-n", namespace
+            ]
             if container:
                 cmd.extend(["-c", container])
             cmd.append("--")
@@ -164,6 +223,7 @@ def register_pod_tools(
 
             return {
                 "success": result.returncode == 0,
+                "context": context or "current",
                 "stdout": result.stdout,
                 "stderr": result.stderr,
                 "exit_code": result.returncode
@@ -180,21 +240,29 @@ def register_pod_tools(
     )
     def cleanup_pods(
         namespace: Optional[str] = None,
-        states: Optional[List[str]] = None
+        states: Optional[List[str]] = None,
+        context: str = ""
     ) -> Dict[str, Any]:
-        """Clean up pods in problematic states (Evicted, Error, Completed, etc.)."""
+        """Clean up pods in problematic states (Evicted, Error, Completed, etc.).
+
+        Args:
+            namespace: Namespace to clean up (all namespaces if not specified)
+            states: List of states to clean up (default: Evicted, Error, Completed, ContainerStatusUnknown)
+            context: Kubernetes context to use (uses current context if not specified)
+        """
         if non_destructive:
             return {"success": False, "error": "Blocked: non-destructive mode"}
         try:
             if states is None:
                 states = ["Evicted", "Error", "Completed", "ContainerStatusUnknown"]
 
+            ctx_args = _get_kubectl_context_args(context)
             ns_flag = ["-n", namespace] if namespace else ["--all-namespaces"]
 
             deleted_pods = []
             for state in states:
                 if state == "Evicted":
-                    cmd = ["kubectl", "get", "pods"] + ns_flag + ["-o", "json"]
+                    cmd = ["kubectl"] + ctx_args + ["get", "pods"] + ns_flag + ["-o", "json"]
                     result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
                     if result.returncode == 0:
                         try:
@@ -203,7 +271,7 @@ def register_pod_tools(
                                 if pod.get("status", {}).get("reason") == "Evicted":
                                     pod_name = pod["metadata"]["name"]
                                     pod_ns = pod["metadata"]["namespace"]
-                                    del_cmd = ["kubectl", "delete", "pod", pod_name, "-n", pod_ns]
+                                    del_cmd = ["kubectl"] + ctx_args + ["delete", "pod", pod_name, "-n", pod_ns]
                                     subprocess.run(del_cmd, capture_output=True, timeout=10)
                                     deleted_pods.append(f"{pod_ns}/{pod_name}")
                         except json.JSONDecodeError:
@@ -211,6 +279,7 @@ def register_pod_tools(
 
             return {
                 "success": True,
+                "context": context or "current",
                 "deleted_count": len(deleted_pods),
                 "deleted_pods": deleted_pods[:20]
             }
@@ -224,12 +293,20 @@ def register_pod_tools(
             readOnlyHint=True,
         ),
     )
-    def get_pod_conditions(pod_name: str, namespace: str = "default") -> Dict[str, Any]:
-        """Get detailed pod conditions breakdown."""
+    def get_pod_conditions(
+        pod_name: str,
+        namespace: str = "default",
+        context: str = ""
+    ) -> Dict[str, Any]:
+        """Get detailed pod conditions breakdown.
+
+        Args:
+            pod_name: Name of the pod
+            namespace: Namespace of the pod
+            context: Kubernetes context to use (uses current context if not specified)
+        """
         try:
-            from kubernetes import client, config
-            config.load_kube_config()
-            v1 = client.CoreV1Api()
+            v1 = get_k8s_client(context)
 
             pod = v1.read_namespaced_pod(pod_name, namespace)
 
@@ -279,6 +356,7 @@ def register_pod_tools(
 
             return {
                 "success": True,
+                "context": context or "current",
                 "pod": pod_name,
                 "namespace": namespace,
                 "phaseAnalysis": phase_analysis,
@@ -299,11 +377,21 @@ def register_pod_tools(
         pod_name: str,
         namespace: str = "default",
         container: Optional[str] = None,
-        tail: int = 100
+        tail: int = 100,
+        context: str = ""
     ) -> Dict[str, Any]:
-        """Get logs from the previous container instance (useful for crash debugging)."""
+        """Get logs from the previous container instance (useful for crash debugging).
+
+        Args:
+            pod_name: Name of the pod
+            namespace: Namespace of the pod
+            container: Container name (for multi-container pods)
+            tail: Number of lines to show from end of logs
+            context: Kubernetes context to use (uses current context if not specified)
+        """
         try:
-            cmd = ["kubectl", "logs", pod_name, "-n", namespace, "--previous", f"--tail={tail}"]
+            ctx_args = _get_kubectl_context_args(context)
+            cmd = ["kubectl"] + ctx_args + ["logs", pod_name, "-n", namespace, "--previous", f"--tail={tail}"]
             if container:
                 cmd.extend(["-c", container])
 
@@ -316,6 +404,7 @@ def register_pod_tools(
 
             return {
                 "success": True,
+                "context": context or "current",
                 "pod": pod_name,
                 "namespace": namespace,
                 "container": container,
@@ -334,18 +423,27 @@ def register_pod_tools(
             readOnlyHint=True,
         ),
     )
-    def diagnose_pod_crash(pod_name: str, namespace: str = "default") -> Dict[str, Any]:
-        """Automated diagnosis of pod crash loops and failures."""
+    def diagnose_pod_crash(
+        pod_name: str,
+        namespace: str = "default",
+        context: str = ""
+    ) -> Dict[str, Any]:
+        """Automated diagnosis of pod crash loops and failures.
+
+        Args:
+            pod_name: Name of the pod
+            namespace: Namespace of the pod
+            context: Kubernetes context to use (uses current context if not specified)
+        """
         try:
-            from kubernetes import client, config
-            config.load_kube_config()
-            v1 = client.CoreV1Api()
+            v1 = get_k8s_client(context)
 
             pod = v1.read_namespaced_pod(pod_name, namespace)
 
             diagnosis = {
                 "pod": pod_name,
                 "namespace": namespace,
+                "context": context or "current",
                 "phase": pod.status.phase,
                 "issues": [],
                 "recommendations": [],
@@ -447,12 +545,18 @@ def register_pod_tools(
             readOnlyHint=True,
         ),
     )
-    def detect_pending_pods(namespace: Optional[str] = None) -> Dict[str, Any]:
-        """Find pending pods and explain why they are not scheduled."""
+    def detect_pending_pods(
+        namespace: Optional[str] = None,
+        context: str = ""
+    ) -> Dict[str, Any]:
+        """Find pending pods and explain why they are not scheduled.
+
+        Args:
+            namespace: Namespace to search (all namespaces if not specified)
+            context: Kubernetes context to use (uses current context if not specified)
+        """
         try:
-            from kubernetes import client, config
-            config.load_kube_config()
-            v1 = client.CoreV1Api()
+            v1 = get_k8s_client(context)
 
             if namespace:
                 pods = v1.list_namespaced_pod(namespace, field_selector="status.phase=Pending")
@@ -514,6 +618,7 @@ def register_pod_tools(
 
             return {
                 "success": True,
+                "context": context or "current",
                 "pendingCount": len(pending_pods),
                 "pendingPods": pending_pods
             }
@@ -527,12 +632,18 @@ def register_pod_tools(
             readOnlyHint=True,
         ),
     )
-    def get_evicted_pods(namespace: Optional[str] = None) -> Dict[str, Any]:
-        """Find evicted pods with their eviction reasons."""
+    def get_evicted_pods(
+        namespace: Optional[str] = None,
+        context: str = ""
+    ) -> Dict[str, Any]:
+        """Find evicted pods with their eviction reasons.
+
+        Args:
+            namespace: Namespace to search (all namespaces if not specified)
+            context: Kubernetes context to use (uses current context if not specified)
+        """
         try:
-            from kubernetes import client, config
-            config.load_kube_config()
-            v1 = client.CoreV1Api()
+            v1 = get_k8s_client(context)
 
             if namespace:
                 pods = v1.list_namespaced_pod(namespace)
@@ -567,6 +678,7 @@ def register_pod_tools(
 
             return {
                 "success": True,
+                "context": context or "current",
                 "summary": {
                     "totalEvicted": len(evicted),
                     "byReason": {k: len(v) for k, v in by_reason.items()}

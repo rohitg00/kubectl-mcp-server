@@ -1,10 +1,25 @@
 import logging
 import subprocess
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 from mcp.types import ToolAnnotations
 
+from ..k8s_config import (
+    get_apps_client,
+    get_batch_client,
+    get_autoscaling_client,
+    get_policy_client,
+    _load_config_for_context,
+)
+
 logger = logging.getLogger("mcp-server")
+
+
+def _get_kubectl_context_args(context: str) -> List[str]:
+    """Get kubectl context arguments if context is specified."""
+    if context:
+        return ["--context", context]
+    return []
 
 
 def register_deployment_tools(server, non_destructive: bool):
@@ -16,12 +31,18 @@ def register_deployment_tools(server, non_destructive: bool):
             readOnlyHint=True,
         ),
     )
-    def get_deployments(namespace: Optional[str] = None) -> Dict[str, Any]:
-        """Get all deployments in the specified namespace."""
+    def get_deployments(
+        namespace: Optional[str] = None,
+        context: str = ""
+    ) -> Dict[str, Any]:
+        """Get all deployments in the specified namespace.
+
+        Args:
+            namespace: Namespace to list deployments from (all namespaces if not specified)
+            context: Kubernetes context to use (uses current context if not specified)
+        """
         try:
-            from kubernetes import client, config
-            config.load_kube_config()
-            apps = client.AppsV1Api()
+            apps = get_apps_client(context)
 
             if namespace:
                 deployments = apps.list_namespaced_deployment(namespace)
@@ -30,6 +51,7 @@ def register_deployment_tools(server, non_destructive: bool):
 
             return {
                 "success": True,
+                "context": context or "current",
                 "deployments": [
                     {
                         "name": d.metadata.name,
@@ -51,14 +73,28 @@ def register_deployment_tools(server, non_destructive: bool):
             destructiveHint=True,
         ),
     )
-    def create_deployment(name: str, image: str, replicas: int, namespace: Optional[str] = "default") -> Dict[str, Any]:
-        """Create a new deployment."""
+    def create_deployment(
+        name: str,
+        image: str,
+        replicas: int,
+        namespace: Optional[str] = "default",
+        context: str = ""
+    ) -> Dict[str, Any]:
+        """Create a new deployment.
+
+        Args:
+            name: Name of the deployment
+            image: Container image to deploy
+            replicas: Number of replicas
+            namespace: Namespace to create deployment in (default: "default")
+            context: Kubernetes context to use (uses current context if not specified)
+        """
         if non_destructive:
             return {"success": False, "error": "Blocked: non-destructive mode"}
         try:
-            from kubernetes import client, config
-            config.load_kube_config()
-            apps = client.AppsV1Api()
+            from kubernetes import client
+
+            apps = get_apps_client(context)
 
             deployment = client.V1Deployment(
                 metadata=client.V1ObjectMeta(name=name),
@@ -82,7 +118,11 @@ def register_deployment_tools(server, non_destructive: bool):
             )
 
             apps.create_namespaced_deployment(namespace, deployment)
-            return {"success": True, "message": f"Deployment {name} created"}
+            return {
+                "success": True,
+                "context": context or "current",
+                "message": f"Deployment {name} created"
+            }
         except Exception as e:
             logger.error(f"Error creating deployment: {e}")
             return {"success": False, "error": str(e)}
@@ -93,17 +133,33 @@ def register_deployment_tools(server, non_destructive: bool):
             destructiveHint=True,
         ),
     )
-    def scale_deployment(name: str, replicas: int, namespace: Optional[str] = "default") -> Dict[str, Any]:
-        """Scale a deployment to a specified number of replicas."""
+    def scale_deployment(
+        name: str,
+        replicas: int,
+        namespace: Optional[str] = "default",
+        context: str = ""
+    ) -> Dict[str, Any]:
+        """Scale a deployment to a specified number of replicas.
+
+        Args:
+            name: Name of the deployment
+            replicas: Target number of replicas
+            namespace: Namespace of the deployment (default: "default")
+            context: Kubernetes context to use (uses current context if not specified)
+        """
         if non_destructive:
             return {"success": False, "error": "Blocked: non-destructive mode"}
         try:
-            result = subprocess.run(
-                ["kubectl", "scale", "deployment", name, f"--replicas={replicas}", "-n", namespace],
-                capture_output=True, text=True, timeout=30
-            )
+            cmd = ["kubectl", "scale", "deployment", name, f"--replicas={replicas}", "-n", namespace]
+            cmd.extend(_get_kubectl_context_args(context))
+
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
             if result.returncode == 0:
-                return {"success": True, "message": f"Deployment {name} scaled to {replicas} replicas"}
+                return {
+                    "success": True,
+                    "context": context or "current",
+                    "message": f"Deployment {name} scaled to {replicas} replicas"
+                }
             return {"success": False, "error": result.stderr}
         except Exception as e:
             logger.error(f"Error scaling deployment: {e}")
@@ -115,17 +171,31 @@ def register_deployment_tools(server, non_destructive: bool):
             destructiveHint=True,
         ),
     )
-    def restart_deployment(name: str, namespace: str = "default") -> Dict[str, Any]:
-        """Restart a deployment by triggering a rolling update."""
+    def restart_deployment(
+        name: str,
+        namespace: str = "default",
+        context: str = ""
+    ) -> Dict[str, Any]:
+        """Restart a deployment by triggering a rolling update.
+
+        Args:
+            name: Name of the deployment
+            namespace: Namespace of the deployment (default: "default")
+            context: Kubernetes context to use (uses current context if not specified)
+        """
         if non_destructive:
             return {"success": False, "error": "Blocked: non-destructive mode"}
         try:
-            result = subprocess.run(
-                ["kubectl", "rollout", "restart", "deployment", name, "-n", namespace],
-                capture_output=True, text=True, timeout=30
-            )
+            cmd = ["kubectl", "rollout", "restart", "deployment", name, "-n", namespace]
+            cmd.extend(_get_kubectl_context_args(context))
+
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
             if result.returncode == 0:
-                return {"success": True, "message": f"Deployment {name} restarted"}
+                return {
+                    "success": True,
+                    "context": context or "current",
+                    "message": f"Deployment {name} restarted"
+                }
             return {"success": False, "error": result.stderr}
         except Exception as e:
             logger.error(f"Error restarting deployment: {e}")
@@ -137,12 +207,18 @@ def register_deployment_tools(server, non_destructive: bool):
             readOnlyHint=True,
         ),
     )
-    def get_replicasets(namespace: Optional[str] = None) -> Dict[str, Any]:
-        """Get ReplicaSets in a namespace or cluster-wide."""
+    def get_replicasets(
+        namespace: Optional[str] = None,
+        context: str = ""
+    ) -> Dict[str, Any]:
+        """Get ReplicaSets in a namespace or cluster-wide.
+
+        Args:
+            namespace: Namespace to list ReplicaSets from (all namespaces if not specified)
+            context: Kubernetes context to use (uses current context if not specified)
+        """
         try:
-            from kubernetes import client, config
-            config.load_kube_config()
-            apps = client.AppsV1Api()
+            apps = get_apps_client(context)
 
             if namespace:
                 rs_list = apps.list_namespaced_replica_set(namespace)
@@ -151,6 +227,7 @@ def register_deployment_tools(server, non_destructive: bool):
 
             return {
                 "success": True,
+                "context": context or "current",
                 "replicaSets": [
                     {
                         "name": rs.metadata.name,
@@ -176,12 +253,18 @@ def register_deployment_tools(server, non_destructive: bool):
             readOnlyHint=True,
         ),
     )
-    def get_statefulsets(namespace: Optional[str] = None) -> Dict[str, Any]:
-        """Get StatefulSets in a namespace or cluster-wide."""
+    def get_statefulsets(
+        namespace: Optional[str] = None,
+        context: str = ""
+    ) -> Dict[str, Any]:
+        """Get StatefulSets in a namespace or cluster-wide.
+
+        Args:
+            namespace: Namespace to list StatefulSets from (all namespaces if not specified)
+            context: Kubernetes context to use (uses current context if not specified)
+        """
         try:
-            from kubernetes import client, config
-            config.load_kube_config()
-            apps = client.AppsV1Api()
+            apps = get_apps_client(context)
 
             if namespace:
                 sts_list = apps.list_namespaced_stateful_set(namespace)
@@ -190,6 +273,7 @@ def register_deployment_tools(server, non_destructive: bool):
 
             return {
                 "success": True,
+                "context": context or "current",
                 "statefulSets": [
                     {
                         "name": sts.metadata.name,
@@ -213,12 +297,18 @@ def register_deployment_tools(server, non_destructive: bool):
             readOnlyHint=True,
         ),
     )
-    def get_daemonsets(namespace: Optional[str] = None) -> Dict[str, Any]:
-        """Get DaemonSets in a namespace or cluster-wide."""
+    def get_daemonsets(
+        namespace: Optional[str] = None,
+        context: str = ""
+    ) -> Dict[str, Any]:
+        """Get DaemonSets in a namespace or cluster-wide.
+
+        Args:
+            namespace: Namespace to list DaemonSets from (all namespaces if not specified)
+            context: Kubernetes context to use (uses current context if not specified)
+        """
         try:
-            from kubernetes import client, config
-            config.load_kube_config()
-            apps = client.AppsV1Api()
+            apps = get_apps_client(context)
 
             if namespace:
                 ds_list = apps.list_namespaced_daemon_set(namespace)
@@ -227,6 +317,7 @@ def register_deployment_tools(server, non_destructive: bool):
 
             return {
                 "success": True,
+                "context": context or "current",
                 "daemonSets": [
                     {
                         "name": ds.metadata.name,
@@ -250,12 +341,20 @@ def register_deployment_tools(server, non_destructive: bool):
             readOnlyHint=True,
         ),
     )
-    def get_jobs(namespace: Optional[str] = None, include_cronjobs: bool = True) -> Dict[str, Any]:
-        """Get Jobs and optionally CronJobs."""
+    def get_jobs(
+        namespace: Optional[str] = None,
+        include_cronjobs: bool = True,
+        context: str = ""
+    ) -> Dict[str, Any]:
+        """Get Jobs and optionally CronJobs.
+
+        Args:
+            namespace: Namespace to list Jobs from (all namespaces if not specified)
+            include_cronjobs: Whether to include CronJobs in the result
+            context: Kubernetes context to use (uses current context if not specified)
+        """
         try:
-            from kubernetes import client, config
-            config.load_kube_config()
-            batch = client.BatchV1Api()
+            batch = get_batch_client(context)
 
             if namespace:
                 jobs = batch.list_namespaced_job(namespace)
@@ -264,6 +363,7 @@ def register_deployment_tools(server, non_destructive: bool):
 
             result = {
                 "success": True,
+                "context": context or "current",
                 "jobs": [
                     {
                         "name": job.metadata.name,
@@ -308,12 +408,21 @@ def register_deployment_tools(server, non_destructive: bool):
             readOnlyHint=True,
         ),
     )
-    def get_hpa(namespace: Optional[str] = None) -> Dict[str, Any]:
-        """Get HorizontalPodAutoscalers in a namespace or cluster-wide."""
+    def get_hpa(
+        namespace: Optional[str] = None,
+        context: str = ""
+    ) -> Dict[str, Any]:
+        """Get HorizontalPodAutoscalers in a namespace or cluster-wide.
+
+        Args:
+            namespace: Namespace to list HPAs from (all namespaces if not specified)
+            context: Kubernetes context to use (uses current context if not specified)
+        """
         try:
-            from kubernetes import client, config
-            config.load_kube_config()
-            autoscaling = client.AutoscalingV2Api()
+            from kubernetes import client
+
+            api_client = _load_config_for_context(context)
+            autoscaling = client.AutoscalingV2Api(api_client=api_client)
 
             if namespace:
                 hpas = autoscaling.list_namespaced_horizontal_pod_autoscaler(namespace)
@@ -322,6 +431,7 @@ def register_deployment_tools(server, non_destructive: bool):
 
             return {
                 "success": True,
+                "context": context or "current",
                 "hpas": [
                     {
                         "name": hpa.metadata.name,
@@ -348,12 +458,18 @@ def register_deployment_tools(server, non_destructive: bool):
             readOnlyHint=True,
         ),
     )
-    def get_pdb(namespace: Optional[str] = None) -> Dict[str, Any]:
-        """Get PodDisruptionBudgets in a namespace or cluster-wide."""
+    def get_pdb(
+        namespace: Optional[str] = None,
+        context: str = ""
+    ) -> Dict[str, Any]:
+        """Get PodDisruptionBudgets in a namespace or cluster-wide.
+
+        Args:
+            namespace: Namespace to list PDBs from (all namespaces if not specified)
+            context: Kubernetes context to use (uses current context if not specified)
+        """
         try:
-            from kubernetes import client, config
-            config.load_kube_config()
-            policy = client.PolicyV1Api()
+            policy = get_policy_client(context)
 
             if namespace:
                 pdbs = policy.list_namespaced_pod_disruption_budget(namespace)
@@ -362,6 +478,7 @@ def register_deployment_tools(server, non_destructive: bool):
 
             return {
                 "success": True,
+                "context": context or "current",
                 "pdbs": [
                     {
                         "name": pdb.metadata.name,
