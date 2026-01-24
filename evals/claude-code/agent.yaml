@@ -1,0 +1,75 @@
+# Claude Code Agent Configuration
+# Defines how to invoke Claude Code for MCP evaluations
+
+name: claude-code
+type: claude-code
+version: "1.0"
+description: Claude Code AI assistant with MCP support
+
+# Command templates for invoking the agent
+commands:
+  # Template for passing MCP server config file
+  # {{ .File }} will be replaced with the path to mcp-config.yaml
+  argTemplateMcpServer: "--mcp-config {{ .File }}"
+
+  # Full command to run a prompt
+  # {{ .McpServerFileArgs }} = rendered argTemplateMcpServer
+  # {{ .Prompt }} = the task prompt
+  runPrompt: 'claude {{ .McpServerFileArgs }} --print "{{ .Prompt }}"'
+
+  # Alternative: Run with verbose output
+  runPromptVerbose: 'claude {{ .McpServerFileArgs }} --verbose --print "{{ .Prompt }}"'
+
+  # Alternative: Run in interactive mode (for debugging)
+  runInteractive: 'claude {{ .McpServerFileArgs }}'
+
+# Environment variables passed to the agent
+env:
+  # Claude API key (from environment)
+  ANTHROPIC_API_KEY: "${ANTHROPIC_API_KEY}"
+  # Enable debug mode for MCP
+  MCP_DEBUG: "true"
+  # Disable telemetry during evals
+  CLAUDE_DISABLE_TELEMETRY: "true"
+
+# Agent-specific settings
+settings:
+  # Model to use
+  model: claude-sonnet-4-20250514
+  # Maximum tokens for response
+  maxTokens: 8192
+  # Temperature (0 = deterministic)
+  temperature: 0
+  # Timeout for agent response (seconds)
+  timeout: 120
+  # Retry on transient errors
+  retryOnError: true
+  maxRetries: 2
+
+# Capabilities this agent supports
+capabilities:
+  - mcp
+  - file-operations
+  - bash-commands
+  - multi-turn
+
+# Tool preferences for evaluation
+toolPreferences:
+  # Prefer specific tools for certain operations
+  podCreation: ["run_pod", "apply_manifest"]
+  deploymentCreation: ["create_deployment", "apply_manifest"]
+  serviceCreation: ["create_service", "apply_manifest"]
+  helmOperations: ["install_helm_chart", "upgrade_helm_chart"]
+
+# Output parsing configuration
+outputParsing:
+  # Extract tool calls from output
+  toolCallPattern: "Tool: (\\w+)"
+  # Extract results
+  resultPattern: "Result: (.+)"
+  # Detect errors
+  errorPatterns:
+    - "Error:"
+    - "error:"
+    - "failed"
+    - "FAILED"

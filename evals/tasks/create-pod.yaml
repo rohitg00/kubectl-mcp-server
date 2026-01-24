@@ -1,0 +1,54 @@
+# Task: Create an nginx pod
+# Tests basic pod creation functionality
+
+name: create-nginx-pod
+description: Create an nginx pod and verify it's running
+category: core
+
+# Setup phase
+setup:
+  script: ./setup.sh
+
+# The prompt to send to the AI agent
+prompt: |
+  Create an nginx pod named web-server in the eval-test namespace.
+  The pod should use the nginx:latest image.
+  Wait for the pod to be running before confirming success.
+
+# Expected tool invocations and outputs
+assertions:
+  # Tool must match one of these patterns
+  - toolPattern: "(run_pod|apply_manifest|create_resource)"
+  # Output must contain 'created' or 'pod'
+  - outputContains: "created"
+  # Output should not contain error
+  - outputNotContains: "error"
+  - outputNotContains: "Error"
+  # Expected tool parameters
+  - toolParams:
+      name: "web-server"
+      image: "nginx:latest"
+      namespace: "eval-test"
+
+# Verification phase
+verify:
+  script: ./verify.sh
+  args: ["web-server", "pod"]
+  # Expected conditions
+  conditions:
+    - type: Ready
+      status: "True"
+
+# Cleanup phase
+cleanup:
+  commands:
+    - kubectl delete pod web-server -n eval-test --ignore-not-found
+
+# Timeout in seconds
+timeout: 60
+
+# Tags for filtering
+tags:
+  - pod
+  - core
+  - basic

@@ -1,0 +1,104 @@
+# Claude Code Evaluation Definition
+# Defines the eval suite for testing kubectl-mcp-server with Claude Code
+
+name: kubectl-mcp-server-claude-code
+description: Test kubectl-mcp-server with Claude Code AI assistant
+version: "1.0"
+
+# Agent configuration
+agent:
+  file: agent.yaml
+
+# MCP server configuration
+mcpServer:
+  file: ../mcp-config.yaml
+
+# Tasks to run in this evaluation
+tasks:
+  # Core Kubernetes operations
+  - file: ../tasks/create-pod.yaml
+    weight: 1.0
+    required: true
+
+  - file: ../tasks/deploy-app.yaml
+    weight: 1.0
+    required: true
+
+  - file: ../tasks/configmap-secret.yaml
+    weight: 1.0
+    required: false
+
+  # Networking
+  - file: ../tasks/networking.yaml
+    weight: 0.8
+    required: false
+
+  # Helm operations
+  - file: ../tasks/helm-install.yaml
+    weight: 0.8
+    required: false
+
+  # Advanced operations
+  - file: ../tasks/multi-cluster.yaml
+    weight: 0.5
+    required: false
+
+  - file: ../tasks/diagnostics.yaml
+    weight: 0.5
+    required: false
+
+# Global evaluation settings
+settings:
+  # Run tasks sequentially (not in parallel)
+  parallel: false
+
+  # Stop evaluation if a required task fails
+  stopOnFailure: true
+
+  # Global timeout for the entire eval (seconds)
+  timeout: 600
+
+  # Setup before all tasks
+  globalSetup:
+    script: ../tasks/setup.sh
+
+  # Cleanup after all tasks
+  globalCleanup:
+    script: ../tasks/cleanup.sh
+
+  # Results directory
+  resultsDir: ./results
+
+  # Enable verbose logging
+  verbose: true
+
+# Scoring configuration
+scoring:
+  # Pass threshold (0-100)
+  passThreshold: 70
+
+  # Scoring weights
+  weights:
+    toolCorrectness: 0.4    # Correct tool used
+    outputCorrectness: 0.3  # Expected output
+    noErrors: 0.2           # No errors in execution
+    performance: 0.1        # Completion time
+
+# Assertions that apply to all tasks
+globalAssertions:
+  # No Python exceptions
+  - outputNotContains: "Traceback"
+  # No kubectl errors
+  - outputNotContains: "error: "
+  # No connection failures
+  - outputNotContains: "Unable to connect"
+
+# Metadata
+metadata:
+  author: kubectl-mcp-server
+  created: "2024-01-20"
+  tags:
+    - kubernetes
+    - mcp
+    - claude-code
+    - evaluation

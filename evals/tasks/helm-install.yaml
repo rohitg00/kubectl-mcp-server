@@ -1,0 +1,67 @@
+# Task: Install a Helm chart
+# Tests Helm chart installation functionality
+
+name: helm-install-nginx
+description: Install an nginx Helm chart and verify the release
+category: helm
+
+# Setup phase
+setup:
+  script: ./setup.sh
+  commands:
+    # Ensure Helm repo is added
+    - helm repo add bitnami https://charts.bitnami.com/bitnami 2>/dev/null || true
+    - helm repo update
+
+# The prompt to send to the AI agent
+prompt: |
+  Install the bitnami/nginx Helm chart in the eval-test namespace with:
+  - Release name: nginx-eval
+  - Set replica count to 1
+  - Use chart version 15.0.0 or latest available
+  - Wait for the release to be deployed
+
+  After installation, show the release status.
+
+# Expected tool invocations and outputs
+assertions:
+  # Helm install tool
+  - toolPattern: "(install_helm_chart|helm_install)"
+  - outputContains: "deployed"
+  # Release name mentioned
+  - outputContains: "nginx-eval"
+  # No errors
+  - outputNotContains: "error"
+  - outputNotContains: "failed"
+  # Expected parameters
+  - toolParams:
+      name: "nginx-eval"
+      chart: "bitnami/nginx"
+      namespace: "eval-test"
+
+# Verification phase
+verify:
+  commands:
+    # Check Helm release exists
+    - helm status nginx-eval -n eval-test
+    # Check release status is deployed
+    - helm status nginx-eval -n eval-test -o json | jq -e '.info.status == "deployed"'
+    # Check deployment created by chart
+    - kubectl get deployment -n eval-test -l app.kubernetes.io/instance=nginx-eval
+  script: ./verify.sh
+  args: ["nginx-eval", "helm"]
+
+# Cleanup phase
+cleanup:
+  commands:
+    - helm uninstall nginx-eval -n eval-test --ignore-not-found 2>/dev/null || true
+    - kubectl delete pvc -n eval-test -l app.kubernetes.io/instance=nginx-eval --ignore-not-found
+
+# Timeout in seconds (longer for Helm operations)
+timeout: 180
+
+# Tags for filtering
+tags:
+  - helm
+  - nginx
+  - chart

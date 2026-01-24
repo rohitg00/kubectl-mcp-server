@@ -1,0 +1,64 @@
+# Task: Multi-cluster operations
+# Tests context-aware multi-cluster functionality
+
+name: multi-cluster-query
+description: Query resources across multiple cluster contexts
+category: advanced
+
+# Setup phase
+setup:
+  script: ./setup.sh
+  commands:
+    # List available contexts (informational)
+    - kubectl config get-contexts --no-headers -o name || true
+
+# The prompt to send to the AI agent
+prompt: |
+  Perform the following multi-cluster operations:
+
+  1. List all available kubeconfig contexts
+  2. Show the current context being used
+  3. Get the API server versions from the current cluster
+  4. List all namespaces in the current cluster
+  5. Check what CRDs are available in the cluster
+
+  Report the findings in a structured format.
+
+# Expected tool invocations and outputs
+assertions:
+  # Context tools
+  - toolPattern: "(list_contexts|kubeconfig_view|get_current_context)"
+  # API versions tool
+  - toolPattern: "(get_api_versions|cluster_info)"
+  # Namespace listing
+  - toolPattern: "(list_namespaces|get_namespaces)"
+  # CRD check
+  - toolPattern: "(list_crds|check_crd_exists)"
+  # Output should contain context info
+  - outputContains: "context"
+  # No errors
+  - outputNotContains: "error"
+  - outputNotContains: "cannot connect"
+
+# Verification phase
+verify:
+  commands:
+    # Verify we can connect to cluster
+    - kubectl cluster-info
+    # Verify context operations work
+    - kubectl config current-context
+
+# Cleanup phase
+cleanup:
+  # No cleanup needed for read-only operations
+  commands: []
+
+# Timeout in seconds
+timeout: 60
+
+# Tags for filtering
+tags:
+  - multi-cluster
+  - context
+  - advanced
+  - read-only
