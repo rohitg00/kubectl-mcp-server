@@ -37,6 +37,7 @@ from .output import (
     format_error,
     format_success,
 )
+from ..safety import SafetyMode, set_safety_mode, get_mode_info
 
 # Logging setup
 log_file = os.environ.get("MCP_LOG_FILE")
@@ -282,12 +283,16 @@ def cmd_info(args):
     except Exception:
         pass
 
+    # Get safety mode info
+    mode_info = get_mode_info()
+
     print(format_server_info(
         version=__version__,
         tool_count=len(tools),
         resource_count=len(resources),
         prompt_count=len(prompts),
         context=context,
+        safety_mode=mode_info,
         as_json=getattr(args, 'json', False)
     ))
     return ErrorCode.SUCCESS
@@ -407,6 +412,16 @@ def cmd_doctor(args):
     except ImportError:
         checks.append({"name": "fastmcp", "status": "error", "details": "fastmcp not installed"})
 
+    # Check safety mode
+    mode_info = get_mode_info()
+    mode = mode_info.get("mode", "normal")
+    if mode == "normal":
+        checks.append({"name": "safety_mode", "status": "ok", "version": mode, "details": "All operations allowed"})
+    elif mode == "read_only":
+        checks.append({"name": "safety_mode", "status": "warning", "version": mode, "details": "Write operations blocked"})
+    else:
+        checks.append({"name": "safety_mode", "status": "warning", "version": mode, "details": "Destructive operations blocked"})
+
     print(format_doctor_results(checks, as_json=getattr(args, 'json', False)))
 
     # Return error code if any critical checks failed
@@ -453,6 +468,8 @@ Environment Variables:
     )
     serve_parser.add_argument("--host", type=str, default="0.0.0.0", help="Host for SSE/HTTP (default: 0.0.0.0)")
     serve_parser.add_argument("--port", type=int, default=8000, help="Port for SSE/HTTP (default: 8000)")
+    serve_parser.add_argument("--read-only", action="store_true", help="Enable read-only mode (block all write operations)")
+    serve_parser.add_argument("--disable-destructive", action="store_true", help="Disable destructive operations (allow create/update, block delete)")
 
     # version command (existing)
     subparsers.add_parser("version", help="Show version")
@@ -507,6 +524,14 @@ Environment Variables:
 
     try:
         if args.command == "serve":
+            # Set safety mode based on flags
+            if args.read_only:
+                set_safety_mode(SafetyMode.READ_ONLY)
+                logger.info("Starting server in READ-ONLY mode")
+            elif args.disable_destructive:
+                set_safety_mode(SafetyMode.DISABLE_DESTRUCTIVE)
+                logger.info("Starting server with destructive operations disabled")
+
             if args.transport == "stdio":
                 asyncio.run(serve_stdio())
             elif args.transport == "sse":

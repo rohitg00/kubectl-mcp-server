@@ -266,6 +266,7 @@ def format_server_info(
     resource_count: int,
     prompt_count: int,
     context: Optional[str] = None,
+    safety_mode: Optional[Dict[str, Any]] = None,
     as_json: bool = False
 ) -> str:
     info = {
@@ -275,6 +276,9 @@ def format_server_info(
         "prompts": prompt_count,
         "k8s_context": context,
     }
+
+    if safety_mode:
+        info["safety_mode"] = safety_mode
 
     if as_json:
         return json.dumps(info, indent=2)
@@ -290,6 +294,16 @@ def format_server_info(
 
     if context:
         lines.append(f"  {cyan('K8s Context:')} {context}")
+
+    if safety_mode:
+        mode = safety_mode.get("mode", "normal")
+        if mode == "normal":
+            mode_str = green(mode)
+        elif mode == "read_only":
+            mode_str = yellow(mode) + " (write operations blocked)"
+        else:
+            mode_str = yellow(mode) + " (destructive operations blocked)"
+        lines.append(f"  {cyan('Safety Mode:')} {mode_str}")
 
     return "\n".join(lines)
 
