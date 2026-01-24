@@ -10,10 +10,41 @@ This module tests all FastMCP 3 prompts including:
 - debug_networking
 - scale_application
 - upgrade_cluster
+
+Also tests the configurable prompts system:
+- Custom prompt loading from TOML
+- Template rendering with Mustache syntax
+- Built-in prompts (cluster-health-check, debug-workload, etc.)
+- Prompt validation and merging
 """
 
 import pytest
+import tempfile
+import os
 from unittest.mock import patch, MagicMock
+
+from kubectl_mcp_tool.prompts.custom import (
+    CustomPrompt,
+    PromptArgument,
+    PromptMessage,
+    render_prompt,
+    load_prompts_from_config,
+    load_prompts_from_toml_file,
+    validate_prompt_args,
+    apply_defaults,
+    get_prompt_schema,
+)
+from kubectl_mcp_tool.prompts.builtin import (
+    BUILTIN_PROMPTS,
+    get_builtin_prompts,
+    get_builtin_prompt_by_name,
+    CLUSTER_HEALTH_CHECK,
+    DEBUG_WORKLOAD,
+    RESOURCE_USAGE,
+    SECURITY_POSTURE,
+    DEPLOYMENT_CHECKLIST,
+    INCIDENT_RESPONSE,
+)
 
 
 class TestTroubleshootWorkloadPrompt:
@@ -534,3 +565,688 @@ class TestPromptContent:
         for statement in action_statements:
             # Verify each statement is a valid action prompt
             assert "now" in statement.lower() or "begin" in statement.lower() or "start" in statement.lower()
+
+
+# =============================================================================
+# Configurable Prompts System Tests
+# =============================================================================
+
+
+class TestPromptArgument:
+    """Tests for PromptArgument dataclass."""
+
+    @pytest.mark.unit
+    def test_create_required_argument(self):
+        """Test creating a required prompt argument."""
+        arg = PromptArgument(
+            name="pod_name",
+            description="Name of the pod",
+            required=True
+        )
+        assert arg.name == "pod_name"
+        assert arg.description == "Name of the pod"
+        assert arg.required is True
+        assert arg.default == ""
+
+    @pytest.mark.unit
+    def test_create_optional_argument_with_default(self):
+        """Test creating an optional argument with default value."""
+        arg = PromptArgument(
+            name="namespace",
+            description="Kubernetes namespace",
+            required=False,
+            default="default"
+        )
+        assert arg.name == "namespace"
+        assert arg.required is False
+        assert arg.default == "default"
+
+
+class TestPromptMessage:
+    """Tests for PromptMessage dataclass."""
+
+    @pytest.mark.unit
+    def test_create_user_message(self):
+        """Test creating a user message."""
+        msg = PromptMessage(
+            role="user",
+            content="Debug the pod in namespace default"
+        )
+        assert msg.role == "user"
+        assert msg.content == "Debug the pod in namespace default"
+
+    @pytest.mark.unit
+    def test_create_assistant_message(self):
+        """Test creating an assistant message."""
+        msg = PromptMessage(
+            role="assistant",
+            content="I'll help you debug the pod."
+        )
+        assert msg.role == "assistant"
+
+
+class TestCustomPrompt:
+    """Tests for CustomPrompt dataclass."""
+
+    @pytest.mark.unit
+    def test_create_simple_prompt(self):
+        """Test creating a simple custom prompt."""
+        prompt = CustomPrompt(
+            name="test-prompt",
+            title="Test Prompt",
+            description="A test prompt"
+        )
+        assert prompt.name == "test-prompt"
+        assert prompt.title == "Test Prompt"
+        assert prompt.description == "A test prompt"
+        assert prompt.arguments == []
+        assert prompt.messages == []
+
+    @pytest.mark.unit
+    def test_create_prompt_with_arguments_and_messages(self):
+        """Test creating a prompt with arguments and messages."""
+        prompt = CustomPrompt(
+            name="debug-pod",
+            title="Debug Pod",
+            description="Debug a Kubernetes pod",
+            arguments=[
+                PromptArgument(name="pod_name", required=True),
+                PromptArgument(name="namespace", default="default"),
+            ],
+            messages=[
+                PromptMessage(role="user", content="Debug pod {{pod_name}}"),
+            ]
+        )
+        assert len(prompt.arguments) == 2
+        assert len(prompt.messages) == 1
+        assert prompt.arguments[0].name == "pod_name"
+
+
+class TestRenderPrompt:
+    """Tests for render_prompt function."""
+
+    @pytest.mark.unit
+    def test_simple_variable_substitution(self):
+        """Test basic variable substitution."""
+        prompt = CustomPrompt(
+            name="test",
+            description="Test",
+            messages=[
+                PromptMessage(role="user", content="Debug pod {{pod_name}} in {{namespace}}")
+            ]
+        )
+        result = render_prompt(prompt, {"pod_name": "nginx", "namespace": "production"})
+        assert len(result) == 1
+        assert result[0].content == "Debug pod nginx in production"
+        assert result[0].role == "user"
+
+    @pytest.mark.unit
+    def test_conditional_section_shown_when_true(self):
+        """Test conditional section is shown when variable is truthy."""
+        prompt = CustomPrompt(
+            name="test",
+            description="Test",
+            messages=[
+                PromptMessage(
+                    role="user",
+                    content="Check pods{{#namespace}} in namespace {{namespace}}{{/namespace}}."
+                )
+            ]
+        )
+        result = render_prompt(prompt, {"namespace": "production"})
+        assert "in namespace production" in result[0].content
+
+    @pytest.mark.unit
+    def test_conditional_section_hidden_when_false(self):
+        """Test conditional section is hidden when variable is falsy."""
+        prompt = CustomPrompt(
+            name="test",
+            description="Test",
+            messages=[
+                PromptMessage(
+                    role="user",
+                    content="Check pods{{#namespace}} in namespace {{namespace}}{{/namespace}}."
+                )
+            ]
+        )
+        result = render_prompt(prompt, {})
+        assert "in namespace" not in result[0].content
+        assert result[0].content == "Check pods."
+
+    @pytest.mark.unit
+    def test_conditional_section_with_false_value(self):
+        """Test conditional section is hidden when variable is 'false'."""
+        prompt = CustomPrompt(
+            name="test",
+            description="Test",
+            messages=[
+                PromptMessage(
+                    role="user",
+                    content="{{#check_metrics}}Include metrics analysis.{{/check_metrics}}"
+                )
+            ]
+        )
+        result = render_prompt(prompt, {"check_metrics": "false"})
+        assert "Include metrics" not in result[0].content
+
+    @pytest.mark.unit
+    def test_inverse_section_shown_when_false(self):
+        """Test inverse section is shown when variable is falsy."""
+        prompt = CustomPrompt(
+            name="test",
+            description="Test",
+            messages=[
+                PromptMessage(
+                    role="user",
+                    content="{{^namespace}}All namespaces{{/namespace}}{{#namespace}}Namespace: {{namespace}}{{/namespace}}"
+                )
+            ]
+        )
+        result = render_prompt(prompt, {})
+        assert "All namespaces" in result[0].content
+
+    @pytest.mark.unit
+    def test_inverse_section_hidden_when_true(self):
+        """Test inverse section is hidden when variable is truthy."""
+        prompt = CustomPrompt(
+            name="test",
+            description="Test",
+            messages=[
+                PromptMessage(
+                    role="user",
+                    content="{{^namespace}}All namespaces{{/namespace}}{{#namespace}}Namespace: {{namespace}}{{/namespace}}"
+                )
+            ]
+        )
+        result = render_prompt(prompt, {"namespace": "production"})
+        assert "All namespaces" not in result[0].content
+        assert "Namespace: production" in result[0].content
+
+    @pytest.mark.unit
+    def test_multiple_messages(self):
+        """Test rendering multiple messages."""
+        prompt = CustomPrompt(
+            name="test",
+            description="Test",
+            messages=[
+                PromptMessage(role="user", content="Hello {{name}}"),
+                PromptMessage(role="assistant", content="Hi there!"),
+                PromptMessage(role="user", content="Debug {{pod}}"),
+            ]
+        )
+        result = render_prompt(prompt, {"name": "Admin", "pod": "nginx"})
+        assert len(result) == 3
+        assert result[0].content == "Hello Admin"
+        assert result[2].content == "Debug nginx"
+
+    @pytest.mark.unit
+    def test_unsubstituted_variables_removed(self):
+        """Test that unsubstituted optional variables are removed."""
+        prompt = CustomPrompt(
+            name="test",
+            description="Test",
+            messages=[
+                PromptMessage(role="user", content="Check {{resource}} status {{unknown_var}}")
+            ]
+        )
+        result = render_prompt(prompt, {"resource": "pods"})
+        assert result[0].content == "Check pods status"
+
+
+class TestLoadPromptsFromConfig:
+    """Tests for load_prompts_from_config function."""
+
+    @pytest.mark.unit
+    def test_load_simple_prompt(self):
+        """Test loading a simple prompt from config dict."""
+        config = {
+            "prompts": [
+                {
+                    "name": "debug-pod",
+                    "title": "Debug Pod",
+                    "description": "Debug a pod",
+                    "arguments": [
+                        {"name": "pod_name", "required": True, "description": "Pod name"}
+                    ],
+                    "messages": [
+                        {"role": "user", "content": "Debug {{pod_name}}"}
+                    ]
+                }
+            ]
+        }
+        prompts = load_prompts_from_config(config)
+        assert len(prompts) == 1
+        assert prompts[0].name == "debug-pod"
+        assert prompts[0].title == "Debug Pod"
+        assert len(prompts[0].arguments) == 1
+        assert prompts[0].arguments[0].required is True
+
+    @pytest.mark.unit
+    def test_load_multiple_prompts(self):
+        """Test loading multiple prompts from config."""
+        config = {
+            "prompts": [
+                {"name": "prompt1", "description": "First", "messages": [{"role": "user", "content": "Hello"}]},
+                {"name": "prompt2", "description": "Second", "messages": [{"role": "user", "content": "World"}]},
+            ]
+        }
+        prompts = load_prompts_from_config(config)
+        assert len(prompts) == 2
+
+    @pytest.mark.unit
+    def test_load_empty_config(self):
+        """Test loading from empty config returns empty list."""
+        prompts = load_prompts_from_config({})
+        assert prompts == []
+
+    @pytest.mark.unit
+    def test_load_config_with_defaults(self):
+        """Test that argument defaults are loaded."""
+        config = {
+            "prompts": [
+                {
+                    "name": "test",
+                    "description": "Test",
+                    "arguments": [
+                        {"name": "namespace", "required": False, "default": "default"}
+                    ],
+                    "messages": [{"role": "user", "content": "Test"}]
+                }
+            ]
+        }
+        prompts = load_prompts_from_config(config)
+        assert prompts[0].arguments[0].default == "default"
+
+    @pytest.mark.unit
+    def test_skip_invalid_prompts(self):
+        """Test that invalid prompts are skipped."""
+        config = {
+            "prompts": [
+                {"name": "", "description": "Invalid - no name"},  # Invalid
+                {"name": "valid", "description": "Valid prompt", "messages": [{"role": "user", "content": "Hi"}]},
+            ]
+        }
+        prompts = load_prompts_from_config(config)
+        assert len(prompts) == 1
+        assert prompts[0].name == "valid"
+
+
+class TestLoadPromptsFromTomlFile:
+    """Tests for load_prompts_from_toml_file function."""
+
+    @pytest.mark.unit
+    def test_load_from_valid_toml(self):
+        """Test loading prompts from a valid TOML file."""
+        toml_content = """
+[[prompts]]
+name = "test-prompt"
+title = "Test Prompt"
+description = "A test prompt for testing"
+
+[[prompts.arguments]]
+name = "target"
+description = "Target resource"
+required = true
+
+[[prompts.messages]]
+role = "user"
+content = "Check {{target}}"
+"""
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.toml', delete=False) as f:
+            f.write(toml_content)
+            f.flush()
+            try:
+                prompts = load_prompts_from_toml_file(f.name)
+                assert len(prompts) == 1
+                assert prompts[0].name == "test-prompt"
+                assert len(prompts[0].arguments) == 1
+            finally:
+                os.unlink(f.name)
+
+    @pytest.mark.unit
+    def test_load_from_nonexistent_file(self):
+        """Test loading from nonexistent file returns empty list."""
+        prompts = load_prompts_from_toml_file("/nonexistent/path/prompts.toml")
+        assert prompts == []
+
+
+class TestValidatePromptArgs:
+    """Tests for validate_prompt_args function."""
+
+    @pytest.mark.unit
+    def test_valid_required_args(self):
+        """Test validation passes with all required args."""
+        prompt = CustomPrompt(
+            name="test",
+            description="Test",
+            arguments=[
+                PromptArgument(name="required_arg", required=True),
+            ]
+        )
+        errors = validate_prompt_args(prompt, {"required_arg": "value"})
+        assert errors == []
+
+    @pytest.mark.unit
+    def test_missing_required_arg(self):
+        """Test validation fails with missing required arg."""
+        prompt = CustomPrompt(
+            name="test",
+            description="Test",
+            arguments=[
+                PromptArgument(name="required_arg", required=True),
+            ]
+        )
+        errors = validate_prompt_args(prompt, {})
+        assert len(errors) == 1
+        assert "required_arg" in errors[0]
+
+    @pytest.mark.unit
+    def test_empty_required_arg(self):
+        """Test validation fails with empty required arg."""
+        prompt = CustomPrompt(
+            name="test",
+            description="Test",
+            arguments=[
+                PromptArgument(name="required_arg", required=True),
+            ]
+        )
+        errors = validate_prompt_args(prompt, {"required_arg": ""})
+        assert len(errors) == 1
+
+    @pytest.mark.unit
+    def test_optional_args_not_required(self):
+        """Test validation passes without optional args."""
+        prompt = CustomPrompt(
+            name="test",
+            description="Test",
+            arguments=[
+                PromptArgument(name="optional_arg", required=False),
+            ]
+        )
+        errors = validate_prompt_args(prompt, {})
+        assert errors == []
+
+
+class TestApplyDefaults:
+    """Tests for apply_defaults function."""
+
+    @pytest.mark.unit
+    def test_apply_missing_defaults(self):
+        """Test that defaults are applied for missing args."""
+        prompt = CustomPrompt(
+            name="test",
+            description="Test",
+            arguments=[
+                PromptArgument(name="namespace", default="default"),
+                PromptArgument(name="timeout", default="30"),
+            ]
+        )
+        result = apply_defaults(prompt, {})
+        assert result["namespace"] == "default"
+        assert result["timeout"] == "30"
+
+    @pytest.mark.unit
+    def test_preserve_provided_values(self):
+        """Test that provided values are preserved."""
+        prompt = CustomPrompt(
+            name="test",
+            description="Test",
+            arguments=[
+                PromptArgument(name="namespace", default="default"),
+            ]
+        )
+        result = apply_defaults(prompt, {"namespace": "production"})
+        assert result["namespace"] == "production"
+
+    @pytest.mark.unit
+    def test_no_default_for_empty_string(self):
+        """Test that empty string default is not applied."""
+        prompt = CustomPrompt(
+            name="test",
+            description="Test",
+            arguments=[
+                PromptArgument(name="arg", default=""),
+            ]
+        )
+        result = apply_defaults(prompt, {})
+        assert "arg" not in result
+
+
+class TestGetPromptSchema:
+    """Tests for get_prompt_schema function."""
+
+    @pytest.mark.unit
+    def test_generate_schema(self):
+        """Test generating JSON Schema for prompt."""
+        prompt = CustomPrompt(
+            name="test",
+            description="Test",
+            arguments=[
+                PromptArgument(name="pod_name", description="Pod name", required=True),
+                PromptArgument(name="namespace", description="Namespace", required=False, default="default"),
+            ]
+        )
+        schema = get_prompt_schema(prompt)
+
+        assert schema["type"] == "object"
+        assert "pod_name" in schema["properties"]
+        assert "namespace" in schema["properties"]
+        assert schema["properties"]["namespace"]["default"] == "default"
+        assert "pod_name" in schema["required"]
+        assert "namespace" not in schema["required"]
+
+
+# =============================================================================
+# Built-in Prompts Tests
+# =============================================================================
+
+
+class TestBuiltinPrompts:
+    """Tests for built-in prompts."""
+
+    @pytest.mark.unit
+    def test_all_builtin_prompts_exist(self):
+        """Test that all expected built-in prompts exist."""
+        assert len(BUILTIN_PROMPTS) == 6
+        names = [p.name for p in BUILTIN_PROMPTS]
+        assert "cluster-health-check" in names
+        assert "debug-workload" in names
+        assert "resource-usage" in names
+        assert "security-posture" in names
+        assert "deployment-checklist" in names
+        assert "incident-response" in names
+
+    @pytest.mark.unit
+    def test_get_builtin_prompts_returns_copy(self):
+        """Test that get_builtin_prompts returns a copy."""
+        prompts1 = get_builtin_prompts()
+        prompts2 = get_builtin_prompts()
+        assert prompts1 is not prompts2
+        assert len(prompts1) == len(prompts2)
+
+    @pytest.mark.unit
+    def test_get_builtin_prompt_by_name(self):
+        """Test retrieving a built-in prompt by name."""
+        prompt = get_builtin_prompt_by_name("cluster-health-check")
+        assert prompt is not None
+        assert prompt.name == "cluster-health-check"
+        assert prompt.title == "Cluster Health Check"
+
+    @pytest.mark.unit
+    def test_get_builtin_prompt_not_found(self):
+        """Test retrieving a non-existent built-in prompt."""
+        prompt = get_builtin_prompt_by_name("nonexistent")
+        assert prompt is None
+
+
+class TestClusterHealthCheckPrompt:
+    """Tests for CLUSTER_HEALTH_CHECK built-in prompt."""
+
+    @pytest.mark.unit
+    def test_prompt_structure(self):
+        """Test CLUSTER_HEALTH_CHECK prompt structure."""
+        assert CLUSTER_HEALTH_CHECK.name == "cluster-health-check"
+        assert CLUSTER_HEALTH_CHECK.title == "Cluster Health Check"
+        assert len(CLUSTER_HEALTH_CHECK.arguments) == 3
+        assert len(CLUSTER_HEALTH_CHECK.messages) == 1
+
+    @pytest.mark.unit
+    def test_prompt_arguments(self):
+        """Test CLUSTER_HEALTH_CHECK prompt arguments."""
+        arg_names = [a.name for a in CLUSTER_HEALTH_CHECK.arguments]
+        assert "namespace" in arg_names
+        assert "check_events" in arg_names
+        assert "check_metrics" in arg_names
+
+    @pytest.mark.unit
+    def test_render_with_namespace(self):
+        """Test rendering with namespace specified."""
+        result = render_prompt(CLUSTER_HEALTH_CHECK, {"namespace": "production"})
+        assert "in namespace production" in result[0].content
+
+    @pytest.mark.unit
+    def test_render_without_namespace(self):
+        """Test rendering without namespace shows cluster-wide."""
+        result = render_prompt(CLUSTER_HEALTH_CHECK, {})
+        # Should not have "in namespace" since namespace is empty
+        assert result[0].content.count("in namespace ") == 0 or "namespace" not in result[0].content.split("in namespace ")[1].split()[0] if "in namespace " in result[0].content else True
+
+
+class TestDebugWorkloadPrompt:
+    """Tests for DEBUG_WORKLOAD built-in prompt."""
+
+    @pytest.mark.unit
+    def test_prompt_structure(self):
+        """Test DEBUG_WORKLOAD prompt structure."""
+        assert DEBUG_WORKLOAD.name == "debug-workload"
+        assert DEBUG_WORKLOAD.title == "Debug Workload Issues"
+        assert len(DEBUG_WORKLOAD.arguments) == 4
+
+    @pytest.mark.unit
+    def test_required_arguments(self):
+        """Test DEBUG_WORKLOAD has required workload_name argument."""
+        workload_arg = next(a for a in DEBUG_WORKLOAD.arguments if a.name == "workload_name")
+        assert workload_arg.required is True
+
+    @pytest.mark.unit
+    def test_render_with_all_args(self):
+        """Test rendering with all arguments."""
+        result = render_prompt(DEBUG_WORKLOAD, {
+            "workload_name": "nginx",
+            "namespace": "production",
+            "workload_type": "deployment",
+            "include_related": "true"
+        })
+        assert "nginx" in result[0].content
+        assert "production" in result[0].content
+        assert "deployment" in result[0].content
+
+
+class TestResourceUsagePrompt:
+    """Tests for RESOURCE_USAGE built-in prompt."""
+
+    @pytest.mark.unit
+    def test_prompt_structure(self):
+        """Test RESOURCE_USAGE prompt structure."""
+        assert RESOURCE_USAGE.name == "resource-usage"
+        assert len(RESOURCE_USAGE.arguments) == 4
+
+    @pytest.mark.unit
+    def test_default_thresholds(self):
+        """Test default threshold values."""
+        cpu_arg = next(a for a in RESOURCE_USAGE.arguments if a.name == "threshold_cpu")
+        mem_arg = next(a for a in RESOURCE_USAGE.arguments if a.name == "threshold_memory")
+        assert cpu_arg.default == "80"
+        assert mem_arg.default == "80"
+
+
+class TestSecurityPosturePrompt:
+    """Tests for SECURITY_POSTURE built-in prompt."""
+
+    @pytest.mark.unit
+    def test_prompt_structure(self):
+        """Test SECURITY_POSTURE prompt structure."""
+        assert SECURITY_POSTURE.name == "security-posture"
+        assert len(SECURITY_POSTURE.arguments) == 4
+
+    @pytest.mark.unit
+    def test_conditional_sections(self):
+        """Test conditional sections for RBAC, network, secrets checks."""
+        result = render_prompt(SECURITY_POSTURE, {
+            "check_rbac": "true",
+            "check_network": "false",
+            "check_secrets": "true"
+        })
+        assert "RBAC Analysis" in result[0].content
+        assert "Network Security" not in result[0].content
+        assert "Secrets Management" in result[0].content
+
+
+class TestDeploymentChecklistPrompt:
+    """Tests for DEPLOYMENT_CHECKLIST built-in prompt."""
+
+    @pytest.mark.unit
+    def test_prompt_structure(self):
+        """Test DEPLOYMENT_CHECKLIST prompt structure."""
+        assert DEPLOYMENT_CHECKLIST.name == "deployment-checklist"
+        assert len(DEPLOYMENT_CHECKLIST.arguments) == 4
+
+    @pytest.mark.unit
+    def test_required_arguments(self):
+        """Test required arguments."""
+        required_args = [a.name for a in DEPLOYMENT_CHECKLIST.arguments if a.required]
+        assert "app_name" in required_args
+        assert "namespace" in required_args
+        assert "image" in required_args
+
+    @pytest.mark.unit
+    def test_render_with_args(self):
+        """Test rendering with deployment args."""
+        result = render_prompt(DEPLOYMENT_CHECKLIST, {
+            "app_name": "myapp",
+            "namespace": "production",
+            "image": "myapp:v1.2.3",
+            "replicas": "3"
+        })
+        assert "myapp" in result[0].content
+        assert "production" in result[0].content
+        assert "myapp:v1.2.3" in result[0].content
+        assert "3" in result[0].content
+
+
+class TestIncidentResponsePrompt:
+    """Tests for INCIDENT_RESPONSE built-in prompt."""
+
+    @pytest.mark.unit
+    def test_prompt_structure(self):
+        """Test INCIDENT_RESPONSE prompt structure."""
+        assert INCIDENT_RESPONSE.name == "incident-response"
+        assert len(INCIDENT_RESPONSE.arguments) == 4
+
+    @pytest.mark.unit
+    def test_required_arguments(self):
+        """Test required arguments."""
+        required_args = [a.name for a in INCIDENT_RESPONSE.arguments if a.required]
+        assert "incident_type" in required_args
+        assert "affected_service" in required_args
+        assert "namespace" in required_args
+
+    @pytest.mark.unit
+    def test_default_severity(self):
+        """Test default severity."""
+        severity_arg = next(a for a in INCIDENT_RESPONSE.arguments if a.name == "severity")
+        assert severity_arg.default == "high"
+
+    @pytest.mark.unit
+    def test_render_incident(self):
+        """Test rendering incident response."""
+        result = render_prompt(INCIDENT_RESPONSE, {
+            "incident_type": "pod-crash",
+            "affected_service": "api-server",
+            "namespace": "production",
+            "severity": "critical"
+        })
+        assert "pod-crash" in result[0].content
+        assert "api-server" in result[0].content
+        assert "production" in result[0].content
+        assert "critical" in result[0].content
