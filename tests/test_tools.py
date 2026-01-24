@@ -1,8 +1,8 @@
 """
 Unit tests for all MCP tools in kubectl-mcp-server.
 
-This module contains comprehensive tests for all 125 Kubernetes tools
-provided by the MCP server (131 total with UI tools).
+This module contains comprehensive tests for all Kubernetes tools
+provided by the MCP server (164 total with ecosystem tools).
 """
 
 import pytest
@@ -12,7 +12,7 @@ from unittest.mock import patch, MagicMock
 from datetime import datetime
 
 
-# Complete list of all 131 tools that must be registered (125 core + 6 UI)
+# Complete list of all 164 tools that must be registered (125 core + 6 UI + 33 ecosystem)
 EXPECTED_TOOLS = [
     # Pods (pods.py)
     "get_pods", "get_logs", "get_pod_events", "check_pod_health", "exec_in_pod",
@@ -65,15 +65,29 @@ EXPECTED_TOOLS = [
     # UI tools (ui.py) - 6 tools for MCP-UI interactive dashboards
     "show_pod_logs_ui", "show_pods_dashboard_ui", "show_resource_yaml_ui",
     "show_cluster_overview_ui", "show_events_timeline_ui", "render_k8s_dashboard_screenshot",
+    # GitOps tools (gitops.py) - 7 tools for Flux and ArgoCD
+    "gitops_apps_list_tool", "gitops_app_get_tool", "gitops_app_sync_tool", "gitops_app_status_tool",
+    "gitops_sources_list_tool", "gitops_source_get_tool", "gitops_detect_engine_tool",
+    # Cert-Manager tools (certs.py) - 9 tools
+    "certs_list_tool", "certs_get_tool", "certs_issuers_list_tool", "certs_issuer_get_tool",
+    "certs_renew_tool", "certs_status_explain_tool", "certs_challenges_list_tool",
+    "certs_requests_list_tool", "certs_detect_tool",
+    # Policy tools (policy.py) - 6 tools for Kyverno and Gatekeeper
+    "policy_list_tool", "policy_get_tool", "policy_violations_list_tool", "policy_explain_denial_tool",
+    "policy_audit_tool", "policy_detect_tool",
+    # Backup tools (backup.py) - 11 tools for Velero
+    "backup_list_tool", "backup_get_tool", "backup_create_tool", "backup_delete_tool",
+    "restore_list_tool", "restore_create_tool", "restore_get_tool", "backup_locations_list_tool",
+    "backup_schedules_list_tool", "backup_schedule_create_tool", "backup_detect_tool",
 ]
 
 
 class TestAllToolsRegistered:
-    """Comprehensive tests to verify all 131 tools are registered (125 core + 6 UI)."""
+    """Comprehensive tests to verify all 164 tools are registered (125 core + 6 UI + 33 ecosystem)."""
 
     @pytest.mark.unit
-    def test_all_127_tools_registered(self):
-        """Verify all 131 expected tools are registered (excluding optional browser tools)."""
+    def test_all_164_tools_registered(self):
+        """Verify all 164 expected tools are registered (excluding optional browser tools)."""
         import os
         from kubectl_mcp_tool.mcp_server import MCPServer
 
@@ -94,8 +108,8 @@ class TestAllToolsRegistered:
             tools = asyncio.run(get_tools())
             tool_names = {t.name for t in tools}
 
-            # Verify count (131 tools = 125 core + 6 UI, browser tools disabled)
-            assert len(tools) == 131, f"Expected 131 tools, got {len(tools)}"
+            # Verify count (164 tools = 125 core + 6 UI + 33 ecosystem, browser tools disabled)
+            assert len(tools) == 164, f"Expected 164 tools, got {len(tools)}"
 
             # Check for missing tools
             missing_tools = set(EXPECTED_TOOLS) - tool_names
@@ -120,6 +134,10 @@ class TestAllToolsRegistered:
             register_operations_tools,
             register_diagnostics_tools,
             register_cost_tools,
+            register_gitops_tools,
+            register_certs_tools,
+            register_policy_tools,
+            register_backup_tools,
         )
         # All imports should succeed
         assert callable(register_helm_tools)
@@ -133,6 +151,11 @@ class TestAllToolsRegistered:
         assert callable(register_operations_tools)
         assert callable(register_diagnostics_tools)
         assert callable(register_cost_tools)
+        # Ecosystem tools
+        assert callable(register_gitops_tools)
+        assert callable(register_certs_tools)
+        assert callable(register_policy_tools)
+        assert callable(register_backup_tools)
 
     @pytest.mark.unit
     def test_all_tools_have_descriptions(self):

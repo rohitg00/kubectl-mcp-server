@@ -45,6 +45,10 @@ from kubectl_mcp_tool.tools import (
     is_browser_available,
     register_ui_tools,
     is_ui_available,
+    register_gitops_tools,
+    register_certs_tools,
+    register_policy_tools,
+    register_backup_tools,
 )
 from kubectl_mcp_tool.resources import register_resources
 from kubectl_mcp_tool.prompts import register_prompts
@@ -195,6 +199,14 @@ class MCPServer:
             logger.info("MCP-UI tools enabled (mcp-ui-server installed)")
         else:
             logger.debug("MCP-UI tools disabled (install mcp-ui-server to enable)")
+
+        # Register ecosystem tools (GitOps, Cert-Manager, Policy, Backup)
+        # These tools auto-detect installed CRDs and gracefully handle missing components
+        register_gitops_tools(self.server, self.non_destructive)
+        register_certs_tools(self.server, self.non_destructive)
+        register_policy_tools(self.server, self.non_destructive)
+        register_backup_tools(self.server, self.non_destructive)
+        logger.debug("Ecosystem tools registered (GitOps, Certs, Policy, Backup)")
 
     def setup_resources(self):
         """Set up MCP resources for Kubernetes data exposure."""

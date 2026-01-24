@@ -12,7 +12,7 @@ Talk to your clusters like you talk to a DevOps expert. Debug crashed pods, opti
 [![PyPI](https://img.shields.io/pypi/v/kubectl-mcp-server?color=blue&label=PyPI)](https://pypi.org/project/kubectl-mcp-server/)
 [![npm](https://img.shields.io/npm/v/kubectl-mcp-server?color=green&label=npm)](https://www.npmjs.com/package/kubectl-mcp-server)
 [![Docker](https://img.shields.io/docker/pulls/rohitghumare64/kubectl-mcp-server.svg)](https://hub.docker.com/r/rohitghumare64/kubectl-mcp-server)
-[![Tests](https://img.shields.io/badge/tests-216%20passed-success)](https://github.com/rohitg00/kubectl-mcp-server)
+[![Tests](https://img.shields.io/badge/tests-203%20passed-success)](https://github.com/rohitg00/kubectl-mcp-server)
 [![agentregistry](https://img.shields.io/badge/agentregistry-verified-blue?logo=data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgZmlsbD0id2hpdGUiIHZpZXdCb3g9IjAgMCAxNiAxNiI+PHBhdGggZD0iTTE1Ljk5MiA2LjAzN2wtMy4wMjEtLjQzOS0xLjM1LTIuNzM2Yy0uMzQ2LS43MDItMS41MDQtLjcwMi0xLjg1IDBMOC40MjEgNS41OTggNS40IDYuMDM3Yy0uNzc2LjExMy0xLjA4OCAxLjA1My0uNTI4IDEuNTkzbDIuMTg2IDIuMTI5LS41MTYgMy4wMWMtLjEzMy43NzUuNjgyIDEuMzY2IDEuMzc4Ljk5OGwyLjcwMi0xLjQyIDIuNzAyIDEuNDJjLjY5Ni4zNjggMS41MTEtLjIyMyAxLjM3OC0uOTk4bC0uNTE2LTMuMDEgMi4xODYtMi4xMjljLjU2LS41NCAwLjI0OC0xLjQ4LS41MjgtMS41OTN6Ii8+PC9zdmc+)](https://aregistry.ai)
 
 ---
@@ -97,7 +97,7 @@ Simply ask your AI assistant in natural language:
 - Interactive HTML dashboards with live metrics
 - Visual timeline of events and resource usage
 
-**131 powerful tools** | **8 workflow prompts** | **8 data resources** | **Works with all major AI assistants**
+**164 powerful tools** | **8 workflow prompts** | **8 data resources** | **Works with all major AI assistants**
 
 ## Why kubectl-mcp-server?
 
@@ -398,7 +398,7 @@ Add to `~/.config/roo-code/mcp.json` or `~/.config/kilo-code/mcp.json`:
 
 ## Complete Feature Set
 
-### 131 MCP Tools for Complete Kubernetes Management
+### 164 MCP Tools for Complete Kubernetes Management
 
 | Category | Tools |
 |----------|-------|
@@ -423,6 +423,10 @@ Add to `~/.config/roo-code/mcp.json` or `~/.config/kilo-code/mcp.json`:
 | **Cost Optimization** | `get_resource_recommendations`, `get_idle_resources`, `get_resource_quotas_usage`, `get_cost_analysis`, `get_overprovisioned_resources`, `get_resource_trends`, `get_namespace_cost_allocation`, `optimize_resource_requests` |
 | **Advanced** | `kubectl_generic`, `kubectl_explain`, `get_api_resources`, `port_forward`, `get_resource_usage`, `node_management` |
 | **UI Dashboards** | `show_pod_logs_ui`, `show_pods_dashboard_ui`, `show_resource_yaml_ui`, `show_cluster_overview_ui`, `show_events_timeline_ui`, `render_k8s_dashboard_screenshot` |
+| **GitOps (Flux/Argo)** | `gitops_apps_list`, `gitops_app_get`, `gitops_app_sync`, `gitops_app_status`, `gitops_sources_list`, `gitops_source_get`, `gitops_detect_engine` |
+| **Cert-Manager** | `certs_list`, `certs_get`, `certs_issuers_list`, `certs_issuer_get`, `certs_renew`, `certs_status_explain`, `certs_challenges_list`, `certs_requests_list`, `certs_detect` |
+| **Policy (Kyverno/Gatekeeper)** | `policy_list`, `policy_get`, `policy_violations_list`, `policy_explain_denial`, `policy_audit`, `policy_detect` |
+| **Backup (Velero)** | `backup_list`, `backup_get`, `backup_create`, `backup_delete`, `restore_list`, `restore_create`, `restore_get`, `backup_locations_list`, `backup_schedules_list`, `backup_schedule_create`, `backup_detect` |
 
 ### MCP Resources
 
@@ -462,11 +466,12 @@ Pre-built workflow prompts for common Kubernetes operations:
 
 ### Key Capabilities
 
-- 🤖 **131 Powerful Tools** - Complete Kubernetes management from pods to security
+- 🤖 **164 Powerful Tools** - Complete Kubernetes management from pods to security
 - 🎯 **8 AI Workflow Prompts** - Pre-built workflows for common operations
 - 📊 **8 MCP Resources** - Browsable Kubernetes data exposure
 - 🎨 **6 Interactive Dashboards** - HTML UI tools for visual cluster management
 - 🌐 **26 Browser Tools** - Web automation with cloud provider support
+- 🔄 **33 Ecosystem Tools** - GitOps, Cert-Manager, Policy, and Backup toolsets
 - ⚡ **Multi-Transport** - stdio, SSE, HTTP, streamable-http
 - 🔐 **Security First** - Non-destructive mode, secret masking, RBAC validation
 - 🏥 **Advanced Diagnostics** - AI-powered troubleshooting and cost optimization
