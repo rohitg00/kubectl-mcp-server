@@ -57,18 +57,49 @@ logging.basicConfig(
 logger = logging.getLogger("kubectl-mcp-cli")
 
 
-async def serve_stdio():
-    server = MCPServer("kubernetes")
+async def serve_stdio(
+    read_only: bool = False,
+    disable_destructive: bool = False,
+    config_file: Optional[str] = None,
+):
+    server = MCPServer(
+        "kubernetes",
+        read_only=read_only,
+        disable_destructive=disable_destructive,
+        config_file=config_file,
+    )
     await server.serve_stdio()
 
 
-async def serve_sse(host: str, port: int):
-    server = MCPServer("kubernetes")
+async def serve_sse(
+    host: str,
+    port: int,
+    read_only: bool = False,
+    disable_destructive: bool = False,
+    config_file: Optional[str] = None,
+):
+    server = MCPServer(
+        "kubernetes",
+        read_only=read_only,
+        disable_destructive=disable_destructive,
+        config_file=config_file,
+    )
     await server.serve_sse(host=host, port=port)
 
 
-async def serve_http(host: str, port: int):
-    server = MCPServer("kubernetes")
+async def serve_http(
+    host: str,
+    port: int,
+    read_only: bool = False,
+    disable_destructive: bool = False,
+    config_file: Optional[str] = None,
+):
+    server = MCPServer(
+        "kubernetes",
+        read_only=read_only,
+        disable_destructive=disable_destructive,
+        config_file=config_file,
+    )
     await server.serve_http(host=host, port=port)
 
 
@@ -468,6 +499,7 @@ Environment Variables:
     )
     serve_parser.add_argument("--host", type=str, default="0.0.0.0", help="Host for SSE/HTTP (default: 0.0.0.0)")
     serve_parser.add_argument("--port", type=int, default=8000, help="Port for SSE/HTTP (default: 8000)")
+    serve_parser.add_argument("--config", type=str, default=None, help="Path to TOML configuration file")
     serve_parser.add_argument("--read-only", action="store_true", help="Enable read-only mode (block all write operations)")
     serve_parser.add_argument("--disable-destructive", action="store_true", help="Disable destructive operations (allow create/update, block delete)")
 
@@ -524,20 +556,37 @@ Environment Variables:
 
     try:
         if args.command == "serve":
-            # Set safety mode based on flags
+            # Log safety mode (actual mode is applied in MCPServer)
             if args.read_only:
-                set_safety_mode(SafetyMode.READ_ONLY)
                 logger.info("Starting server in READ-ONLY mode")
             elif args.disable_destructive:
-                set_safety_mode(SafetyMode.DISABLE_DESTRUCTIVE)
                 logger.info("Starting server with destructive operations disabled")
 
+            if args.config:
+                logger.info(f"Loading configuration from: {args.config}")
+
             if args.transport == "stdio":
-                asyncio.run(serve_stdio())
+                asyncio.run(serve_stdio(
+                    read_only=args.read_only,
+                    disable_destructive=args.disable_destructive,
+                    config_file=args.config,
+                ))
             elif args.transport == "sse":
-                asyncio.run(serve_sse(args.host, args.port))
+                asyncio.run(serve_sse(
+                    host=args.host,
+                    port=args.port,
+                    read_only=args.read_only,
+                    disable_destructive=args.disable_destructive,
+                    config_file=args.config,
+                ))
             elif args.transport in ("http", "streamable-http"):
-                asyncio.run(serve_http(args.host, args.port))
+                asyncio.run(serve_http(
+                    host=args.host,
+                    port=args.port,
+                    read_only=args.read_only,
+                    disable_destructive=args.disable_destructive,
+                    config_file=args.config,
+                ))
 
         elif args.command == "version":
             from .. import __version__

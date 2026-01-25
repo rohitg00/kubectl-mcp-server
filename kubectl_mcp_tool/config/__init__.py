@@ -14,6 +14,8 @@ from .loader import (
     reload_config,
     get_config_paths,
     setup_sighup_handler,
+    register_reload_callback,
+    unregister_reload_callback,
 )
 from .schema import (
     ServerConfig,
@@ -32,6 +34,8 @@ __all__ = [
     "reload_config",
     "get_config_paths",
     "setup_sighup_handler",
+    "register_reload_callback",
+    "unregister_reload_callback",
     # Config schemas
     "ServerConfig",
     "SafetyConfig",
