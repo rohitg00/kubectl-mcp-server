@@ -671,7 +671,16 @@ def register_cluster_tools(server, non_destructive: bool):
 
         Returns:
             Status of the kubeconfig watcher.
+
+        Raises:
+            TypeError: If check_interval is not a number (int or float).
+            ValueError: If check_interval is not positive.
         """
+        if not isinstance(check_interval, (int, float)):
+            raise TypeError(f"check_interval must be a number (int or float), got {type(check_interval).__name__}")
+        if check_interval <= 0:
+            raise ValueError(f"check_interval must be positive, got {check_interval}")
+
         try:
             enable_kubeconfig_watch(check_interval=check_interval)
             return {
