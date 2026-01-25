@@ -1,0 +1,23 @@
+{{- if .Values.podDisruptionBudget.enabled }}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "kubectl-mcp-server.fullname" . }}
+  labels:
+    {{- include "kubectl-mcp-server.labels" . | nindent 4 }}
+spec:
+  {{- if or .Values.podDisruptionBudget.minAvailable .Values.podDisruptionBudget.maxUnavailable }}
+  {{- if .Values.podDisruptionBudget.minAvailable }}
+  minAvailable: {{ .Values.podDisruptionBudget.minAvailable }}
+  {{- end }}
+  {{- if .Values.podDisruptionBudget.maxUnavailable }}
+  maxUnavailable: {{ .Values.podDisruptionBudget.maxUnavailable }}
+  {{- end }}
+  {{- else }}
+  # Default to minAvailable: 1 if neither is specified
+  minAvailable: 1
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "kubectl-mcp-server.selectorLabels" . | nindent 6 }}
+{{- end }}

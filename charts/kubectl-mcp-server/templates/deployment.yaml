@@ -1,0 +1,126 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "kubectl-mcp-server.fullname" . }}
+  labels:
+    {{- include "kubectl-mcp-server.labels" . | nindent 4 }}
+spec:
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "kubectl-mcp-server.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "kubectl-mcp-server.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "kubectl-mcp-server.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          args:
+            - serve
+            - --transport
+            - {{ .Values.mcp.transport }}
+            - --port
+            - "{{ .Values.mcp.port }}"
+            {{- if eq .Values.safety.mode "read-only" }}
+            - --read-only
+            {{- else if eq .Values.safety.mode "disable-destructive" }}
+            - --disable-destructive
+            {{- end }}
+          env:
+            {{- if .Values.mcp.debug }}
+            - name: MCP_DEBUG
+              value: "true"
+            {{- end }}
+            {{- if .Values.mcp.logFile }}
+            - name: MCP_LOG_FILE
+              value: {{ .Values.mcp.logFile | quote }}
+            {{- end }}
+            {{- if .Values.browser.enabled }}
+            - name: MCP_BROWSER_ENABLED
+              value: "true"
+            - name: MCP_BROWSER_PROVIDER
+              value: {{ .Values.browser.provider | quote }}
+            {{- if and (eq .Values.browser.provider "browserbase") .Values.browser.browserbase.apiKey }}
+            - name: BROWSERBASE_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "kubectl-mcp-server.fullname" . }}-browser
+                  key: browserbase-api-key
+            - name: BROWSERBASE_PROJECT_ID
+              value: {{ .Values.browser.browserbase.projectId | quote }}
+            {{- end }}
+            {{- if and (eq .Values.browser.provider "browseruse") .Values.browser.browseruse.apiKey }}
+            - name: BROWSER_USE_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "kubectl-mcp-server.fullname" . }}-browser
+                  key: browseruse-api-key
+            {{- end }}
+            {{- end }}
+            {{- with .Values.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.mcp.port }}
+              protocol: TCP
+          {{- if .Values.livenessProbe.enabled }}
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: {{ .Values.livenessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.livenessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.livenessProbe.timeoutSeconds }}
+            failureThreshold: {{ .Values.livenessProbe.failureThreshold }}
+          {{- end }}
+          {{- if .Values.readinessProbe.enabled }}
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: {{ .Values.readinessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.readinessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.readinessProbe.timeoutSeconds }}
+            failureThreshold: {{ .Values.readinessProbe.failureThreshold }}
+          {{- end }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          {{- with .Values.extraVolumeMounts }}
+          volumeMounts:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+      {{- with .Values.extraVolumes }}
+      volumes:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

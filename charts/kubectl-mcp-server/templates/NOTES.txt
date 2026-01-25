@@ -1,0 +1,50 @@
+kubectl-mcp-server has been deployed!
+
+Release: {{ .Release.Name }}
+Namespace: {{ .Release.Namespace }}
+Version: {{ .Chart.AppVersion }}
+Safety Mode: {{ .Values.safety.mode }}
+
+{{- if .Values.ingress.enabled }}
+Access the MCP server at:
+{{- range $host := .Values.ingress.hosts }}
+  {{- range .paths }}
+  http{{ if $.Values.ingress.tls }}s{{ end }}://{{ $host.host }}{{ trimSuffix "/" .path }}/mcp
+  {{- end }}
+{{- end }}
+{{- else if contains "NodePort" .Values.service.type }}
+Get the MCP endpoint:
+  export NODE_PORT=$(kubectl get --namespace {{ .Release.Namespace }} -o jsonpath="{.spec.ports[0].nodePort}" services {{ include "kubectl-mcp-server.fullname" . }})
+  export NODE_IP=$(kubectl get nodes --namespace {{ .Release.Namespace }} -o jsonpath="{.items[0].status.addresses[0].address}")
+  echo "MCP endpoint: http://$NODE_IP:$NODE_PORT/mcp"
+{{- else if contains "LoadBalancer" .Values.service.type }}
+Get the MCP endpoint (may take a few minutes for the LoadBalancer IP):
+  export SERVICE_IP=$(kubectl get svc --namespace {{ .Release.Namespace }} {{ include "kubectl-mcp-server.fullname" . }} --template "{{"{{ range (index .status.loadBalancer.ingress 0) }}{{.}}{{ end }}"}}")
+  echo "MCP endpoint: http://$SERVICE_IP:{{ .Values.service.port }}/mcp"
+{{- else if contains "ClusterIP" .Values.service.type }}
+Access the MCP server via port-forward:
+  kubectl --namespace {{ .Release.Namespace }} port-forward svc/{{ include "kubectl-mcp-server.fullname" . }} {{ .Values.mcp.port }}:{{ .Values.service.port }}
+
+Then configure your MCP client to connect to:
+  http://localhost:{{ .Values.mcp.port }}/mcp
+{{- end }}
+
+Configuration:
+  Tools: 220+ Kubernetes management tools
+  Resources: 8 MCP resources
+  Prompts: 8 workflow prompts
+
+{{- if eq .Values.safety.mode "read-only" }}
+
+SAFETY: Running in READ-ONLY mode - all write operations are blocked.
+{{- else if eq .Values.safety.mode "disable-destructive" }}
+
+SAFETY: Destructive operations are disabled - delete operations are blocked.
+{{- end }}
+
+{{- if .Values.browser.enabled }}
+
+Browser automation is ENABLED (provider: {{ .Values.browser.provider }})
+{{- end }}
+
+For more information, visit: https://github.com/rohitg00/kubectl-mcp-server
