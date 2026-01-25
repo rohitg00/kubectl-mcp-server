@@ -7,6 +7,7 @@ All tools support multi-cluster operations via the optional 'context' parameter.
 import json
 import logging
 import os
+import re
 import subprocess
 from typing import Any, Dict, List, Optional
 
@@ -28,6 +29,31 @@ def _get_kubectl_context_args(context: str = "") -> List[str]:
     if context:
         return ["--context", context]
     return []
+
+
+# DNS-1123 subdomain regex for node name validation
+_DNS_1123_PATTERN = re.compile(r'^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$')
+
+
+def _validate_node_name(name: str) -> tuple:
+    """Validate that a node name follows DNS-1123 subdomain rules.
+
+    Args:
+        name: Node name to validate
+
+    Returns:
+        Tuple of (is_valid: bool, error_message: Optional[str])
+    """
+    if not name:
+        return False, "Node name cannot be empty"
+    if len(name) > 253:
+        return False, f"Node name too long: {len(name)} chars (max 253)"
+    if not _DNS_1123_PATTERN.match(name):
+        return False, (
+            f"Invalid node name '{name}': must be a valid DNS-1123 subdomain "
+            "(lowercase alphanumeric, '-' or '.', must start/end with alphanumeric)"
+        )
+    return True, None
 
 
 def register_cluster_tools(server, non_destructive: bool):
@@ -615,6 +641,11 @@ def register_cluster_tools(server, non_destructive: bool):
             context: Kubernetes context to use (uses current context if not specified)
         """
         try:
+            # Validate node name
+            is_valid, error_msg = _validate_node_name(name)
+            if not is_valid:
+                return {"success": False, "error": error_msg}
+
             ctx_args = _get_kubectl_context_args(context)
 
             # Build the proxy URL path
@@ -638,8 +669,14 @@ def register_cluster_tools(server, non_destructive: bool):
                     }
                 return {"success": False, "error": error_msg}
 
-            logs = result.stdout
-            lines = logs.strip().split("\n")
+            # Handle empty or None output
+            logs = result.stdout or ""
+            if not logs.strip():
+                lines = []
+                total_lines = 0
+            else:
+                lines = logs.splitlines()
+                total_lines = len(lines)
 
             # Apply tail_lines if specified
             if tail_lines > 0 and len(lines) > tail_lines:
@@ -655,7 +692,8 @@ def register_cluster_tools(server, non_destructive: bool):
                 "query": query,
                 "tailLines": tail_lines,
                 "truncated": truncated,
-                "totalLines": len(lines),
+                "totalLines": total_lines,
+                "returnedLines": len(lines),
                 "logs": "\n".join(lines)
             }
         except subprocess.TimeoutExpired:
@@ -690,6 +728,11 @@ def register_cluster_tools(server, non_destructive: bool):
             context: Kubernetes context to use (uses current context if not specified)
         """
         try:
+            # Validate node name
+            is_valid, error_msg = _validate_node_name(name)
+            if not is_valid:
+                return {"success": False, "error": error_msg}
+
             ctx_args = _get_kubectl_context_args(context)
 
             cmd = ["kubectl"] + ctx_args + [
@@ -720,18 +763,24 @@ def register_cluster_tools(server, non_destructive: bool):
                 "rlimit": node_stats.get("rlimit", {}),
             }
 
+            # Truncation limits
+            pod_limit = 50
+            container_limit = 5
+
             formatted_pods = []
-            for pod in pods_stats[:50]:
+            for pod in pods_stats[:pod_limit]:
+                containers = pod.get("containers", [])
                 pod_summary = {
                     "podRef": pod.get("podRef", {}),
                     "startTime": pod.get("startTime"),
                     "cpu": _format_cpu_stats(pod.get("cpu", {})),
                     "memory": _format_memory_stats(pod.get("memory", {})),
                     "network": _format_network_stats(pod.get("network", {})),
-                    "containers": []
+                    "containers": [],
+                    "containersTruncated": len(containers) > container_limit
                 }
 
-                for container in pod.get("containers", [])[:5]:
+                for container in containers[:container_limit]:
                     pod_summary["containers"].append({
                         "name": container.get("name"),
                         "cpu": _format_cpu_stats(container.get("cpu", {})),
@@ -748,6 +797,9 @@ def register_cluster_tools(server, non_destructive: bool):
                 "nodeStats": formatted_node,
                 "podCount": len(pods_stats),
                 "pods": formatted_pods,
+                "podLimit": pod_limit,
+                "containerLimit": container_limit,
+                "podsTruncated": len(pods_stats) > pod_limit,
                 "rawStatsAvailable": True
             }
         except json.JSONDecodeError as e:
@@ -818,12 +870,20 @@ def register_cluster_tools(server, non_destructive: bool):
                     }
                     metrics.append(node_metric)
 
-            total_cpu_percent = 0
-            total_memory_percent = 0
+            # Use separate counters for valid samples to avoid skewing average
+            total_cpu_percent = 0.0
+            total_memory_percent = 0.0
+            cpu_samples = 0
+            memory_samples = 0
             for m in metrics:
                 try:
                     total_cpu_percent += float(m["cpuPercent"])
+                    cpu_samples += 1
+                except (ValueError, TypeError):
+                    pass
+                try:
                     total_memory_percent += float(m["memoryPercent"])
+                    memory_samples += 1
                 except (ValueError, TypeError):
                     pass
 
@@ -837,9 +897,9 @@ def register_cluster_tools(server, non_destructive: bool):
                 "nodeCount": len(metrics),
                 "nodes": metrics,
                 "clusterAverage": {
-                    "cpuPercent": round(total_cpu_percent / len(metrics), 1) if metrics else 0,
-                    "memoryPercent": round(total_memory_percent / len(metrics), 1) if metrics else 0
-                } if len(metrics) > 1 else None
+                    "cpuPercent": round(total_cpu_percent / cpu_samples, 1) if cpu_samples else None,
+                    "memoryPercent": round(total_memory_percent / memory_samples, 1) if memory_samples else None
+                } if cpu_samples > 1 or memory_samples > 1 else None
             }
         except subprocess.TimeoutExpired:
             return {"success": False, "error": "Metrics retrieval timed out after 60 seconds"}
