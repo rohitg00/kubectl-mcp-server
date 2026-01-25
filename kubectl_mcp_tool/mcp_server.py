@@ -180,11 +180,15 @@ class MCPServer:
         self._dependencies_available = None
         self._stats = get_stats_collector()
 
+        # Persist CLI safety overrides for reloads
+        self._cli_read_only = read_only
+        self._cli_disable_destructive = disable_destructive
+
         # Load configuration from file and environment
         self.config = self._load_configuration(config_file)
 
         # Apply safety mode from config or parameters
-        self._apply_safety_mode(read_only, disable_destructive)
+        self._apply_safety_mode(self._cli_read_only, self._cli_disable_destructive)
 
         # For backward compatibility, expose non_destructive
         self.non_destructive = get_safety_mode() != SafetyMode.NORMAL
@@ -267,13 +271,11 @@ class MCPServer:
         logger.info("Configuration reloaded")
         self.config = new_config
 
-        # Re-apply safety mode from new config
-        config_mode = getattr(new_config.safety, 'mode', 'normal') if hasattr(new_config, 'safety') else 'normal'
-        if config_mode == 'read-only' or config_mode == 'read_only':
-            set_safety_mode(SafetyMode.READ_ONLY)
-        elif config_mode == 'disable-destructive' or config_mode == 'disable_destructive':
-            set_safety_mode(SafetyMode.DISABLE_DESTRUCTIVE)
-        # Don't change from CLI-set mode to normal on reload
+        # Re-apply safety mode from new config, honoring CLI precedence
+        self._apply_safety_mode(self._cli_read_only, self._cli_disable_destructive)
+
+        # Refresh non_destructive flag
+        self.non_destructive = get_safety_mode() != SafetyMode.NORMAL
 
         mode_info = get_mode_info()
         logger.info(f"Safety mode after reload: {mode_info['mode']}")
