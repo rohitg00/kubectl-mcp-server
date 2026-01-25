@@ -63,6 +63,7 @@ pip install kubectl-mcp-server[ui]
 - [In-Cluster Deployment](#in-cluster-deployment)
 - [Multi-Cluster Support](#multi-cluster-support)
 - [Architecture](#architecture)
+- [Agent Skills](#agent-skills-24-skills-for-ai-coding-agents)
 - [Development & Testing](#development--testing)
 - [Contributing](#contributing)
 - [Support & Community](#support--community)
@@ -816,6 +817,52 @@ kubectl_mcp_tool/
 ├── prompts/                # 8 MCP Prompts for workflows
 └── cli/                    # CLI interface
 ```
+
+## Agent Skills (24 Skills for AI Coding Agents)
+
+Extend your AI coding agent with Kubernetes expertise using our [Agent Skills](https://agentskills.io) library. Skills provide specialized knowledge and workflows that agents can load on demand.
+
+### Quick Install
+
+```bash
+# Copy all skills to Claude
+cp -r kubernetes-skills/claude/* ~/.claude/skills/
+
+# Or install specific skills
+cp -r kubernetes-skills/claude/k8s-helm ~/.claude/skills/
+```
+
+### Available Skills (24)
+
+| Category | Skills |
+|----------|--------|
+| **Core Resources** | k8s-core, k8s-networking, k8s-storage |
+| **Workloads** | k8s-deploy, k8s-operations, k8s-helm |
+| **Observability** | k8s-diagnostics, k8s-troubleshoot, k8s-incident |
+| **Security** | k8s-security, k8s-policy, k8s-certs |
+| **GitOps** | k8s-gitops, k8s-rollouts |
+| **Scaling** | k8s-autoscaling, k8s-cost, k8s-backup |
+| **Multi-Cluster** | k8s-multicluster, k8s-capi, k8s-kubevirt |
+| **Networking** | k8s-service-mesh, k8s-cilium |
+| **Tools** | k8s-browser, k8s-cli |
+
+### Convert to Other Agents
+
+Use [SkillKit](https://github.com/rohitg00/skillkit) to convert skills to your preferred AI agent format:
+
+```bash
+npm install -g skillkit
+
+# Convert to Cursor format
+skillkit translate kubernetes-skills/claude --to cursor --output .cursor/rules/
+
+# Convert to Codex format
+skillkit translate kubernetes-skills/claude --to codex --output ./
+```
+
+**Supported agents:** Claude, Cursor, Codex, Gemini CLI, GitHub Copilot, Goose, Windsurf, Roo, Amp, and more.
+
+See [kubernetes-skills/README.md](kubernetes-skills/README.md) for full documentation.
 
 ## Multi-Cluster Support
 

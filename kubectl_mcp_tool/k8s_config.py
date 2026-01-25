@@ -6,13 +6,38 @@ Supports multi-cluster operations with context targeting.
 
 This module provides context-aware client creation for multi-cluster support.
 All get_*_client() functions accept an optional 'context' parameter.
+
+Environment Variables:
+    MCP_K8S_PROVIDER: Provider type (kubeconfig, in-cluster, single)
+    MCP_K8S_KUBECONFIG: Path to kubeconfig file
+    MCP_K8S_CONTEXT: Default context for single provider
+    MCP_K8S_QPS: API rate limit (default: 100)
+    MCP_K8S_BURST: API burst limit (default: 200)
+    MCP_K8S_TIMEOUT: Request timeout in seconds (default: 30)
 """
 
 import os
 import logging
-from typing import Optional, Any
+from typing import Optional, Any, List, Dict
 
 logger = logging.getLogger("mcp-server")
+
+# Try to import provider module for enhanced features
+try:
+    from .providers import (
+        KubernetesProvider,
+        ProviderConfig,
+        ProviderType,
+        UnknownContextError,
+        get_provider,
+        get_context_names,
+        get_current_context as provider_get_current_context,
+        validate_context,
+    )
+    _HAS_PROVIDER = True
+except ImportError:
+    _HAS_PROVIDER = False
+    logger.debug("Provider module not available, using basic config")
 
 _config_loaded = False
 _original_load_kube_config = None
@@ -114,12 +139,29 @@ def _load_config_for_context(context: str = "") -> Any:
     """
     Load kubernetes config for a specific context and return ApiClient.
 
+    Uses the provider module for caching when available.
+
     Args:
         context: Context name (empty for default)
 
     Returns:
         kubernetes.client.ApiClient configured for the context
+
+    Raises:
+        UnknownContextError: If context is not found (when provider available)
+        RuntimeError: If config cannot be loaded
     """
+    # Use provider module if available (provides caching and validation)
+    if _HAS_PROVIDER:
+        try:
+            provider = get_provider()
+            return provider.get_api_client(context)
+        except UnknownContextError:
+            raise
+        except Exception as e:
+            logger.warning(f"Provider failed, falling back to basic config: {e}")
+
+    # Fallback to basic config loading
     from kubernetes import client, config
     from kubernetes.config.config_exception import ConfigException
 
@@ -454,6 +496,25 @@ def list_contexts() -> list:
     Returns:
         List of context dictionaries with name, cluster, user, namespace
     """
+    # Use provider if available
+    if _HAS_PROVIDER:
+        try:
+            provider = get_provider()
+            contexts = provider.list_contexts()
+            return [
+                {
+                    "name": ctx.name,
+                    "cluster": ctx.cluster,
+                    "user": ctx.user,
+                    "namespace": ctx.namespace,
+                    "active": ctx.is_active
+                }
+                for ctx in contexts
+            ]
+        except Exception as e:
+            logger.warning(f"Provider list_contexts failed: {e}")
+
+    # Fallback to direct kubeconfig reading
     from kubernetes import config
 
     try:
@@ -484,6 +545,14 @@ def get_active_context() -> Optional[str]:
     Returns:
         Active context name or None
     """
+    # Use provider if available
+    if _HAS_PROVIDER:
+        try:
+            return provider_get_current_context()
+        except Exception as e:
+            logger.warning(f"Provider get_current_context failed: {e}")
+
+    # Fallback to direct kubeconfig reading
     from kubernetes import config
 
     try:
@@ -528,3 +597,60 @@ def _get_kubectl_context_args(context: str = "") -> list:
     if context and context.strip():
         return ["--context", context.strip()]
     return []
+
+
+# Re-export provider types for convenience
+if _HAS_PROVIDER:
+    __all__ = [
+        # Client functions
+        "get_k8s_client",
+        "get_apps_client",
+        "get_rbac_client",
+        "get_networking_client",
+        "get_storage_client",
+        "get_batch_client",
+        "get_autoscaling_client",
+        "get_policy_client",
+        "get_custom_objects_client",
+        "get_version_client",
+        "get_admissionregistration_client",
+        "get_apiextensions_client",
+        "get_coordination_client",
+        "get_events_client",
+        # Config functions
+        "load_kubernetes_config",
+        "patch_kubernetes_config",
+        # Context functions
+        "list_contexts",
+        "get_active_context",
+        "context_exists",
+        # Provider types (when available)
+        "KubernetesProvider",
+        "ProviderConfig",
+        "ProviderType",
+        "UnknownContextError",
+        "get_provider",
+        "validate_context",
+    ]
+else:
+    __all__ = [
+        "get_k8s_client",
+        "get_apps_client",
+        "get_rbac_client",
+        "get_networking_client",
+        "get_storage_client",
+        "get_batch_client",
+        "get_autoscaling_client",
+        "get_policy_client",
+        "get_custom_objects_client",
+        "get_version_client",
+        "get_admissionregistration_client",
+        "get_apiextensions_client",
+        "get_coordination_client",
+        "get_events_client",
+        "load_kubernetes_config",
+        "patch_kubernetes_config",
+        "list_contexts",
+        "get_active_context",
+        "context_exists",
+    ]
