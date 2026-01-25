@@ -1,12 +1,7 @@
-"""GitOps toolset for kubectl-mcp-server.
+"""GitOps toolset for kubectl-mcp-server (Flux and Argo CD)."""
 
-Provides tools for managing Flux and Argo CD applications.
-"""
-
-import subprocess
 import json
 from typing import Dict, Any, List
-from datetime import datetime
 
 try:
     from fastmcp import FastMCP
@@ -15,8 +10,8 @@ except ImportError:
     from mcp.server.fastmcp import FastMCP
     from mcp.types import ToolAnnotations
 
-from ..k8s_config import _get_kubectl_context_args
 from ..crd_detector import crd_exists, require_any_crd
+from .utils import run_kubectl, get_resources
 
 
 FLUX_KUSTOMIZATION_CRD = "kustomizations.kustomize.toolkit.fluxcd.io"
@@ -25,40 +20,6 @@ FLUX_GITREPO_CRD = "gitrepositories.source.toolkit.fluxcd.io"
 FLUX_HELMREPO_CRD = "helmrepositories.source.toolkit.fluxcd.io"
 ARGOCD_APP_CRD = "applications.argoproj.io"
 ARGOCD_APPSET_CRD = "applicationsets.argoproj.io"
-
-
-def _run_kubectl(args: List[str], context: str = "") -> Dict[str, Any]:
-    """Run kubectl command and return result."""
-    cmd = ["kubectl"] + _get_kubectl_context_args(context) + args
-    try:
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
-        if result.returncode == 0:
-            return {"success": True, "output": result.stdout}
-        return {"success": False, "error": result.stderr}
-    except subprocess.TimeoutExpired:
-        return {"success": False, "error": "Command timed out"}
-    except Exception as e:
-        return {"success": False, "error": str(e)}
-
-
-def _get_resources(kind: str, namespace: str = "", context: str = "", label_selector: str = "") -> List[Dict]:
-    """Get Kubernetes resources of a specific kind."""
-    args = ["get", kind, "-o", "json"]
-    if namespace:
-        args.extend(["-n", namespace])
-    else:
-        args.append("-A")
-    if label_selector:
-        args.extend(["-l", label_selector])
-
-    result = _run_kubectl(args, context)
-    if result["success"]:
-        try:
-            data = json.loads(result["output"])
-            return data.get("items", [])
-        except json.JSONDecodeError:
-            return []
-    return []
 
 
 def gitops_apps_list(
@@ -82,7 +43,7 @@ def gitops_apps_list(
 
     if not kind or kind.lower() == "kustomization":
         if crd_exists(FLUX_KUSTOMIZATION_CRD, context):
-            for item in _get_resources("kustomizations.kustomize.toolkit.fluxcd.io", namespace, context, label_selector):
+            for item in get_resources("kustomizations.kustomize.toolkit.fluxcd.io", namespace, context, label_selector):
                 status = item.get("status", {})
                 conditions = status.get("conditions", [])
                 ready_cond = next((c for c in conditions if c.get("type") == "Ready"), {})
@@ -101,7 +62,7 @@ def gitops_apps_list(
 
     if not kind or kind.lower() == "helmrelease":
         if crd_exists(FLUX_HELMRELEASE_CRD, context):
-            for item in _get_resources("helmreleases.helm.toolkit.fluxcd.io", namespace, context, label_selector):
+            for item in get_resources("helmreleases.helm.toolkit.fluxcd.io", namespace, context, label_selector):
                 status = item.get("status", {})
                 conditions = status.get("conditions", [])
                 ready_cond = next((c for c in conditions if c.get("type") == "Ready"), {})
@@ -119,7 +80,7 @@ def gitops_apps_list(
 
     if not kind or kind.lower() == "application":
         if crd_exists(ARGOCD_APP_CRD, context):
-            for item in _get_resources("applications.argoproj.io", namespace, context, label_selector):
+            for item in get_resources("applications.argoproj.io", namespace, context, label_selector):
                 status = item.get("status", {})
                 health = status.get("health", {})
                 sync = status.get("sync", {})
@@ -171,7 +132,7 @@ def gitops_app_get(
         return {"success": False, "error": f"Unknown kind: {kind}"}
 
     args = ["get", k8s_kind, name, "-n", namespace, "-o", "json"]
-    result = _run_kubectl(args, context)
+    result = run_kubectl(args, context)
 
     if result["success"]:
         try:
@@ -218,7 +179,7 @@ def gitops_app_sync(
             name, "-n", namespace,
             f"{annotation}={timestamp}", "--overwrite"
         ]
-        result = _run_kubectl(args, context)
+        result = run_kubectl(args, context)
 
         if result["success"]:
             return {
@@ -241,7 +202,7 @@ def gitops_app_sync(
             name, "-n", namespace,
             f"{annotation}={timestamp}", "--overwrite"
         ]
-        result = _run_kubectl(args, context)
+        result = run_kubectl(args, context)
 
         if result["success"]:
             return {
@@ -262,7 +223,7 @@ def gitops_app_sync(
             name, "-n", namespace,
             f"{annotation}=hard", "--overwrite"
         ]
-        result = _run_kubectl(args, context)
+        result = run_kubectl(args, context)
 
         if result["success"]:
             return {
@@ -363,7 +324,7 @@ def gitops_sources_list(
 
     if not kind or kind.lower() == "gitrepository":
         if crd_exists(FLUX_GITREPO_CRD, context):
-            for item in _get_resources("gitrepositories.source.toolkit.fluxcd.io", namespace, context, label_selector):
+            for item in get_resources("gitrepositories.source.toolkit.fluxcd.io", namespace, context, label_selector):
                 status = item.get("status", {})
                 conditions = status.get("conditions", [])
                 ready_cond = next((c for c in conditions if c.get("type") == "Ready"), {})
@@ -382,7 +343,7 @@ def gitops_sources_list(
 
     if not kind or kind.lower() == "helmrepository":
         if crd_exists(FLUX_HELMREPO_CRD, context):
-            for item in _get_resources("helmrepositories.source.toolkit.fluxcd.io", namespace, context, label_selector):
+            for item in get_resources("helmrepositories.source.toolkit.fluxcd.io", namespace, context, label_selector):
                 status = item.get("status", {})
                 conditions = status.get("conditions", [])
                 ready_cond = next((c for c in conditions if c.get("type") == "Ready"), {})
@@ -432,7 +393,7 @@ def gitops_source_get(
         return {"success": False, "error": f"Unknown kind: {kind}"}
 
     args = ["get", k8s_kind, name, "-n", namespace, "-o", "json"]
-    result = _run_kubectl(args, context)
+    result = run_kubectl(args, context)
 
     if result["success"]:
         try:
