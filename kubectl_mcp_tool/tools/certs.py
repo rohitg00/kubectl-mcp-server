@@ -1,12 +1,8 @@
-"""Cert-Manager toolset for kubectl-mcp-server.
+"""Cert-Manager toolset for kubectl-mcp-server."""
 
-Provides tools for managing certificates via cert-manager.
-"""
-
-import subprocess
 import json
 from typing import Dict, Any, List, Optional
-from datetime import datetime, timezone
+from datetime import datetime
 
 try:
     from fastmcp import FastMCP
@@ -15,8 +11,8 @@ except ImportError:
     from mcp.server.fastmcp import FastMCP
     from mcp.types import ToolAnnotations
 
-from ..k8s_config import _get_kubectl_context_args
 from ..crd_detector import crd_exists
+from .utils import run_kubectl
 
 
 CERTIFICATE_CRD = "certificates.cert-manager.io"
@@ -27,27 +23,13 @@ ORDER_CRD = "orders.acme.cert-manager.io"
 CHALLENGE_CRD = "challenges.acme.cert-manager.io"
 
 
-def _run_kubectl(args: List[str], context: str = "") -> Dict[str, Any]:
-    """Run kubectl command and return result."""
-    cmd = ["kubectl"] + _get_kubectl_context_args(context) + args
-    try:
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
-        if result.returncode == 0:
-            return {"success": True, "output": result.stdout}
-        return {"success": False, "error": result.stderr}
-    except subprocess.TimeoutExpired:
-        return {"success": False, "error": "Command timed out"}
-    except Exception as e:
-        return {"success": False, "error": str(e)}
-
-
 class CertsResourceError(Exception):
     """Exception raised when fetching cert-manager resources fails."""
     pass
 
 
-def _get_resources(kind: str, namespace: str = "", context: str = "", label_selector: str = "") -> List[Dict]:
-    """Get Kubernetes resources of a specific kind.
+def _get_certs_resources(kind: str, namespace: str = "", context: str = "", label_selector: str = "") -> List[Dict]:
+    """Get cert-manager resources with error handling.
 
     Raises:
         CertsResourceError: If kubectl command fails or output cannot be parsed
@@ -60,7 +42,7 @@ def _get_resources(kind: str, namespace: str = "", context: str = "", label_sele
     if label_selector:
         args.extend(["-l", label_selector])
 
-    result = _run_kubectl(args, context)
+    result = run_kubectl(args, context)
     if not result["success"]:
         error_msg = result.get("error", "Unknown error")
         raise CertsResourceError(
@@ -115,7 +97,7 @@ def certs_list(
         }
 
     try:
-        resources = _get_resources("certificates.cert-manager.io", namespace, context, label_selector)
+        resources = _get_certs_resources("certificates.cert-manager.io", namespace, context, label_selector)
     except CertsResourceError as e:
         return {"success": False, "error": str(e)}
 
@@ -214,7 +196,7 @@ def certs_issuers_list(
 
     if crd_exists(ISSUER_CRD, context):
         try:
-            issuer_resources = _get_resources("issuers.cert-manager.io", namespace, context)
+            issuer_resources = _get_certs_resources("issuers.cert-manager.io", namespace, context)
         except CertsResourceError as e:
             return {"success": False, "error": str(e)}
 
@@ -248,7 +230,7 @@ def certs_issuers_list(
 
     if include_cluster_issuers and crd_exists(CLUSTER_ISSUER_CRD, context):
         try:
-            cluster_issuer_resources = _get_resources("clusterissuers.cert-manager.io", "", context)
+            cluster_issuer_resources = _get_certs_resources("clusterissuers.cert-manager.io", "", context)
         except CertsResourceError as e:
             return {"success": False, "error": str(e)}
 
@@ -528,7 +510,7 @@ def certs_challenges_list(
         }
 
     challenges = []
-    for item in _get_resources("challenges.acme.cert-manager.io", namespace, context, label_selector):
+    for item in _get_certs_resources("challenges.acme.cert-manager.io", namespace, context, label_selector):
         status = item.get("status", {})
         spec = item.get("spec", {})
 
@@ -576,7 +558,7 @@ def certs_requests_list(
         }
 
     requests = []
-    for item in _get_resources("certificaterequests.cert-manager.io", namespace, context, label_selector):
+    for item in _get_certs_resources("certificaterequests.cert-manager.io", namespace, context, label_selector):
         status = item.get("status", {})
         conditions = status.get("conditions", [])
         ready_cond = _get_condition(conditions, "Ready")

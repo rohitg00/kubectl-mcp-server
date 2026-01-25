@@ -1,7 +1,4 @@
-"""Cluster API (CAPI) toolset for kubectl-mcp-server.
-
-Provides tools for managing Cluster API clusters and machine lifecycle.
-"""
+"""Cluster API (CAPI) toolset for kubectl-mcp-server."""
 
 import subprocess
 import json
@@ -14,11 +11,10 @@ except ImportError:
     from mcp.server.fastmcp import FastMCP
     from mcp.types import ToolAnnotations
 
-from ..k8s_config import _get_kubectl_context_args
 from ..crd_detector import crd_exists
+from .utils import run_kubectl, get_resources
 
 
-# Cluster API CRDs
 CLUSTER_CRD = "clusters.cluster.x-k8s.io"
 MACHINE_CRD = "machines.cluster.x-k8s.io"
 MACHINEDEPLOYMENT_CRD = "machinedeployments.cluster.x-k8s.io"
@@ -26,40 +22,6 @@ MACHINESET_CRD = "machinesets.cluster.x-k8s.io"
 MACHINEPOOL_CRD = "machinepools.cluster.x-k8s.io"
 MACHINEHEALTHCHECK_CRD = "machinehealthchecks.cluster.x-k8s.io"
 CLUSTERCLASS_CRD = "clusterclasses.cluster.x-k8s.io"
-
-
-def _run_kubectl(args: List[str], context: str = "") -> Dict[str, Any]:
-    """Run kubectl command and return result."""
-    cmd = ["kubectl"] + _get_kubectl_context_args(context) + args
-    try:
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
-        if result.returncode == 0:
-            return {"success": True, "output": result.stdout}
-        return {"success": False, "error": result.stderr}
-    except subprocess.TimeoutExpired:
-        return {"success": False, "error": "Command timed out"}
-    except Exception as e:
-        return {"success": False, "error": str(e)}
-
-
-def _get_resources(kind: str, namespace: str = "", context: str = "", label_selector: str = "") -> List[Dict]:
-    """Get Kubernetes resources of a specific kind."""
-    args = ["get", kind, "-o", "json"]
-    if namespace:
-        args.extend(["-n", namespace])
-    else:
-        args.append("-A")
-    if label_selector:
-        args.extend(["-l", label_selector])
-
-    result = _run_kubectl(args, context)
-    if result["success"]:
-        try:
-            data = json.loads(result["output"])
-            return data.get("items", [])
-        except json.JSONDecodeError:
-            return []
-    return []
 
 
 def _clusterctl_available() -> bool:
@@ -93,12 +55,10 @@ def capi_clusters_list(
         }
 
     clusters = []
-    for item in _get_resources("clusters.cluster.x-k8s.io", namespace, context, label_selector):
+    for item in get_resources("clusters.cluster.x-k8s.io", namespace, context, label_selector):
         status = item.get("status", {})
         spec = item.get("spec", {})
         conditions = status.get("conditions", [])
-
-        # Find key conditions
         ready_cond = next((c for c in conditions if c.get("type") == "Ready"), {})
         infra_ready = next((c for c in conditions if c.get("type") == "InfrastructureReady"), {})
         cp_ready = next((c for c in conditions if c.get("type") == "ControlPlaneReady"), {})
@@ -120,7 +80,6 @@ def capi_clusters_list(
             "failure_message": status.get("failureMessage"),
         })
 
-    # Summary
     ready = sum(1 for c in clusters if c["ready"])
     provisioning = sum(1 for c in clusters if c["phase"] == "Provisioning")
 
@@ -152,7 +111,7 @@ def capi_cluster_get(
         return {"success": False, "error": "Cluster API is not installed"}
 
     args = ["get", "clusters.cluster.x-k8s.io", name, "-n", namespace, "-o", "json"]
-    result = _run_kubectl(args, context)
+    result = run_kubectl(args, context)
 
     if result["success"]:
         try:
@@ -191,14 +150,13 @@ def capi_machines_list(
             "error": "Cluster API is not installed (machines.cluster.x-k8s.io CRD not found)"
         }
 
-    # Build label selector
     selector = label_selector
     if cluster_name:
         cluster_label = f"cluster.x-k8s.io/cluster-name={cluster_name}"
         selector = f"{selector},{cluster_label}" if selector else cluster_label
 
     machines = []
-    for item in _get_resources("machines.cluster.x-k8s.io", namespace, context, selector):
+    for item in get_resources("machines.cluster.x-k8s.io", namespace, context, selector):
         status = item.get("status", {})
         spec = item.get("spec", {})
         conditions = status.get("conditions", [])
@@ -223,7 +181,6 @@ def capi_machines_list(
             "failure_message": status.get("failureMessage"),
         })
 
-    # Summary
     ready = sum(1 for m in machines if m["ready"])
     running = sum(1 for m in machines if m["phase"] == "Running")
 
@@ -255,7 +212,7 @@ def capi_machine_get(
         return {"success": False, "error": "Cluster API is not installed"}
 
     args = ["get", "machines.cluster.x-k8s.io", name, "-n", namespace, "-o", "json"]
-    result = _run_kubectl(args, context)
+    result = run_kubectl(args, context)
 
     if result["success"]:
         try:
@@ -294,14 +251,13 @@ def capi_machinedeployments_list(
             "error": "MachineDeployments CRD not found"
         }
 
-    # Build label selector
     selector = label_selector
     if cluster_name:
         cluster_label = f"cluster.x-k8s.io/cluster-name={cluster_name}"
         selector = f"{selector},{cluster_label}" if selector else cluster_label
 
     deployments = []
-    for item in _get_resources("machinedeployments.cluster.x-k8s.io", namespace, context, selector):
+    for item in get_resources("machinedeployments.cluster.x-k8s.io", namespace, context, selector):
         status = item.get("status", {})
         spec = item.get("spec", {})
         conditions = status.get("conditions", [])
@@ -361,7 +317,7 @@ def capi_machinedeployment_scale(
         "-n", namespace,
         f"--replicas={replicas}"
     ]
-    result = _run_kubectl(args, context)
+    result = run_kubectl(args, context)
 
     if result["success"]:
         return {
@@ -402,7 +358,7 @@ def capi_machinesets_list(
         selector = f"{selector},{cluster_label}" if selector else cluster_label
 
     machinesets = []
-    for item in _get_resources("machinesets.cluster.x-k8s.io", namespace, context, selector):
+    for item in get_resources("machinesets.cluster.x-k8s.io", namespace, context, selector):
         status = item.get("status", {})
         spec = item.get("spec", {})
 
@@ -457,7 +413,7 @@ def capi_machinehealthchecks_list(
         selector = f"{selector},{cluster_label}" if selector else cluster_label
 
     healthchecks = []
-    for item in _get_resources("machinehealthchecks.cluster.x-k8s.io", namespace, context, selector):
+    for item in get_resources("machinehealthchecks.cluster.x-k8s.io", namespace, context, selector):
         status = item.get("status", {})
         spec = item.get("spec", {})
         conditions = status.get("conditions", [])
@@ -506,7 +462,7 @@ def capi_clusterclasses_list(
         }
 
     classes = []
-    for item in _get_resources("clusterclasses.cluster.x-k8s.io", namespace, context, label_selector):
+    for item in get_resources("clusterclasses.cluster.x-k8s.io", namespace, context, label_selector):
         spec = item.get("spec", {})
         status = item.get("status", {})
         conditions = status.get("conditions", [])
@@ -559,7 +515,7 @@ def capi_cluster_kubeconfig(
     # CAPI stores kubeconfig in a secret named <cluster-name>-kubeconfig
     secret_name = f"{name}-kubeconfig"
     args = ["get", "secret", secret_name, "-n", namespace, "-o", "json"]
-    result = _run_kubectl(args, context)
+    result = run_kubectl(args, context)
 
     if result["success"]:
         try:

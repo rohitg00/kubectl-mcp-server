@@ -1,11 +1,8 @@
-"""Backup toolset for kubectl-mcp-server.
-
-Provides tools for managing Velero backups and restores.
-"""
+"""Backup toolset for kubectl-mcp-server (Velero backups and restores)."""
 
 import subprocess
 import json
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List
 from datetime import datetime
 
 try:
@@ -15,8 +12,8 @@ except ImportError:
     from mcp.server.fastmcp import FastMCP
     from mcp.types import ToolAnnotations
 
-from ..k8s_config import _get_kubectl_context_args
 from ..crd_detector import crd_exists
+from .utils import run_kubectl, get_resources
 
 
 VELERO_BACKUP_CRD = "backups.velero.io"
@@ -24,40 +21,6 @@ VELERO_RESTORE_CRD = "restores.velero.io"
 VELERO_SCHEDULE_CRD = "schedules.velero.io"
 VELERO_BSL_CRD = "backupstoragelocations.velero.io"
 VELERO_VSL_CRD = "volumesnapshotlocations.velero.io"
-
-
-def _run_kubectl(args: List[str], context: str = "") -> Dict[str, Any]:
-    """Run kubectl command and return result."""
-    cmd = ["kubectl"] + _get_kubectl_context_args(context) + args
-    try:
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
-        if result.returncode == 0:
-            return {"success": True, "output": result.stdout}
-        return {"success": False, "error": result.stderr}
-    except subprocess.TimeoutExpired:
-        return {"success": False, "error": "Command timed out"}
-    except Exception as e:
-        return {"success": False, "error": str(e)}
-
-
-def _get_resources(kind: str, namespace: str = "", context: str = "", label_selector: str = "") -> List[Dict]:
-    """Get Kubernetes resources of a specific kind."""
-    args = ["get", kind, "-o", "json"]
-    if namespace:
-        args.extend(["-n", namespace])
-    else:
-        args.append("-A")
-    if label_selector:
-        args.extend(["-l", label_selector])
-
-    result = _run_kubectl(args, context)
-    if result["success"]:
-        try:
-            data = json.loads(result["output"])
-            return data.get("items", [])
-        except json.JSONDecodeError:
-            return []
-    return []
 
 
 def _velero_cli_available() -> bool:
@@ -112,7 +75,7 @@ def backup_list(
         }
 
     backups = []
-    for item in _get_resources("backups.velero.io", namespace, context, label_selector):
+    for item in get_resources("backups.velero.io", namespace, context, label_selector):
         status = item.get("status", {})
         spec = item.get("spec", {})
         progress = status.get("progress", {})
@@ -165,7 +128,7 @@ def backup_get(
         return {"success": False, "error": "Velero is not installed"}
 
     args = ["get", "backups.velero.io", name, "-n", namespace, "-o", "json"]
-    result = _run_kubectl(args, context)
+    result = run_kubectl(args, context)
 
     if result["success"]:
         try:
@@ -341,7 +304,7 @@ def backup_delete(
         return result
 
     args = ["delete", "backups.velero.io", name, "-n", namespace]
-    result = _run_kubectl(args, context)
+    result = run_kubectl(args, context)
 
     if result["success"]:
         return {
@@ -375,7 +338,7 @@ def restore_list(
         }
 
     restores = []
-    for item in _get_resources("restores.velero.io", namespace, context, label_selector):
+    for item in get_resources("restores.velero.io", namespace, context, label_selector):
         status = item.get("status", {})
         spec = item.get("spec", {})
         progress = status.get("progress", {})
@@ -536,7 +499,7 @@ def restore_get(
         return {"success": False, "error": "Velero is not installed"}
 
     args = ["get", "restores.velero.io", name, "-n", namespace, "-o", "json"]
-    result = _run_kubectl(args, context)
+    result = run_kubectl(args, context)
 
     if result["success"]:
         try:
@@ -572,7 +535,7 @@ def backup_locations_list(
         }
 
     locations = []
-    for item in _get_resources("backupstoragelocations.velero.io", namespace, context):
+    for item in get_resources("backupstoragelocations.velero.io", namespace, context):
         status = item.get("status", {})
         spec = item.get("spec", {})
 
@@ -615,7 +578,7 @@ def backup_schedules_list(
         }
 
     schedules = []
-    for item in _get_resources("schedules.velero.io", namespace, context):
+    for item in get_resources("schedules.velero.io", namespace, context):
         status = item.get("status", {})
         spec = item.get("spec", {})
         template = spec.get("template", {})

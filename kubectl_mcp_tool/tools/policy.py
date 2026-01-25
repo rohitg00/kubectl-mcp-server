@@ -1,9 +1,5 @@
-"""Policy toolset for kubectl-mcp-server.
+"""Policy toolset for kubectl-mcp-server (Kyverno and Gatekeeper)."""
 
-Provides tools for managing Kyverno and Gatekeeper policies.
-"""
-
-import subprocess
 import json
 from typing import Dict, Any, List, Optional
 
@@ -14,8 +10,8 @@ except ImportError:
     from mcp.server.fastmcp import FastMCP
     from mcp.types import ToolAnnotations
 
-from ..k8s_config import _get_kubectl_context_args
 from ..crd_detector import crd_exists
+from .utils import run_kubectl, get_resources
 
 
 KYVERNO_CLUSTER_POLICY_CRD = "clusterpolicies.kyverno.io"
@@ -24,40 +20,6 @@ KYVERNO_POLICY_REPORT_CRD = "policyreports.wgpolicyk8s.io"
 KYVERNO_CLUSTER_POLICY_REPORT_CRD = "clusterpolicyreports.wgpolicyk8s.io"
 GATEKEEPER_CONSTRAINT_TEMPLATE_CRD = "constrainttemplates.templates.gatekeeper.sh"
 GATEKEEPER_CONFIG_CRD = "configs.config.gatekeeper.sh"
-
-
-def _run_kubectl(args: List[str], context: str = "") -> Dict[str, Any]:
-    """Run kubectl command and return result."""
-    cmd = ["kubectl"] + _get_kubectl_context_args(context) + args
-    try:
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
-        if result.returncode == 0:
-            return {"success": True, "output": result.stdout}
-        return {"success": False, "error": result.stderr}
-    except subprocess.TimeoutExpired:
-        return {"success": False, "error": "Command timed out"}
-    except Exception as e:
-        return {"success": False, "error": str(e)}
-
-
-def _get_resources(kind: str, namespace: str = "", context: str = "", label_selector: str = "") -> List[Dict]:
-    """Get Kubernetes resources of a specific kind."""
-    args = ["get", kind, "-o", "json"]
-    if namespace:
-        args.extend(["-n", namespace])
-    else:
-        args.append("-A")
-    if label_selector:
-        args.extend(["-l", label_selector])
-
-    result = _run_kubectl(args, context)
-    if result["success"]:
-        try:
-            data = json.loads(result["output"])
-            return data.get("items", [])
-        except json.JSONDecodeError:
-            return []
-    return []
 
 
 def _get_condition(conditions: List[Dict], condition_type: str) -> Optional[Dict]:
@@ -86,7 +48,7 @@ def policy_list(
 
     if engine in ("kyverno", "all"):
         if crd_exists(KYVERNO_CLUSTER_POLICY_CRD, context):
-            for item in _get_resources("clusterpolicies.kyverno.io", "", context, label_selector):
+            for item in get_resources("clusterpolicies.kyverno.io", "", context, label_selector):
                 status = item.get("status", {})
                 conditions = status.get("conditions", [])
                 ready_cond = _get_condition(conditions, "Ready")
@@ -105,7 +67,7 @@ def policy_list(
                 })
 
         if crd_exists(KYVERNO_POLICY_CRD, context):
-            for item in _get_resources("policies.kyverno.io", namespace, context, label_selector):
+            for item in get_resources("policies.kyverno.io", namespace, context, label_selector):
                 status = item.get("status", {})
                 conditions = status.get("conditions", [])
                 ready_cond = _get_condition(conditions, "Ready")
@@ -125,7 +87,7 @@ def policy_list(
 
     if engine in ("gatekeeper", "all"):
         if crd_exists(GATEKEEPER_CONSTRAINT_TEMPLATE_CRD, context):
-            for item in _get_resources("constrainttemplates.templates.gatekeeper.sh", "", context, label_selector):
+            for item in get_resources("constrainttemplates.templates.gatekeeper.sh", "", context, label_selector):
                 status = item.get("status", {})
                 spec = item.get("spec", {})
 
@@ -158,14 +120,14 @@ def _get_gatekeeper_constraints(context: str = "") -> List[Dict]:
     """Get all Gatekeeper constraints dynamically."""
     constraints = []
 
-    templates = _get_resources("constrainttemplates.templates.gatekeeper.sh", "", context)
+    templates = get_resources("constrainttemplates.templates.gatekeeper.sh", "", context)
     for template in templates:
         crd_kind = template.get("spec", {}).get("crd", {}).get("spec", {}).get("names", {}).get("kind", "")
         if not crd_kind:
             continue
 
         try:
-            constraint_items = _get_resources(crd_kind.lower(), "", context)
+            constraint_items = get_resources(crd_kind.lower(), "", context)
             for item in constraint_items:
                 status = item.get("status", {})
                 spec = item.get("spec", {})
@@ -222,7 +184,7 @@ def policy_get(
     else:
         args = ["get", k8s_kind, name, "-o", "json"]
 
-    result = _run_kubectl(args, context)
+    result = run_kubectl(args, context)
 
     if result["success"]:
         try:
@@ -259,7 +221,7 @@ def policy_violations_list(
 
     if engine in ("kyverno", "all"):
         if crd_exists(KYVERNO_POLICY_REPORT_CRD, context):
-            for report in _get_resources("policyreports.wgpolicyk8s.io", namespace, context):
+            for report in get_resources("policyreports.wgpolicyk8s.io", namespace, context):
                 results = report.get("results", [])
                 for result in results:
                     if result.get("result") in ("fail", "error"):
@@ -279,7 +241,7 @@ def policy_violations_list(
                         })
 
         if crd_exists(KYVERNO_CLUSTER_POLICY_REPORT_CRD, context):
-            for report in _get_resources("clusterpolicyreports.wgpolicyk8s.io", "", context):
+            for report in get_resources("clusterpolicyreports.wgpolicyk8s.io", "", context):
                 results = report.get("results", [])
                 for result in results:
                     if result.get("result") in ("fail", "error"):
@@ -350,7 +312,7 @@ def policy_explain_denial(
     message_lower = message.lower()
 
     if crd_exists(KYVERNO_CLUSTER_POLICY_CRD, context):
-        for policy in _get_resources("clusterpolicies.kyverno.io", "", context):
+        for policy in get_resources("clusterpolicies.kyverno.io", "", context):
             policy_name = policy["metadata"]["name"]
             if policy_name.lower() in message_lower:
                 spec = policy.get("spec", {})

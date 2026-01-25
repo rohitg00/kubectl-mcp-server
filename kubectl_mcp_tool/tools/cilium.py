@@ -1,11 +1,8 @@
-"""Cilium/Hubble network toolset for kubectl-mcp-server.
-
-Provides tools for managing Cilium network policies and observability.
-"""
+"""Cilium/Hubble network toolset for kubectl-mcp-server."""
 
 import subprocess
 import json
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List
 
 try:
     from fastmcp import FastMCP
@@ -14,8 +11,8 @@ except ImportError:
     from mcp.server.fastmcp import FastMCP
     from mcp.types import ToolAnnotations
 
-from ..k8s_config import _get_kubectl_context_args
 from ..crd_detector import crd_exists
+from .utils import run_kubectl, get_resources
 
 
 CILIUM_NETWORK_POLICY_CRD = "ciliumnetworkpolicies.cilium.io"
@@ -23,40 +20,6 @@ CILIUM_CLUSTERWIDE_POLICY_CRD = "ciliumclusterwidenetworkpolicies.cilium.io"
 CILIUM_ENDPOINT_CRD = "ciliumendpoints.cilium.io"
 CILIUM_IDENTITY_CRD = "ciliumidentities.cilium.io"
 CILIUM_NODE_CRD = "ciliumnodes.cilium.io"
-
-
-def _run_kubectl(args: List[str], context: str = "") -> Dict[str, Any]:
-    """Run kubectl command and return result."""
-    cmd = ["kubectl"] + _get_kubectl_context_args(context) + args
-    try:
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
-        if result.returncode == 0:
-            return {"success": True, "output": result.stdout}
-        return {"success": False, "error": result.stderr}
-    except subprocess.TimeoutExpired:
-        return {"success": False, "error": "Command timed out"}
-    except Exception as e:
-        return {"success": False, "error": str(e)}
-
-
-def _get_resources(kind: str, namespace: str = "", context: str = "", label_selector: str = "") -> List[Dict]:
-    """Get Kubernetes resources of a specific kind."""
-    args = ["get", kind, "-o", "json"]
-    if namespace:
-        args.extend(["-n", namespace])
-    else:
-        args.append("-A")
-    if label_selector:
-        args.extend(["-l", label_selector])
-
-    result = _run_kubectl(args, context)
-    if result["success"]:
-        try:
-            data = json.loads(result["output"])
-            return data.get("items", [])
-        except json.JSONDecodeError:
-            return []
-    return []
 
 
 def _cilium_cli_available() -> bool:
@@ -95,7 +58,7 @@ def cilium_policies_list(
     policies = []
 
     if crd_exists(CILIUM_NETWORK_POLICY_CRD, context):
-        for item in _get_resources("ciliumnetworkpolicies.cilium.io", namespace, context):
+        for item in get_resources("ciliumnetworkpolicies.cilium.io", namespace, context):
             spec = item.get("spec", {})
             status = item.get("status", {})
 
@@ -123,7 +86,7 @@ def cilium_policies_list(
             })
 
     if include_clusterwide and crd_exists(CILIUM_CLUSTERWIDE_POLICY_CRD, context):
-        for item in _get_resources("ciliumclusterwidenetworkpolicies.cilium.io", "", context):
+        for item in get_resources("ciliumclusterwidenetworkpolicies.cilium.io", "", context):
             spec = item.get("spec", {})
             status = item.get("status", {})
 
@@ -182,7 +145,7 @@ def cilium_policy_get(
     if not crd_exists(crd, context):
         return {"success": False, "error": f"{crd} not found"}
 
-    result = _run_kubectl(args, context)
+    result = run_kubectl(args, context)
 
     if result["success"]:
         try:
@@ -220,7 +183,7 @@ def cilium_endpoints_list(
         }
 
     endpoints = []
-    for item in _get_resources("ciliumendpoints.cilium.io", namespace, context, label_selector):
+    for item in get_resources("ciliumendpoints.cilium.io", namespace, context, label_selector):
         status = item.get("status", {})
         networking = status.get("networking", {})
         identity = status.get("identity", {})
@@ -275,7 +238,7 @@ def cilium_identities_list(
         }
 
     identities = []
-    for item in _get_resources("ciliumidentities.cilium.io", "", context, label_selector):
+    for item in get_resources("ciliumidentities.cilium.io", "", context, label_selector):
         security_labels = item.get("security-labels", {})
 
         identities.append({
@@ -308,7 +271,7 @@ def cilium_nodes_list(context: str = "") -> Dict[str, Any]:
         }
 
     nodes = []
-    for item in _get_resources("ciliumnodes.cilium.io", "", context):
+    for item in get_resources("ciliumnodes.cilium.io", "", context):
         spec = item.get("spec", {})
         status = item.get("status", {})
 
@@ -363,7 +326,7 @@ def cilium_status(context: str = "") -> Dict[str, Any]:
     # Fallback to kubectl
     # Check Cilium pods status
     args = ["get", "pods", "-n", "kube-system", "-l", "k8s-app=cilium", "-o", "json"]
-    result = _run_kubectl(args, context)
+    result = run_kubectl(args, context)
 
     if not result["success"]:
         return {"success": False, "error": result.get("error", "Failed to get Cilium status")}

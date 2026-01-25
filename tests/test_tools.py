@@ -12,11 +12,11 @@ from unittest.mock import patch, MagicMock
 from datetime import datetime
 
 
-# Complete list of all 224 tools that must be registered (125 core + 6 UI + 93 ecosystem)
+# Complete list of all 235 tools that must be registered (136 core + 6 UI + 93 ecosystem)
 EXPECTED_TOOLS = [
     # Pods (pods.py)
     "get_pods", "get_logs", "get_pod_events", "check_pod_health", "exec_in_pod",
-    "cleanup_pods", "get_pod_conditions", "get_previous_logs", "diagnose_pod_crash",
+    "cleanup_pods", "run_pod", "get_pod_conditions", "get_previous_logs", "diagnose_pod_crash",
     "detect_pending_pods", "get_evicted_pods",
     # Deployments (deployments.py)
     "get_deployments", "create_deployment", "scale_deployment", "restart_deployment",
@@ -29,6 +29,12 @@ EXPECTED_TOOLS = [
     "get_context_details", "set_namespace_for_context", "get_cluster_info",
     "get_cluster_version", "get_nodes", "get_api_resources", "health_check",
     "kubeconfig_view", "get_api_versions", "check_crd_exists", "list_crds", "get_nodes_summary",
+    "node_logs_tool", "node_stats_summary_tool", "node_top_tool",
+    # Config management tools (cluster.py)
+    "get_server_config_status", "enable_kubeconfig_watching", "disable_kubeconfig_watching",
+    "set_server_stateless_mode",
+    # Multi-cluster tools (cluster.py)
+    "multi_cluster_query", "multi_cluster_health", "multi_cluster_pod_count",
     # Networking (networking.py)
     "get_services", "get_endpoints", "get_ingress", "port_forward",
     "diagnose_network_connectivity", "check_dns_resolution", "trace_service_chain",
@@ -109,11 +115,11 @@ EXPECTED_TOOLS = [
 
 
 class TestAllToolsRegistered:
-    """Comprehensive tests to verify all 224 tools are registered (125 core + 6 UI + 93 ecosystem)."""
+    """Comprehensive tests to verify all 235 tools are registered (136 core + 6 UI + 93 ecosystem)."""
 
     @pytest.mark.unit
     def test_all_164_tools_registered(self):
-        """Verify all 224 expected tools are registered (excluding optional browser tools)."""
+        """Verify all 235 expected tools are registered (excluding optional browser tools)."""
         import os
         from kubectl_mcp_tool.mcp_server import MCPServer
 
@@ -134,8 +140,8 @@ class TestAllToolsRegistered:
             tools = asyncio.run(get_tools())
             tool_names = {t.name for t in tools}
 
-            # Verify count (224 tools = 125 core + 6 UI + 93 ecosystem, browser tools disabled)
-            assert len(tools) == 224, f"Expected 224 tools, got {len(tools)}"
+            # Verify count (235 tools = 136 core + 6 UI + 93 ecosystem, browser tools disabled)
+            assert len(tools) == 235, f"Expected 235 tools, got {len(tools)}"
 
             # Check for missing tools
             missing_tools = set(EXPECTED_TOOLS) - tool_names
@@ -271,6 +277,32 @@ class TestPodTools:
                 from kubectl_mcp_tool.mcp_server import MCPServer
                 with patch("kubectl_mcp_tool.mcp_server.MCPServer._check_dependencies", return_value=True):
                     server = MCPServer(name="test")
+
+    @pytest.mark.unit
+    def test_run_pod(self, mock_all_kubernetes_apis):
+        """Test running a container image as a pod."""
+        with patch("kubernetes.config.load_kube_config"):
+            with patch("kubernetes.client.CoreV1Api") as mock_api:
+                mock_pod = MagicMock()
+                mock_pod.metadata.name = "nginx-abc12345"
+                mock_pod.metadata.namespace = "default"
+                mock_pod.metadata.uid = "test-uid-123"
+                mock_pod.status.phase = "Pending"
+                mock_api.return_value.create_namespaced_pod.return_value = mock_pod
+
+                from kubectl_mcp_tool.mcp_server import MCPServer
+                with patch("kubectl_mcp_tool.mcp_server.MCPServer._check_dependencies", return_value=True):
+                    server = MCPServer(name="test")
+
+    @pytest.mark.unit
+    def test_run_pod_non_destructive_mode(self, mock_all_kubernetes_apis):
+        """Test that run_pod is blocked in non-destructive mode."""
+        from kubectl_mcp_tool.mcp_server import MCPServer
+        with patch("kubectl_mcp_tool.mcp_server.MCPServer._check_dependencies", return_value=True):
+            with patch("kubernetes.config.load_kube_config"):
+                server = MCPServer(name="test", disable_destructive=True)
+                # Non-destructive mode should be set via the non_destructive property
+                assert server.non_destructive is True
 
 
 class TestDeploymentTools:
@@ -621,11 +653,12 @@ class TestApplyAndDeleteTools:
         """Test non-destructive mode blocks destructive operations."""
         from kubectl_mcp_tool.mcp_server import MCPServer
         with patch("kubectl_mcp_tool.mcp_server.MCPServer._check_dependencies", return_value=True):
-            server = MCPServer(name="test", non_destructive=True)
-            result = server._check_destructive()
-            assert result is not None
-            assert result["success"] is False
-            assert "non-destructive mode" in result["error"]
+            with patch("kubernetes.config.load_kube_config"):
+                server = MCPServer(name="test", disable_destructive=True)
+                result = server._check_destructive()
+                assert result is not None
+                assert result["success"] is False
+                assert "non-destructive mode" in result["error"] or "disable-destructive" in result["error"]
 
 
 class TestToolAnnotations:

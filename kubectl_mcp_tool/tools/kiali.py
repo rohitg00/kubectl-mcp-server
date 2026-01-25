@@ -1,12 +1,9 @@
-"""Kiali/Istio service mesh observability toolset for kubectl-mcp-server.
-
-Provides tools for service mesh visualization and Istio configuration inspection.
-"""
+"""Kiali/Istio service mesh observability toolset for kubectl-mcp-server."""
 
 import subprocess
 import json
 import os
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List
 
 try:
     from fastmcp import FastMCP
@@ -15,11 +12,10 @@ except ImportError:
     from mcp.server.fastmcp import FastMCP
     from mcp.types import ToolAnnotations
 
-from ..k8s_config import _get_kubectl_context_args
 from ..crd_detector import crd_exists
+from .utils import run_kubectl, get_resources
 
 
-# Istio CRDs
 VIRTUALSERVICE_CRD = "virtualservices.networking.istio.io"
 DESTINATIONRULE_CRD = "destinationrules.networking.istio.io"
 GATEWAY_CRD = "gateways.networking.istio.io"
@@ -28,40 +24,6 @@ SIDECAR_CRD = "sidecars.networking.istio.io"
 PEERAUTHENTICATION_CRD = "peerauthentications.security.istio.io"
 AUTHORIZATIONPOLICY_CRD = "authorizationpolicies.security.istio.io"
 REQUESTAUTHENTICATION_CRD = "requestauthentications.security.istio.io"
-
-
-def _run_kubectl(args: List[str], context: str = "") -> Dict[str, Any]:
-    """Run kubectl command and return result."""
-    cmd = ["kubectl"] + _get_kubectl_context_args(context) + args
-    try:
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
-        if result.returncode == 0:
-            return {"success": True, "output": result.stdout}
-        return {"success": False, "error": result.stderr}
-    except subprocess.TimeoutExpired:
-        return {"success": False, "error": "Command timed out"}
-    except Exception as e:
-        return {"success": False, "error": str(e)}
-
-
-def _get_resources(kind: str, namespace: str = "", context: str = "", label_selector: str = "") -> List[Dict]:
-    """Get Kubernetes resources of a specific kind."""
-    args = ["get", kind, "-o", "json"]
-    if namespace:
-        args.extend(["-n", namespace])
-    else:
-        args.append("-A")
-    if label_selector:
-        args.extend(["-l", label_selector])
-
-    result = _run_kubectl(args, context)
-    if result["success"]:
-        try:
-            data = json.loads(result["output"])
-            return data.get("items", [])
-        except json.JSONDecodeError:
-            return []
-    return []
 
 
 def _istioctl_available() -> bool:
@@ -83,8 +45,6 @@ def _get_kiali_config() -> Dict[str, str]:
         "password": os.environ.get("KIALI_PASSWORD", ""),
     }
 
-
-# ============== Istio Resource Functions ==============
 
 def istio_virtualservices_list(
     namespace: str = "",
@@ -108,7 +68,7 @@ def istio_virtualservices_list(
         }
 
     virtualservices = []
-    for item in _get_resources("virtualservices.networking.istio.io", namespace, context, label_selector):
+    for item in get_resources("virtualservices.networking.istio.io", namespace, context, label_selector):
         spec = item.get("spec", {})
         hosts = spec.get("hosts", [])
         gateways = spec.get("gateways", [])
@@ -153,7 +113,7 @@ def istio_virtualservice_get(
         return {"success": False, "error": "Istio is not installed"}
 
     args = ["get", "virtualservices.networking.istio.io", name, "-n", namespace, "-o", "json"]
-    result = _run_kubectl(args, context)
+    result = run_kubectl(args, context)
 
     if result["success"]:
         try:
@@ -191,7 +151,7 @@ def istio_destinationrules_list(
         }
 
     rules = []
-    for item in _get_resources("destinationrules.networking.istio.io", namespace, context, label_selector):
+    for item in get_resources("destinationrules.networking.istio.io", namespace, context, label_selector):
         spec = item.get("spec", {})
         traffic_policy = spec.get("trafficPolicy", {})
         subsets = spec.get("subsets", [])
@@ -238,7 +198,7 @@ def istio_gateways_list(
         }
 
     gateways = []
-    for item in _get_resources("gateways.networking.istio.io", namespace, context, label_selector):
+    for item in get_resources("gateways.networking.istio.io", namespace, context, label_selector):
         spec = item.get("spec", {})
         selector = spec.get("selector", {})
         servers = spec.get("servers", [])
@@ -294,7 +254,7 @@ def istio_peerauthentications_list(
         }
 
     policies = []
-    for item in _get_resources("peerauthentications.security.istio.io", namespace, context, label_selector):
+    for item in get_resources("peerauthentications.security.istio.io", namespace, context, label_selector):
         spec = item.get("spec", {})
         selector = spec.get("selector", {})
         mtls = spec.get("mtls", {})
@@ -337,7 +297,7 @@ def istio_authorizationpolicies_list(
         }
 
     policies = []
-    for item in _get_resources("authorizationpolicies.security.istio.io", namespace, context, label_selector):
+    for item in get_resources("authorizationpolicies.security.istio.io", namespace, context, label_selector):
         spec = item.get("spec", {})
         selector = spec.get("selector", {})
         rules = spec.get("rules", [])
@@ -503,7 +463,7 @@ def istio_sidecar_status(
     else:
         args.append("-A")
 
-    result = _run_kubectl(args, context)
+    result = run_kubectl(args, context)
     if not result["success"]:
         return {"success": False, "error": result.get("error", "Failed to list pods")}
 
