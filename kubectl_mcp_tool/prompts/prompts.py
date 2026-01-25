@@ -1,14 +1,190 @@
+"""
+MCP prompts registration for kubectl-mcp-server.
+
+This module handles registration of both built-in and custom prompts.
+Custom prompts can be loaded from a TOML configuration file.
+"""
+
 import logging
-from typing import Optional
+import os
+from typing import Optional, Dict, Any
+
+from .custom import (
+    CustomPrompt,
+    PromptMessage,
+    render_prompt,
+    load_prompts_from_toml_file,
+    validate_prompt_args,
+    apply_defaults,
+)
+from .builtin import get_builtin_prompts
 
 logger = logging.getLogger("mcp-server")
 
 
-def register_prompts(server):
-    """Register all MCP prompts for Kubernetes workflows.
+# Default paths for custom prompts configuration
+DEFAULT_CONFIG_PATHS = [
+    os.path.expanduser("~/.kubectl-mcp/prompts.toml"),
+    os.path.expanduser("~/.config/kubectl-mcp/prompts.toml"),
+    "./kubectl-mcp-prompts.toml",
+]
+
+
+def _get_custom_prompts_path() -> Optional[str]:
+    """
+    Get the path to custom prompts configuration file.
+
+    Checks (in order):
+    1. MCP_PROMPTS_FILE environment variable
+    2. Default config paths
+
+    Returns:
+        Path to config file if found, None otherwise
+    """
+    # Check environment variable first
+    env_path = os.environ.get("MCP_PROMPTS_FILE")
+    if env_path and os.path.isfile(env_path):
+        return env_path
+
+    # Check default paths
+    for path in DEFAULT_CONFIG_PATHS:
+        if os.path.isfile(path):
+            return path
+
+    return None
+
+
+def _merge_prompts(builtin: list, custom: list) -> Dict[str, CustomPrompt]:
+    """
+    Merge built-in and custom prompts.
+
+    Custom prompts override built-in prompts with the same name.
+
+    Args:
+        builtin: List of built-in CustomPrompt objects
+        custom: List of custom CustomPrompt objects
+
+    Returns:
+        Dictionary of prompt name -> CustomPrompt
+    """
+    prompts = {}
+
+    # Add built-in prompts first
+    for prompt in builtin:
+        prompts[prompt.name] = prompt
+
+    # Custom prompts override built-in
+    for prompt in custom:
+        if prompt.name in prompts:
+            logger.info(f"Custom prompt '{prompt.name}' overrides built-in prompt")
+        prompts[prompt.name] = prompt
+
+    return prompts
+
+
+def register_prompts(server, config_path: Optional[str] = None):
+    """
+    Register all MCP prompts for Kubernetes workflows.
+
+    Registers:
+    1. Built-in prompts from builtin.py
+    2. Custom prompts from configuration file (if found)
+    3. Original inline prompts for backward compatibility
+
+    Custom prompts can override built-in prompts by using the same name.
 
     Args:
         server: FastMCP server instance
+        config_path: Optional path to custom prompts TOML file
+    """
+    # Load built-in prompts
+    builtin_prompts = get_builtin_prompts()
+    logger.debug(f"Loaded {len(builtin_prompts)} built-in prompts")
+
+    # Load custom prompts
+    prompts_file = config_path or _get_custom_prompts_path()
+    custom_prompts = []
+    if prompts_file:
+        custom_prompts = load_prompts_from_toml_file(prompts_file)
+        logger.info(f"Loaded {len(custom_prompts)} custom prompts from {prompts_file}")
+
+    # Merge prompts (custom overrides built-in)
+    all_prompts = _merge_prompts(builtin_prompts, custom_prompts)
+
+    # Register each configurable prompt
+    for prompt in all_prompts.values():
+        _register_custom_prompt(server, prompt)
+
+    logger.debug(f"Registered {len(all_prompts)} configurable prompts")
+
+    # Register original inline prompts for backward compatibility
+    _register_inline_prompts(server)
+
+
+def _register_custom_prompt(server, prompt: CustomPrompt):
+    """
+    Register a single CustomPrompt with the server.
+
+    Args:
+        server: FastMCP server instance
+        prompt: CustomPrompt to register
+    """
+    # Build the argument schema for FastMCP
+    def create_prompt_handler(p: CustomPrompt):
+        """Create a closure that captures the prompt."""
+        def handler(**kwargs) -> str:
+            # Apply defaults for missing optional arguments
+            args = apply_defaults(p, kwargs)
+
+            # Validate required arguments
+            errors = validate_prompt_args(p, args)
+            if errors:
+                return f"Error: {'; '.join(errors)}"
+
+            # Render the prompt messages
+            rendered = render_prompt(p, args)
+
+            # Return the content (for now, just the first message)
+            # MCP prompts typically return a single string
+            if rendered:
+                return rendered[0].content
+            return f"Prompt '{p.name}' has no messages defined."
+
+        return handler
+
+    # Create the handler
+    handler = create_prompt_handler(prompt)
+
+    # Set function metadata for FastMCP registration
+    handler.__name__ = prompt.name.replace("-", "_")
+    handler.__doc__ = prompt.description or prompt.title
+
+    # Build parameter annotations from arguments
+    params = {}
+    for arg in prompt.arguments:
+        # All prompt arguments are strings with Optional if not required
+        if arg.required:
+            params[arg.name] = str
+        else:
+            params[arg.name] = Optional[str]
+
+    handler.__annotations__ = params
+    handler.__annotations__["return"] = str
+
+    # Register with server
+    try:
+        server.prompt()(handler)
+        logger.debug(f"Registered configurable prompt: {prompt.name}")
+    except Exception as e:
+        logger.warning(f"Failed to register prompt '{prompt.name}': {e}")
+
+
+def _register_inline_prompts(server):
+    """
+    Register original inline prompts for backward compatibility.
+
+    These prompts are kept for users who may be using them directly.
+    They can be overridden by custom prompts with the same name.
     """
 
     @server.prompt()
@@ -605,7 +781,7 @@ Target Replicas: {target_replicas}
 
 ### Step 2: Capacity Planning
 Calculate required resources:
-- Current pod resources × {target_replicas} = Total needed
+- Current pod resources x {target_replicas} = Total needed
 - Check node capacity: `kubectl_top("nodes")`
 - Verify cluster can accommodate new pods
 
