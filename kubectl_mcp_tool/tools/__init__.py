@@ -1,7 +1,7 @@
 from .helm import register_helm_tools
 from .pods import register_pod_tools
 from .core import register_core_tools
-from .cluster import register_cluster_tools
+from .cluster import register_cluster_tools, register_multicluster_tools
 from .deployments import register_deployment_tools
 from .security import register_security_tools
 from .networking import register_networking_tools
@@ -27,6 +27,7 @@ __all__ = [
     "register_pod_tools",
     "register_core_tools",
     "register_cluster_tools",
+    "register_multicluster_tools",
     "register_deployment_tools",
     "register_security_tools",
     "register_networking_tools",

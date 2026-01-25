@@ -289,6 +289,125 @@ def register_pod_tools(
 
     @server.tool(
         annotations=ToolAnnotations(
+            title="Run Pod",
+            destructiveHint=True,
+        ),
+    )
+    def run_pod(
+        image: str,
+        name: Optional[str] = None,
+        namespace: str = "default",
+        command: Optional[List[str]] = None,
+        args: Optional[List[str]] = None,
+        env: Optional[Dict[str, str]] = None,
+        labels: Optional[Dict[str, str]] = None,
+        restart_policy: str = "Never",
+        context: str = ""
+    ) -> Dict[str, Any]:
+        """Run a container image as a pod (kubectl run equivalent).
+
+        Creates a pod with the specified container image. This is useful for
+        quick debugging, running one-off tasks, or testing container images.
+
+        Args:
+            image: Container image to run (e.g., 'nginx:latest', 'busybox')
+            name: Name for the pod (auto-generated if not specified)
+            namespace: Namespace to create the pod in
+            command: Override the container's entrypoint (list of strings)
+            args: Arguments to pass to the container command (list of strings)
+            env: Environment variables as key-value pairs
+            labels: Labels to apply to the pod
+            restart_policy: Pod restart policy (Never, OnFailure, Always)
+            context: Kubernetes context to use (uses current context if not specified)
+
+        Examples:
+            - Run nginx: run_pod(image="nginx:latest")
+            - Run busybox with command: run_pod(image="busybox", command=["sh", "-c"], args=["echo hello"])
+            - Run with env vars: run_pod(image="alpine", env={"MY_VAR": "value"})
+        """
+        if non_destructive:
+            return {"success": False, "error": "Blocked: non-destructive mode"}
+
+        try:
+            from kubernetes import client as k8s_client
+
+            # Generate pod name if not provided
+            if not name:
+                import uuid
+                short_id = str(uuid.uuid4())[:8]
+                image_base = image.split("/")[-1].split(":")[0].replace(".", "-")
+                name = f"{image_base}-{short_id}"
+
+            # Build container spec
+            container = k8s_client.V1Container(
+                name=name,
+                image=image,
+                command=command,
+                args=args,
+            )
+
+            # Add environment variables if provided
+            if env:
+                container.env = [
+                    k8s_client.V1EnvVar(name=k, value=v)
+                    for k, v in env.items()
+                ]
+
+            # Build pod labels
+            pod_labels = {"app": name, "run": name}
+            if labels:
+                pod_labels.update(labels)
+
+            # Validate restart policy
+            valid_policies = ["Never", "OnFailure", "Always"]
+            if restart_policy not in valid_policies:
+                return {
+                    "success": False,
+                    "error": f"Invalid restart_policy '{restart_policy}'. Must be one of: {valid_policies}"
+                }
+
+            # Build pod spec
+            pod = k8s_client.V1Pod(
+                api_version="v1",
+                kind="Pod",
+                metadata=k8s_client.V1ObjectMeta(
+                    name=name,
+                    namespace=namespace,
+                    labels=pod_labels
+                ),
+                spec=k8s_client.V1PodSpec(
+                    containers=[container],
+                    restart_policy=restart_policy
+                )
+            )
+
+            # Create the pod
+            v1 = get_k8s_client(context)
+            created = v1.create_namespaced_pod(namespace=namespace, body=pod)
+
+            return {
+                "success": True,
+                "context": context or "current",
+                "pod": {
+                    "name": created.metadata.name,
+                    "namespace": created.metadata.namespace,
+                    "image": image,
+                    "status": created.status.phase,
+                    "uid": created.metadata.uid
+                },
+                "message": f"Pod '{name}' created successfully in namespace '{namespace}'",
+                "commands": {
+                    "logs": f"kubectl logs {name} -n {namespace}",
+                    "exec": f"kubectl exec -it {name} -n {namespace} -- /bin/sh",
+                    "delete": f"kubectl delete pod {name} -n {namespace}"
+                }
+            }
+        except Exception as e:
+            logger.error(f"Error running pod: {e}")
+            return {"success": False, "error": str(e)}
+
+    @server.tool(
+        annotations=ToolAnnotations(
             title="Get Pod Conditions Detailed",
             readOnlyHint=True,
         ),

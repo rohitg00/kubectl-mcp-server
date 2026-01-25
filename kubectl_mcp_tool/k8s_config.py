@@ -14,13 +14,197 @@ Environment Variables:
     MCP_K8S_QPS: API rate limit (default: 100)
     MCP_K8S_BURST: API burst limit (default: 200)
     MCP_K8S_TIMEOUT: Request timeout in seconds (default: 30)
+    MCP_STATELESS_MODE: If "true", don't cache API clients (reload config each request)
+    MCP_KUBECONFIG_WATCH: If "true", auto-detect kubeconfig file changes
 """
 
 import os
 import logging
-from typing import Optional, Any, List, Dict
+import threading
+import time
+from typing import Optional, Any, List, Dict, Callable
 
 logger = logging.getLogger("mcp-server")
+
+# Stateless mode - when enabled, don't cache API clients
+_stateless_mode = os.environ.get("MCP_STATELESS_MODE", "").lower() in ("true", "1", "yes")
+
+# Kubeconfig watcher state
+_kubeconfig_watcher: Optional["KubeconfigWatcher"] = None
+_kubeconfig_last_mtime: Dict[str, float] = {}
+_config_change_callbacks: List[Callable[[], None]] = []
+
+
+class KubeconfigWatcher:
+    """Watch kubeconfig files for changes and trigger reloads.
+
+    This class monitors kubeconfig files and automatically invalidates
+    cached configurations when changes are detected.
+    """
+
+    def __init__(self, check_interval: float = 5.0):
+        """Initialize the kubeconfig watcher.
+
+        Args:
+            check_interval: How often to check for changes (seconds)
+        """
+        self._check_interval = check_interval
+        self._running = False
+        self._thread: Optional[threading.Thread] = None
+        self._watched_files: Dict[str, float] = {}
+        self._lock = threading.Lock()
+
+    def start(self):
+        """Start watching for kubeconfig changes."""
+        if self._running:
+            return
+
+        self._running = True
+        self._thread = threading.Thread(target=self._watch_loop, daemon=True)
+        self._thread.start()
+        logger.info("Kubeconfig watcher started")
+
+    def stop(self):
+        """Stop watching for kubeconfig changes."""
+        self._running = False
+        if self._thread:
+            self._thread.join(timeout=2.0)
+            self._thread = None
+        logger.info("Kubeconfig watcher stopped")
+
+    def add_file(self, filepath: str):
+        """Add a file to watch.
+
+        Args:
+            filepath: Path to kubeconfig file
+        """
+        filepath = os.path.expanduser(filepath)
+        if os.path.exists(filepath):
+            with self._lock:
+                self._watched_files[filepath] = os.path.getmtime(filepath)
+
+    def _watch_loop(self):
+        """Main watch loop - check for file changes periodically."""
+        while self._running:
+            try:
+                self._check_files()
+            except Exception as e:
+                logger.debug(f"Kubeconfig watch error: {e}")
+            time.sleep(self._check_interval)
+
+    def _check_files(self):
+        """Check all watched files for changes."""
+        with self._lock:
+            for filepath, last_mtime in list(self._watched_files.items()):
+                try:
+                    if not os.path.exists(filepath):
+                        continue
+
+                    current_mtime = os.path.getmtime(filepath)
+                    if current_mtime != last_mtime:
+                        self._watched_files[filepath] = current_mtime
+                        logger.info(f"Kubeconfig changed: {filepath}")
+                        self._on_config_changed()
+                except Exception as e:
+                    logger.debug(f"Error checking {filepath}: {e}")
+
+    def _on_config_changed(self):
+        """Handle kubeconfig file change - invalidate caches."""
+        global _config_loaded
+        _config_loaded = False
+
+        # Clear provider cache if available
+        if _HAS_PROVIDER:
+            try:
+                provider = get_provider()
+                if hasattr(provider, 'invalidate_cache'):
+                    provider.invalidate_cache()
+            except Exception:
+                pass
+
+        # Notify callbacks
+        for callback in _config_change_callbacks:
+            try:
+                callback()
+            except Exception as e:
+                logger.debug(f"Config change callback error: {e}")
+
+
+def enable_kubeconfig_watch(check_interval: float = 5.0):
+    """Enable automatic kubeconfig file watching.
+
+    When enabled, the server will automatically detect changes to kubeconfig
+    files and reload the configuration. This is useful when:
+    - Cloud provider CLIs update credentials (aws, gcloud, az)
+    - Users switch contexts using external tools
+    - Kubeconfig files are mounted dynamically (e.g., in Kubernetes)
+
+    Args:
+        check_interval: How often to check for changes (seconds)
+
+    Example:
+        enable_kubeconfig_watch(check_interval=10.0)
+    """
+    global _kubeconfig_watcher
+
+    if _kubeconfig_watcher is not None:
+        return  # Already enabled
+
+    _kubeconfig_watcher = KubeconfigWatcher(check_interval=check_interval)
+
+    # Add default kubeconfig paths to watch
+    kubeconfig_env = os.environ.get('KUBECONFIG', '~/.kube/config')
+    for path in kubeconfig_env.split(os.pathsep):
+        _kubeconfig_watcher.add_file(path)
+
+    _kubeconfig_watcher.start()
+
+
+def disable_kubeconfig_watch():
+    """Disable kubeconfig file watching."""
+    global _kubeconfig_watcher
+
+    if _kubeconfig_watcher is not None:
+        _kubeconfig_watcher.stop()
+        _kubeconfig_watcher = None
+
+
+def on_config_change(callback: Callable[[], None]):
+    """Register a callback to be called when kubeconfig changes.
+
+    Args:
+        callback: Function to call when config changes
+    """
+    _config_change_callbacks.append(callback)
+
+
+def is_stateless_mode() -> bool:
+    """Check if stateless mode is enabled.
+
+    In stateless mode, API clients are not cached and configuration
+    is reloaded on each request. This is useful for:
+    - Serverless environments (Lambda, Cloud Functions)
+    - Environments where credentials may change frequently
+    - Security-conscious deployments
+
+    Returns:
+        True if stateless mode is enabled
+    """
+    return _stateless_mode
+
+
+def set_stateless_mode(enabled: bool):
+    """Enable or disable stateless mode.
+
+    Args:
+        enabled: True to enable stateless mode
+    """
+    global _stateless_mode
+    _stateless_mode = enabled
+    if enabled:
+        logger.info("Stateless mode enabled - API clients will not be cached")
+    else:
+        logger.info("Stateless mode disabled - API clients will be cached")
 
 # Try to import provider module for enhanced features
 try:
@@ -139,7 +323,8 @@ def _load_config_for_context(context: str = "") -> Any:
     """
     Load kubernetes config for a specific context and return ApiClient.
 
-    Uses the provider module for caching when available.
+    Uses the provider module for caching when available, unless stateless
+    mode is enabled.
 
     Args:
         context: Context name (empty for default)
@@ -151,8 +336,10 @@ def _load_config_for_context(context: str = "") -> Any:
         UnknownContextError: If context is not found (when provider available)
         RuntimeError: If config cannot be loaded
     """
-    # Use provider module if available (provides caching and validation)
-    if _HAS_PROVIDER:
+    # In stateless mode, always create fresh client (no caching)
+    # This is useful for serverless environments where state shouldn't persist
+    if not _stateless_mode and _HAS_PROVIDER:
+        # Use provider module if available (provides caching and validation)
         try:
             provider = get_provider()
             return provider.get_api_client(context)
@@ -161,7 +348,7 @@ def _load_config_for_context(context: str = "") -> Any:
         except Exception as e:
             logger.warning(f"Provider failed, falling back to basic config: {e}")
 
-    # Fallback to basic config loading
+    # Fallback to basic config loading (also used in stateless mode)
     from kubernetes import client, config
     from kubernetes.config.config_exception import ConfigException
 
@@ -624,6 +811,14 @@ if _HAS_PROVIDER:
         "list_contexts",
         "get_active_context",
         "context_exists",
+        # Kubeconfig watching
+        "enable_kubeconfig_watch",
+        "disable_kubeconfig_watch",
+        "on_config_change",
+        "KubeconfigWatcher",
+        # Stateless mode
+        "is_stateless_mode",
+        "set_stateless_mode",
         # Provider types (when available)
         "KubernetesProvider",
         "ProviderConfig",
@@ -653,4 +848,12 @@ else:
         "list_contexts",
         "get_active_context",
         "context_exists",
+        # Kubeconfig watching
+        "enable_kubeconfig_watch",
+        "disable_kubeconfig_watch",
+        "on_config_change",
+        "KubeconfigWatcher",
+        # Stateless mode
+        "is_stateless_mode",
+        "set_stateless_mode",
     ]

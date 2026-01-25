@@ -5,10 +5,10 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setup(
     name="kubectl-mcp-server",
-    version="1.18.0",
+    version="1.19.0",
     author="Rohit Ghumare",
     author_email="ghumare64@gmail.com",
-    description="A Model Context Protocol (MCP) server for Kubernetes with 220+ tools, 8 resources, and 8 prompts",
+    description="A Model Context Protocol (MCP) server for Kubernetes with 235+ tools, 8 resources, and 8 prompts",
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/rohitg00/kubectl-mcp-server",

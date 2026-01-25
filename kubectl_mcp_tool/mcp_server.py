@@ -71,6 +71,7 @@ from kubectl_mcp_tool.tools import (
     register_pod_tools,
     register_core_tools,
     register_cluster_tools,
+    register_multicluster_tools,
     register_deployment_tools,
     register_security_tools,
     register_networking_tools,
@@ -314,6 +315,7 @@ class MCPServer:
         register_pod_tools(self.server, self.non_destructive)
         register_core_tools(self.server, self.non_destructive)
         register_cluster_tools(self.server, self.non_destructive)
+        register_multicluster_tools(self.server, self.non_destructive)
         register_deployment_tools(self.server, self.non_destructive)
         register_security_tools(self.server, self.non_destructive)
         register_networking_tools(self.server, self.non_destructive)
@@ -741,7 +743,35 @@ if __name__ == "__main__":
         action="store_true",
         help="Disable destructive operations (allow create/update, block delete).",
     )
+    parser.add_argument(
+        "--stateless",
+        action="store_true",
+        help="Enable stateless mode (don't cache API clients, reload config each request). Useful for serverless environments.",
+    )
+    parser.add_argument(
+        "--watch-kubeconfig",
+        action="store_true",
+        help="Watch kubeconfig files for changes and auto-reload. Useful when credentials are refreshed externally.",
+    )
+    parser.add_argument(
+        "--watch-interval",
+        type=float,
+        default=5.0,
+        help="Interval in seconds for kubeconfig watch checks. Default: 5.0.",
+    )
     args = parser.parse_args()
+
+    # Configure stateless mode if requested
+    if args.stateless or os.environ.get("MCP_STATELESS_MODE", "").lower() in ("true", "1", "yes"):
+        from kubectl_mcp_tool.k8s_config import set_stateless_mode
+        set_stateless_mode(True)
+        logger.info("Stateless mode enabled via CLI flag")
+
+    # Configure kubeconfig watching if requested
+    if args.watch_kubeconfig or os.environ.get("MCP_KUBECONFIG_WATCH", "").lower() in ("true", "1", "yes"):
+        from kubectl_mcp_tool.k8s_config import enable_kubeconfig_watch
+        enable_kubeconfig_watch(check_interval=args.watch_interval)
+        logger.info(f"Kubeconfig watching enabled (interval: {args.watch_interval}s)")
 
     server_name = "kubectl_mcp_server"
     mcp_server = MCPServer(

@@ -19,6 +19,10 @@ from kubectl_mcp_tool.k8s_config import (
     get_admissionregistration_client,
     list_contexts,
     get_active_context,
+    enable_kubeconfig_watch,
+    disable_kubeconfig_watch,
+    is_stateless_mode,
+    set_stateless_mode,
 )
 
 logger = logging.getLogger("mcp-server")
@@ -614,6 +618,134 @@ def register_cluster_tools(server, non_destructive: bool):
             logger.error(f"Error getting nodes summary: {e}")
             return {"success": False, "error": str(e)}
 
+    # ========== Config Management Tools ==========
+
+    @server.tool(
+        annotations=ToolAnnotations(
+            title="Get Server Config Status",
+            readOnlyHint=True,
+        ),
+    )
+    def get_server_config_status() -> Dict[str, Any]:
+        """Get current server configuration status.
+
+        Returns information about:
+        - Stateless mode (whether API clients are cached)
+        - Kubeconfig watching (whether auto-reload is enabled)
+        - Available contexts
+        - Current active context
+        """
+        try:
+            from kubectl_mcp_tool.k8s_config import _kubeconfig_watcher
+
+            contexts = list_contexts()
+            active = get_active_context()
+
+            return {
+                "success": True,
+                "config": {
+                    "statelessMode": is_stateless_mode(),
+                    "kubeconfigWatching": _kubeconfig_watcher is not None,
+                },
+                "contexts": {
+                    "active": active,
+                    "available": [c.get("name") for c in contexts],
+                    "total": len(contexts)
+                }
+            }
+        except Exception as e:
+            logger.error(f"Error getting config status: {e}")
+            return {"success": False, "error": str(e)}
+
+    @server.tool(
+        annotations=ToolAnnotations(
+            title="Enable Kubeconfig Watching",
+            destructiveHint=True,
+        ),
+    )
+    def enable_kubeconfig_watching(
+        check_interval: float = 5.0
+    ) -> Dict[str, Any]:
+        """Enable automatic kubeconfig file watching.
+
+        When enabled, the server will automatically detect changes to kubeconfig
+        files and reload the configuration. This is useful when:
+        - Cloud provider CLIs update credentials (aws, gcloud, az)
+        - Users switch contexts using external tools
+        - Kubeconfig files are mounted dynamically
+
+        Args:
+            check_interval: How often to check for changes (seconds). Default: 5.0
+
+        Returns:
+            Status of the kubeconfig watcher.
+        """
+        try:
+            enable_kubeconfig_watch(check_interval=check_interval)
+            return {
+                "success": True,
+                "message": f"Kubeconfig watching enabled (interval: {check_interval}s)",
+                "checkInterval": check_interval
+            }
+        except Exception as e:
+            logger.error(f"Error enabling kubeconfig watch: {e}")
+            return {"success": False, "error": str(e)}
+
+    @server.tool(
+        annotations=ToolAnnotations(
+            title="Disable Kubeconfig Watching",
+            destructiveHint=True,
+        ),
+    )
+    def disable_kubeconfig_watching() -> Dict[str, Any]:
+        """Disable automatic kubeconfig file watching.
+
+        Stops monitoring kubeconfig files for changes.
+        """
+        try:
+            disable_kubeconfig_watch()
+            return {
+                "success": True,
+                "message": "Kubeconfig watching disabled"
+            }
+        except Exception as e:
+            logger.error(f"Error disabling kubeconfig watch: {e}")
+            return {"success": False, "error": str(e)}
+
+    @server.tool(
+        annotations=ToolAnnotations(
+            title="Set Stateless Mode",
+            destructiveHint=True,
+        ),
+    )
+    def set_server_stateless_mode(
+        enabled: bool
+    ) -> Dict[str, Any]:
+        """Enable or disable stateless mode.
+
+        In stateless mode:
+        - API clients are not cached
+        - Configuration is reloaded on each request
+        - Useful for serverless/Lambda environments
+        - Useful when credentials may change frequently
+
+        Args:
+            enabled: True to enable stateless mode, False to disable
+
+        Returns:
+            New stateless mode status.
+        """
+        try:
+            set_stateless_mode(enabled)
+            return {
+                "success": True,
+                "statelessMode": enabled,
+                "message": f"Stateless mode {'enabled' if enabled else 'disabled'}"
+            }
+        except Exception as e:
+            logger.error(f"Error setting stateless mode: {e}")
+            return {"success": False, "error": str(e)}
+
     # ========== Node Kubelet Tools ==========
 
     @server.tool(
@@ -971,3 +1103,368 @@ def _format_runtime_stats(runtime: Dict) -> Dict[str, Any]:
     return {
         "imageFs": _format_fs_stats(runtime.get("imageFs", {})),
     }
+
+
+def register_multicluster_tools(server, non_destructive: bool):
+    """Register multi-cluster simultaneous access tools."""
+
+    @server.tool(
+        annotations=ToolAnnotations(
+            title="Multi-Cluster Query",
+            readOnlyHint=True,
+        ),
+    )
+    def multi_cluster_query(
+        contexts: List[str],
+        resource: str = "pods",
+        namespace: Optional[str] = None,
+        label_selector: str = "",
+        field_selector: str = ""
+    ) -> Dict[str, Any]:
+        """Query resources across multiple Kubernetes clusters simultaneously.
+
+        This tool allows you to query the same resource type across multiple clusters
+        in a single request, returning aggregated results from all clusters.
+
+        Args:
+            contexts: List of context names to query (e.g., ["prod-us", "prod-eu", "staging"])
+            resource: Resource type to query (pods, deployments, services, nodes, namespaces)
+            namespace: Namespace to query (optional, all namespaces if not specified)
+            label_selector: Label selector to filter resources (e.g., "app=nginx")
+            field_selector: Field selector to filter resources (e.g., "status.phase=Running")
+
+        Returns:
+            Aggregated results from all specified clusters with per-cluster breakdown.
+
+        Examples:
+            - Get all pods across prod clusters: multi_cluster_query(contexts=["prod-us", "prod-eu"], resource="pods")
+            - Get nginx deployments: multi_cluster_query(contexts=["dev", "staging"], resource="deployments", label_selector="app=nginx")
+        """
+        import concurrent.futures
+
+        if not contexts:
+            return {"success": False, "error": "At least one context must be specified"}
+
+        valid_resources = ["pods", "deployments", "services", "nodes", "namespaces",
+                          "configmaps", "secrets", "ingresses", "statefulsets",
+                          "daemonsets", "jobs", "cronjobs", "pvcs"]
+        if resource not in valid_resources:
+            return {
+                "success": False,
+                "error": f"Invalid resource '{resource}'. Must be one of: {valid_resources}"
+            }
+
+        def query_cluster(ctx: str) -> Dict[str, Any]:
+            """Query a single cluster."""
+            try:
+                ctx_args = _get_kubectl_context_args(ctx)
+                cmd = ["kubectl"] + ctx_args + ["get", resource, "-o", "json"]
+
+                if namespace:
+                    cmd.extend(["-n", namespace])
+                else:
+                    cmd.append("--all-namespaces")
+
+                if label_selector:
+                    cmd.extend(["-l", label_selector])
+
+                if field_selector:
+                    cmd.extend(["--field-selector", field_selector])
+
+                result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
+
+                if result.returncode != 0:
+                    return {
+                        "context": ctx,
+                        "success": False,
+                        "error": result.stderr.strip()
+                    }
+
+                data = json.loads(result.stdout)
+                items = data.get("items", [])
+
+                # Extract summary info based on resource type
+                summaries = []
+                for item in items:
+                    metadata = item.get("metadata", {})
+                    summary = {
+                        "name": metadata.get("name"),
+                        "namespace": metadata.get("namespace"),
+                    }
+
+                    # Add resource-specific fields
+                    if resource == "pods":
+                        status = item.get("status", {})
+                        summary["phase"] = status.get("phase")
+                        summary["podIP"] = status.get("podIP")
+                        summary["nodeName"] = item.get("spec", {}).get("nodeName")
+                    elif resource == "deployments":
+                        status = item.get("status", {})
+                        summary["replicas"] = status.get("replicas", 0)
+                        summary["readyReplicas"] = status.get("readyReplicas", 0)
+                        summary["availableReplicas"] = status.get("availableReplicas", 0)
+                    elif resource == "services":
+                        spec = item.get("spec", {})
+                        summary["type"] = spec.get("type")
+                        summary["clusterIP"] = spec.get("clusterIP")
+                        summary["ports"] = [
+                            {"port": p.get("port"), "targetPort": p.get("targetPort")}
+                            for p in spec.get("ports", [])[:5]  # Limit ports
+                        ]
+                    elif resource == "nodes":
+                        summary["namespace"] = None  # Nodes are cluster-scoped
+                        conditions = item.get("status", {}).get("conditions", [])
+                        for c in conditions:
+                            if c.get("type") == "Ready":
+                                summary["ready"] = c.get("status") == "True"
+                        node_info = item.get("status", {}).get("nodeInfo", {})
+                        summary["kubeletVersion"] = node_info.get("kubeletVersion")
+                    elif resource == "namespaces":
+                        summary["namespace"] = None
+                        summary["phase"] = item.get("status", {}).get("phase")
+
+                    summaries.append(summary)
+
+                return {
+                    "context": ctx,
+                    "success": True,
+                    "count": len(items),
+                    "items": summaries
+                }
+            except subprocess.TimeoutExpired:
+                return {"context": ctx, "success": False, "error": "Query timed out"}
+            except json.JSONDecodeError as e:
+                return {"context": ctx, "success": False, "error": f"Invalid JSON: {e}"}
+            except Exception as e:
+                return {"context": ctx, "success": False, "error": str(e)}
+
+        # Query all clusters in parallel
+        results = []
+        with concurrent.futures.ThreadPoolExecutor(max_workers=min(len(contexts), 10)) as executor:
+            future_to_ctx = {executor.submit(query_cluster, ctx): ctx for ctx in contexts}
+            for future in concurrent.futures.as_completed(future_to_ctx):
+                results.append(future.result())
+
+        # Sort results by context name for consistency
+        results.sort(key=lambda x: x.get("context", ""))
+
+        # Calculate aggregate stats
+        total_items = sum(r.get("count", 0) for r in results if r.get("success"))
+        successful_clusters = sum(1 for r in results if r.get("success"))
+        failed_clusters = len(results) - successful_clusters
+
+        return {
+            "success": successful_clusters > 0,
+            "query": {
+                "resource": resource,
+                "namespace": namespace or "all",
+                "labelSelector": label_selector or None,
+                "fieldSelector": field_selector or None,
+            },
+            "summary": {
+                "totalClusters": len(contexts),
+                "successfulClusters": successful_clusters,
+                "failedClusters": failed_clusters,
+                "totalItems": total_items
+            },
+            "clusters": results
+        }
+
+    @server.tool(
+        annotations=ToolAnnotations(
+            title="Multi-Cluster Health Check",
+            readOnlyHint=True,
+        ),
+    )
+    def multi_cluster_health(
+        contexts: Optional[List[str]] = None
+    ) -> Dict[str, Any]:
+        """Check health status across multiple Kubernetes clusters.
+
+        Performs connectivity and version checks across specified clusters or all
+        available contexts if none specified.
+
+        Args:
+            contexts: List of context names to check (optional, uses all contexts if not specified)
+
+        Returns:
+            Health status for each cluster including version, node count, and connectivity.
+        """
+        import concurrent.futures
+
+        # Get all contexts if not specified
+        if not contexts:
+            try:
+                all_contexts = list_contexts()
+                contexts = [c.get("name") for c in all_contexts if c.get("name")]
+            except Exception as e:
+                return {"success": False, "error": f"Failed to list contexts: {e}"}
+
+        if not contexts:
+            return {"success": False, "error": "No contexts available"}
+
+        def check_cluster(ctx: str) -> Dict[str, Any]:
+            """Check health of a single cluster."""
+            cluster_health = {
+                "context": ctx,
+                "reachable": False,
+                "version": None,
+                "nodeCount": None,
+                "readyNodes": None,
+                "error": None
+            }
+
+            try:
+                # Check version (tests API connectivity)
+                version_api = get_version_client(ctx)
+                version_info = version_api.get_code()
+                cluster_health["reachable"] = True
+                cluster_health["version"] = version_info.git_version
+
+                # Get node count
+                v1 = get_k8s_client(ctx)
+                nodes = v1.list_node()
+                cluster_health["nodeCount"] = len(nodes.items)
+
+                ready_count = 0
+                for node in nodes.items:
+                    for condition in (node.status.conditions or []):
+                        if condition.type == "Ready" and condition.status == "True":
+                            ready_count += 1
+                            break
+                cluster_health["readyNodes"] = ready_count
+
+            except Exception as e:
+                cluster_health["error"] = str(e)
+
+            return cluster_health
+
+        # Check all clusters in parallel
+        results = []
+        with concurrent.futures.ThreadPoolExecutor(max_workers=min(len(contexts), 10)) as executor:
+            future_to_ctx = {executor.submit(check_cluster, ctx): ctx for ctx in contexts}
+            for future in concurrent.futures.as_completed(future_to_ctx):
+                results.append(future.result())
+
+        # Sort results by context name
+        results.sort(key=lambda x: x.get("context", ""))
+
+        # Calculate summary
+        reachable = sum(1 for r in results if r.get("reachable"))
+        total_nodes = sum(r.get("nodeCount", 0) or 0 for r in results)
+        ready_nodes = sum(r.get("readyNodes", 0) or 0 for r in results)
+
+        return {
+            "success": reachable > 0,
+            "summary": {
+                "totalClusters": len(contexts),
+                "reachableClusters": reachable,
+                "unreachableClusters": len(contexts) - reachable,
+                "totalNodes": total_nodes,
+                "readyNodes": ready_nodes
+            },
+            "clusters": results
+        }
+
+    @server.tool(
+        annotations=ToolAnnotations(
+            title="Multi-Cluster Pod Count",
+            readOnlyHint=True,
+        ),
+    )
+    def multi_cluster_pod_count(
+        contexts: Optional[List[str]] = None,
+        namespace: Optional[str] = None,
+        group_by: str = "status"
+    ) -> Dict[str, Any]:
+        """Get pod counts across multiple clusters grouped by status or namespace.
+
+        Quickly see pod distribution across your clusters without fetching full pod details.
+
+        Args:
+            contexts: List of context names (optional, uses all contexts if not specified)
+            namespace: Filter by namespace (optional, all namespaces if not specified)
+            group_by: How to group results: "status" (Running/Pending/etc) or "namespace"
+
+        Returns:
+            Pod counts per cluster with grouping breakdown.
+        """
+        import concurrent.futures
+
+        if group_by not in ["status", "namespace"]:
+            return {"success": False, "error": "group_by must be 'status' or 'namespace'"}
+
+        # Get all contexts if not specified
+        if not contexts:
+            try:
+                all_contexts = list_contexts()
+                contexts = [c.get("name") for c in all_contexts if c.get("name")]
+            except Exception as e:
+                return {"success": False, "error": f"Failed to list contexts: {e}"}
+
+        if not contexts:
+            return {"success": False, "error": "No contexts available"}
+
+        def count_pods(ctx: str) -> Dict[str, Any]:
+            """Count pods in a single cluster."""
+            try:
+                v1 = get_k8s_client(ctx)
+
+                if namespace:
+                    pods = v1.list_namespaced_pod(namespace)
+                else:
+                    pods = v1.list_pod_for_all_namespaces()
+
+                counts = {}
+                total = 0
+
+                for pod in pods.items:
+                    total += 1
+                    if group_by == "status":
+                        key = pod.status.phase or "Unknown"
+                    else:  # namespace
+                        key = pod.metadata.namespace
+
+                    counts[key] = counts.get(key, 0) + 1
+
+                return {
+                    "context": ctx,
+                    "success": True,
+                    "total": total,
+                    "breakdown": counts
+                }
+            except Exception as e:
+                return {"context": ctx, "success": False, "error": str(e)}
+
+        # Count pods in all clusters in parallel
+        results = []
+        with concurrent.futures.ThreadPoolExecutor(max_workers=min(len(contexts), 10)) as executor:
+            future_to_ctx = {executor.submit(count_pods, ctx): ctx for ctx in contexts}
+            for future in concurrent.futures.as_completed(future_to_ctx):
+                results.append(future.result())
+
+        # Sort results by context name
+        results.sort(key=lambda x: x.get("context", ""))
+
+        # Aggregate totals
+        aggregate = {}
+        total_pods = 0
+        for r in results:
+            if r.get("success"):
+                total_pods += r.get("total", 0)
+                for key, count in r.get("breakdown", {}).items():
+                    aggregate[key] = aggregate.get(key, 0) + count
+
+        return {
+            "success": any(r.get("success") for r in results),
+            "query": {
+                "namespace": namespace or "all",
+                "groupBy": group_by
+            },
+            "summary": {
+                "totalClusters": len(contexts),
+                "totalPods": total_pods,
+                "aggregateBreakdown": aggregate
+            },
+            "clusters": results
+        }
