@@ -1,0 +1,99 @@
+# OpenAI Agent Configuration
+# Defines how to invoke OpenAI-based agents for MCP evaluations
+
+name: openai-agent
+type: openai
+version: "1.0"
+description: OpenAI-based AI assistant with MCP support (via adapter)
+
+# Command templates for invoking the agent
+# Note: OpenAI agents typically need an MCP adapter/bridge
+commands:
+  # Template for passing MCP server config file
+  argTemplateMcpServer: "--mcp-config {{ .File }}"
+
+  # Full command to run a prompt using an MCP bridge
+  # This assumes using an adapter like 'mcp-openai-bridge'
+  runPrompt: 'mcp-openai-bridge {{ .McpServerFileArgs }} --prompt "{{ .Prompt }}"'
+
+  # Alternative: Using OpenAI's function calling with custom wrapper
+  runPromptDirect: |
+    python -c "
+    import openai
+    import json
+    import subprocess
+    client = openai.OpenAI()
+    response = client.chat.completions.create(
+        model='gpt-4-turbo',
+        messages=[{'role': 'user', 'content': '''{{ .Prompt }}'''}],
+        tools=[...]  # MCP tools would be loaded here
+    )
+    print(response.choices[0].message.content)
+    "
+
+# Environment variables passed to the agent
+env:
+  # OpenAI API key (from environment)
+  OPENAI_API_KEY: "${OPENAI_API_KEY}"
+  # Enable debug mode for MCP
+  MCP_DEBUG: "true"
+  # Organization ID (optional)
+  OPENAI_ORG_ID: "${OPENAI_ORG_ID}"
+
+# Agent-specific settings
+settings:
+  # Model to use
+  model: gpt-4-turbo
+  # Alternative models
+  alternateModels:
+    - gpt-4o
+    - gpt-4
+    - gpt-3.5-turbo
+  # Maximum tokens for response
+  maxTokens: 4096
+  # Temperature (0 = deterministic)
+  temperature: 0
+  # Timeout for agent response (seconds)
+  timeout: 120
+  # Retry on transient errors
+  retryOnError: true
+  maxRetries: 2
+  # Function calling mode
+  functionCallingMode: "auto"
+
+# Capabilities this agent supports
+capabilities:
+  - function-calling
+  - file-operations
+  - code-execution
+
+# MCP Integration configuration
+# OpenAI requires tool definitions in their format
+mcpIntegration:
+  # How to expose MCP tools to OpenAI
+  toolFormat: openai-functions
+  # Adapter to use
+  adapter: mcp-openai-bridge
+  # Transform MCP tool schemas to OpenAI format
+  schemaTransform: true
+
+# Tool preferences for evaluation
+toolPreferences:
+  # Prefer specific tools for certain operations
+  podCreation: ["run_pod", "apply_manifest"]
+  deploymentCreation: ["create_deployment", "apply_manifest"]
+  serviceCreation: ["create_service", "apply_manifest"]
+  helmOperations: ["install_helm_chart", "upgrade_helm_chart"]
+
+# Output parsing configuration
+outputParsing:
+  # Extract function calls from output
+  functionCallPattern: "function_call.*name.*\"(\\w+)\""
+  # Extract results
+  resultPattern: "\"result\":\\s*\"(.+)\""
+  # Detect errors
+  errorPatterns:
+    - "Error:"
+    - "error:"
+    - "RateLimitError"
+    - "APIError"

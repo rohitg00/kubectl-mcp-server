@@ -1,0 +1,70 @@
+# MCP Server Configuration for Evals
+# This file configures the kubectl-mcp-server for evaluation runs
+
+mcpServers:
+  kubernetes:
+    # Python module invocation
+    command: python
+    args: ["-m", "kubectl_mcp_tool"]
+
+    # Environment variables for the MCP server
+    env:
+      # Enable debug logging for detailed tool invocation logs
+      MCP_DEBUG: "true"
+      # Log file for capturing MCP interactions
+      MCP_LOG_FILE: "./results/mcp.log"
+      # Disable colored output for cleaner log parsing
+      NO_COLOR: "1"
+
+    # Server settings
+    settings:
+      # Connection timeout in seconds
+      timeout: 60
+      # Retry failed connections
+      retryOnError: true
+      maxRetries: 3
+
+# Alternative configurations for different environments:
+
+# Using installed CLI
+# mcpServers:
+#   kubernetes:
+#     command: kubectl-mcp-server
+#     args: ["serve", "--transport", "stdio"]
+#     env:
+#       MCP_DEBUG: "true"
+
+# Using Docker
+# mcpServers:
+#   kubernetes:
+#     command: docker
+#     args: [
+#       "run", "--rm", "-i",
+#       "-v", "${HOME}/.kube:/root/.kube:ro",
+#       "rohitghumare64/kubectl-mcp-server:latest"
+#     ]
+#     env:
+#       MCP_DEBUG: "true"
+
+# Using npx
+# mcpServers:
+#   kubernetes:
+#     command: npx
+#     args: ["-y", "kubectl-mcp-server@latest"]
+#     env:
+#       MCP_DEBUG: "true"
+
+# Multi-cluster configuration
+# mcpServers:
+#   kubernetes-prod:
+#     command: python
+#     args: ["-m", "kubectl_mcp_tool"]
+#     env:
+#       KUBECONFIG: "${HOME}/.kube/config-prod"
+#       MCP_DEBUG: "true"
+#   kubernetes-staging:
+#     command: python
+#     args: ["-m", "kubectl_mcp_tool"]
+#     env:
+#       KUBECONFIG: "${HOME}/.kube/config-staging"
+#       MCP_DEBUG: "true"

@@ -1,0 +1,74 @@
+# Task: Networking resources
+# Tests service and ingress creation
+
+name: networking-setup
+description: Create networking resources including services and ingress
+category: networking
+
+# Setup phase
+setup:
+  script: ./setup.sh
+  commands:
+    # Create a deployment to expose
+    - |
+      kubectl create deployment web-backend --image=nginx:latest \
+        -n eval-test --replicas=2 2>/dev/null || true
+    - kubectl wait --for=condition=Available deployment/web-backend -n eval-test --timeout=60s 2>/dev/null || true
+
+# The prompt to send to the AI agent
+prompt: |
+  Set up networking for the web-backend deployment in eval-test namespace:
+
+  1. Create a ClusterIP Service named "web-backend-svc" that:
+     - Exposes port 80
+     - Targets port 80 on pods with label app=web-backend
+
+  2. Create a NodePort Service named "web-backend-nodeport" that:
+     - Exposes port 80 externally
+     - Uses NodePort 30080 (if available)
+
+  3. List all services in the namespace to verify creation
+
+  4. Get the endpoints for the web-backend-svc to confirm pod discovery
+
+# Expected tool invocations and outputs
+assertions:
+  # Service creation
+  - toolPattern: "(create_service|apply_manifest)"
+  - outputContains: "service"
+  - outputContains: "web-backend"
+  # Endpoints check
+  - toolPattern: "(get_endpoints|describe_service)"
+  # No errors
+  - outputNotContains: "error"
+  # ClusterIP mentioned
+  - outputContains: "ClusterIP"
+
+# Verification phase
+verify:
+  commands:
+    # Check ClusterIP service
+    - kubectl get service web-backend-svc -n eval-test
+    - kubectl get service web-backend-svc -n eval-test -o jsonpath='{.spec.type}' | grep -q "ClusterIP"
+    # Check NodePort service
+    - kubectl get service web-backend-nodeport -n eval-test
+    - kubectl get service web-backend-nodeport -n eval-test -o jsonpath='{.spec.type}' | grep -q "NodePort"
+    # Check endpoints exist
+    - kubectl get endpoints web-backend-svc -n eval-test -o jsonpath='{.subsets[*].addresses}' | grep -q "ip"
+
+# Cleanup phase
+cleanup:
+  commands:
+    - kubectl delete service web-backend-svc -n eval-test --ignore-not-found
+    - kubectl delete service web-backend-nodeport -n eval-test --ignore-not-found
+    - kubectl delete deployment web-backend -n eval-test --ignore-not-found
+
+# Timeout in seconds
+timeout: 90
+
+# Tags for filtering
+tags:
+  - networking
+  - service
+  - nodeport
+  - endpoints

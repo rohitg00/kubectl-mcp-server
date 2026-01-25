@@ -1,0 +1,67 @@
+# Task: Run diagnostic tools
+# Tests diagnostic and troubleshooting functionality
+
+name: cluster-diagnostics
+description: Run cluster diagnostics and gather health information
+category: advanced
+
+# Setup phase
+setup:
+  script: ./setup.sh
+  commands:
+    # Create a test pod for diagnostics
+    - |
+      kubectl run diag-test --image=nginx:latest -n eval-test --restart=Never \
+        --labels=app=diag-test 2>/dev/null || true
+    - kubectl wait --for=condition=Ready pod/diag-test -n eval-test --timeout=60s 2>/dev/null || true
+
+# The prompt to send to the AI agent
+prompt: |
+  Perform a comprehensive diagnostic check on the eval-test namespace:
+
+  1. Get a summary of all nodes in the cluster
+  2. List all pods in the eval-test namespace with their status
+  3. Check pod logs for the diag-test pod
+  4. Describe the diag-test pod to see events
+  5. Check resource usage metrics if available
+  6. Compare the eval-test namespace configuration
+
+  Provide a health report with any issues found.
+
+# Expected tool invocations and outputs
+assertions:
+  # Node summary tool
+  - toolPattern: "(get_nodes_summary|get_nodes|describe_node)"
+  # Pod listing
+  - toolPattern: "(get_pods|list_pods)"
+  # Pod logs
+  - toolPattern: "(get_pod_logs|pod_logs)"
+  # Pod describe
+  - toolPattern: "(describe_pod|get_pod_details)"
+  # Output contains namespace
+  - outputContains: "eval-test"
+  # No errors
+  - outputNotContains: "error"
+
+# Verification phase
+verify:
+  commands:
+    # Verify diagnostic pod exists
+    - kubectl get pod diag-test -n eval-test
+    # Verify we can get logs
+    - kubectl logs diag-test -n eval-test --tail=1
+
+# Cleanup phase
+cleanup:
+  commands:
+    - kubectl delete pod diag-test -n eval-test --ignore-not-found
+
+# Timeout in seconds
+timeout: 90
+
+# Tags for filtering
+tags:
+  - diagnostics
+  - troubleshooting
+  - advanced
+  - logs

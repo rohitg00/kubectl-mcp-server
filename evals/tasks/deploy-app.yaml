@@ -1,0 +1,71 @@
+# Task: Deploy an application with service
+# Tests deployment creation and service exposure
+
+name: deploy-web-app
+description: Deploy a web application with a service and verify it's accessible
+category: core
+
+# Setup phase
+setup:
+  script: ./setup.sh
+
+# The prompt to send to the AI agent
+prompt: |
+  Deploy a web application in the eval-test namespace with the following specs:
+
+  1. Create a Deployment named "web-app" with:
+     - 2 replicas
+     - Using the nginx:1.24 image
+     - Container port 80
+     - Labels: app=web-app
+
+  2. Create a Service named "web-app-svc" that:
+     - Exposes port 80
+     - Targets the web-app deployment
+     - Uses ClusterIP type
+
+  Verify both resources are created and the deployment has 2 ready replicas.
+
+# Expected tool invocations and outputs
+assertions:
+  # Deployment creation
+  - toolPattern: "(create_deployment|apply_manifest)"
+  - outputContains: "deployment"
+  # Service creation
+  - toolPattern: "(create_service|apply_manifest)"
+  - outputContains: "service"
+  # No errors
+  - outputNotContains: "error"
+  # Expected parameters for deployment
+  - toolParams:
+      name: "web-app"
+      replicas: 2
+      namespace: "eval-test"
+
+# Verification phase
+verify:
+  commands:
+    # Check deployment exists and is ready
+    - kubectl get deployment web-app -n eval-test -o jsonpath='{.status.readyReplicas}' | grep -q 2
+    # Check service exists
+    - kubectl get service web-app-svc -n eval-test
+    # Check service has endpoints
+    - kubectl get endpoints web-app-svc -n eval-test -o jsonpath='{.subsets[*].addresses}' | grep -q ip
+  script: ./verify.sh
+  args: ["web-app", "deployment"]
+
+# Cleanup phase
+cleanup:
+  commands:
+    - kubectl delete deployment web-app -n eval-test --ignore-not-found
+    - kubectl delete service web-app-svc -n eval-test --ignore-not-found
+
+# Timeout in seconds (longer for deployment rollout)
+timeout: 120
+
+# Tags for filtering
+tags:
+  - deployment
+  - service
+  - core
+  - networking
