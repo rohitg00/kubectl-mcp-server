@@ -23,11 +23,48 @@ import logging
 import asyncio
 import os
 import platform
-from typing import List, Optional, Any
+import signal
+from pathlib import Path
+from typing import List, Optional, Any, Dict
 
 # Import k8s_config early to patch kubernetes config for in-cluster support
 # This must be done before any tools are imported
 import kubectl_mcp_tool.k8s_config  # noqa: F401
+
+# Import safety mode for operation control
+from kubectl_mcp_tool.safety import (
+    SafetyMode,
+    set_safety_mode,
+    get_safety_mode,
+    get_mode_info,
+)
+
+# Import observability for metrics and tracing
+from kubectl_mcp_tool.observability import (
+    get_stats_collector,
+    get_metrics,
+    init_tracing,
+    shutdown_tracing,
+    is_prometheus_available,
+    is_tracing_available,
+    record_tool_call_metric,
+    record_tool_duration_metric,
+    record_tool_error_metric,
+)
+
+# Import config loader
+from kubectl_mcp_tool.config import (
+    load_config,
+    get_config,
+    register_reload_callback,
+    setup_sighup_handler,
+)
+
+# Import custom prompts
+from kubectl_mcp_tool.prompts import (
+    load_prompts_from_config,
+    get_builtin_prompts,
+)
 
 from kubectl_mcp_tool.tools import (
     register_helm_tools,
@@ -116,12 +153,20 @@ except ImportError:
 class MCPServer:
     """MCP server implementation."""
 
-    def __init__(self, name: str, non_destructive: bool = False):
+    def __init__(
+        self,
+        name: str,
+        read_only: bool = False,
+        disable_destructive: bool = False,
+        config_file: Optional[str] = None,
+    ):
         """Initialize the MCP server.
 
         Args:
             name: Server name for identification
-            non_destructive: If True, block destructive operations
+            read_only: If True, block all write operations (read-only mode)
+            disable_destructive: If True, block only destructive operations
+            config_file: Optional path to TOML config file
 
         Environment Variables:
             MCP_AUTH_ENABLED: Enable OAuth 2.1 authentication (default: false)
@@ -131,9 +176,29 @@ class MCPServer:
             MCP_AUTH_REQUIRED_SCOPES: Required scopes (default: mcp:tools)
         """
         self.name = name
-        self.non_destructive = non_destructive
         self._dependencies_checked = False
         self._dependencies_available = None
+        self._stats = get_stats_collector()
+
+        # Persist CLI safety overrides for reloads
+        self._cli_read_only = read_only
+        self._cli_disable_destructive = disable_destructive
+
+        # Load configuration from file and environment
+        self.config = self._load_configuration(config_file)
+
+        # Apply safety mode from config or parameters
+        self._apply_safety_mode(self._cli_read_only, self._cli_disable_destructive)
+
+        # For backward compatibility, expose non_destructive
+        self.non_destructive = get_safety_mode() != SafetyMode.NORMAL
+
+        # Initialize observability (tracing, metrics)
+        self._init_observability()
+
+        # Register config reload callback and set up SIGHUP handler
+        register_reload_callback(self._on_config_reload)
+        setup_sighup_handler()
 
         # Load authentication configuration
         self.auth_config = get_auth_config()
@@ -149,6 +214,71 @@ class MCPServer:
         self.setup_tools()
         self.setup_resources()
         self.setup_prompts()
+
+        # Log startup info
+        mode_info = get_mode_info()
+        logger.info(f"MCP Server initialized: {name}")
+        logger.info(f"Safety mode: {mode_info['mode']} - {mode_info['description']}")
+
+    def _load_configuration(self, config_file: Optional[str]) -> Any:
+        """Load configuration from TOML file and environment."""
+        try:
+            config = load_config(config_file=config_file if config_file else None)
+            logger.debug(f"Configuration loaded successfully")
+            return config
+        except Exception as e:
+            logger.warning(f"Failed to load config file: {e}. Using defaults.")
+            return load_config(skip_env=False)
+
+    def _apply_safety_mode(self, read_only: bool, disable_destructive: bool) -> None:
+        """Apply safety mode from config or CLI parameters.
+
+        CLI parameters take precedence over config file settings.
+        """
+        # Check config first
+        config_mode = getattr(self.config.safety, 'mode', 'normal') if hasattr(self.config, 'safety') else 'normal'
+
+        # CLI parameters override config
+        if read_only:
+            set_safety_mode(SafetyMode.READ_ONLY)
+        elif disable_destructive:
+            set_safety_mode(SafetyMode.DISABLE_DESTRUCTIVE)
+        elif config_mode == 'read-only' or config_mode == 'read_only':
+            set_safety_mode(SafetyMode.READ_ONLY)
+        elif config_mode == 'disable-destructive' or config_mode == 'disable_destructive':
+            set_safety_mode(SafetyMode.DISABLE_DESTRUCTIVE)
+        else:
+            set_safety_mode(SafetyMode.NORMAL)
+
+    def _init_observability(self) -> None:
+        """Initialize observability components (tracing, metrics)."""
+        # Check if tracing is enabled in config
+        tracing_enabled = getattr(self.config.metrics, 'tracing_enabled', False) if hasattr(self.config, 'metrics') else False
+        otlp_endpoint = getattr(self.config.metrics, 'otlp_endpoint', None) if hasattr(self.config, 'metrics') else None
+
+        if tracing_enabled or otlp_endpoint or os.environ.get('OTEL_EXPORTER_OTLP_ENDPOINT'):
+            try:
+                init_tracing()
+                logger.info("OpenTelemetry tracing initialized")
+            except Exception as e:
+                logger.warning(f"Failed to initialize tracing: {e}")
+
+        if is_prometheus_available():
+            logger.debug("Prometheus metrics available")
+
+    def _on_config_reload(self, new_config: Any) -> None:
+        """Handle configuration reload (called on SIGHUP)."""
+        logger.info("Configuration reloaded")
+        self.config = new_config
+
+        # Re-apply safety mode from new config, honoring CLI precedence
+        self._apply_safety_mode(self._cli_read_only, self._cli_disable_destructive)
+
+        # Refresh non_destructive flag
+        self.non_destructive = get_safety_mode() != SafetyMode.NORMAL
+
+        mode_info = get_mode_info()
+        logger.info(f"Safety mode after reload: {mode_info['mode']}")
 
     def _setup_auth(self) -> Optional[Any]:
         """Set up authentication if enabled."""
@@ -228,8 +358,12 @@ class MCPServer:
         register_resources(self.server)
 
     def setup_prompts(self):
-        """Set up MCP prompts."""
-        register_prompts(self.server)
+        """Set up MCP prompts from built-in and custom config."""
+        # Get custom prompts path from config if specified
+        prompts_config_path = None
+        if hasattr(self.config, 'prompts') and hasattr(self.config.prompts, 'file'):
+            prompts_config_path = self.config.prompts.file
+        register_prompts(self.server, config_path=prompts_config_path)
 
     def _check_dependencies(self) -> bool:
         """Check if required dependencies are available."""
@@ -358,17 +492,51 @@ class MCPServer:
         try:
             # FastMCP 3 uses create_sse_app() to create a Starlette ASGI app
             from fastmcp.server.http import create_sse_app
+            from starlette.applications import Starlette
+            from starlette.responses import JSONResponse, PlainTextResponse
+            from starlette.routing import Route, Mount
+
+            # Create observability endpoints
+            async def health_check(request):
+                return JSONResponse({"status": "healthy", "server": self.name})
+
+            async def stats_endpoint(request):
+                stats = self._stats.get_stats()
+                return JSONResponse(stats)
+
+            async def metrics_endpoint(request):
+                if is_prometheus_available():
+                    metrics_text = get_metrics()
+                    return PlainTextResponse(metrics_text, media_type="text/plain; version=0.0.4; charset=utf-8")
+                else:
+                    return PlainTextResponse("# Prometheus metrics not available\n", media_type="text/plain")
+
+            async def safety_mode_endpoint(request):
+                mode_info = get_mode_info()
+                return JSONResponse(mode_info)
 
             # Create the SSE Starlette application
             # message_path: POST endpoint for client messages
             # sse_path: GET endpoint for SSE event stream
-            app = create_sse_app(
+            sse_app = create_sse_app(
                 self.server,
                 message_path="/messages/",
                 sse_path="/sse"
             )
 
+            # Create combined app with SSE and observability endpoints
+            app = Starlette(
+                routes=[
+                    Route("/health", health_check, methods=["GET"]),
+                    Route("/stats", stats_endpoint, methods=["GET"]),
+                    Route("/metrics", metrics_endpoint, methods=["GET"]),
+                    Route("/safety", safety_mode_endpoint, methods=["GET"]),
+                    Mount("/", app=sse_app),  # Mount SSE app at root
+                ]
+            )
+
             logger.info(f"SSE endpoints: GET /sse (events), POST /messages/ (messages)")
+            logger.info(f"Observability endpoints: GET /health, /stats, /metrics, /safety")
 
             # Run with uvicorn
             config = uvicorn.Config(app, host=host, port=port, log_level="info")
@@ -498,11 +666,33 @@ class MCPServer:
             """Health check endpoint."""
             return JSONResponse({"status": "healthy", "server": self.name})
 
+        async def stats_endpoint(request):
+            """Return runtime statistics."""
+            stats = self._stats.get_stats()
+            return JSONResponse(stats)
+
+        async def metrics_endpoint(request):
+            """Return Prometheus-format metrics."""
+            from starlette.responses import PlainTextResponse
+            if is_prometheus_available():
+                metrics_text = get_metrics()
+                return PlainTextResponse(metrics_text, media_type="text/plain; version=0.0.4; charset=utf-8")
+            else:
+                return PlainTextResponse("# Prometheus metrics not available\n", media_type="text/plain")
+
+        async def safety_mode_endpoint(request):
+            """Return current safety mode information."""
+            mode_info = get_mode_info()
+            return JSONResponse(mode_info)
+
         app = Starlette(
             routes=[
                 Route("/", handle_mcp_request, methods=["POST"]),
                 Route("/mcp", handle_mcp_request, methods=["POST"]),
                 Route("/health", health_check, methods=["GET"]),
+                Route("/stats", stats_endpoint, methods=["GET"]),
+                Route("/metrics", metrics_endpoint, methods=["GET"]),
+                Route("/safety", safety_mode_endpoint, methods=["GET"]),
             ]
         )
 
@@ -535,10 +725,31 @@ if __name__ == "__main__":
         default="0.0.0.0",
         help="Host to bind to for SSE/HTTP transport. Default: 0.0.0.0.",
     )
+    parser.add_argument(
+        "--config",
+        type=str,
+        default=None,
+        help="Path to TOML configuration file.",
+    )
+    parser.add_argument(
+        "--read-only",
+        action="store_true",
+        help="Enable read-only mode (block all write operations).",
+    )
+    parser.add_argument(
+        "--disable-destructive",
+        action="store_true",
+        help="Disable destructive operations (allow create/update, block delete).",
+    )
     args = parser.parse_args()
 
     server_name = "kubectl_mcp_server"
-    mcp_server = MCPServer(name=server_name)
+    mcp_server = MCPServer(
+        name=server_name,
+        read_only=args.read_only,
+        disable_destructive=args.disable_destructive,
+        config_file=args.config,
+    )
 
     # Handle signals gracefully with immediate exit
     def signal_handler(sig, frame):
