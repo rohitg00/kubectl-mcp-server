@@ -61,8 +61,6 @@ def rollouts_list(
     for item in get_resources("rollouts.argoproj.io", namespace, context, label_selector):
         status = item.get("status", {})
         spec = item.get("spec", {})
-
-        # Determine strategy
         strategy_spec = spec.get("strategy", {})
         if "canary" in strategy_spec:
             strategy = "canary"
@@ -74,7 +72,6 @@ def rollouts_list(
             strategy = "unknown"
             strategy_details = {}
 
-        # Get conditions
         conditions = status.get("conditions", [])
         available_cond = next((c for c in conditions if c.get("type") == "Available"), {})
         progressing_cond = next((c for c in conditions if c.get("type") == "Progressing"), {})
@@ -100,7 +97,6 @@ def rollouts_list(
             "aborted": status.get("abort", False),
         })
 
-    # Summary
     healthy = sum(1 for r in rollouts if r["phase"] == "Healthy")
     progressing = sum(1 for r in rollouts if r["phase"] == "Progressing")
     paused = sum(1 for r in rollouts if r["paused"])
@@ -174,7 +170,6 @@ def rollout_status(
     spec = rollout.get("spec", {})
     strategy_spec = spec.get("strategy", {})
 
-    # Determine strategy
     if "canary" in strategy_spec:
         strategy = "canary"
         steps = strategy_spec.get("canary", {}).get("steps", [])
@@ -186,8 +181,6 @@ def rollout_status(
         steps = []
 
     current_step = status.get("currentStepIndex", 0)
-
-    # Parse steps
     step_info = []
     for i, step in enumerate(steps):
         step_type = list(step.keys())[0] if step else "unknown"
@@ -553,7 +546,6 @@ def flagger_canaries_list(
             "last_transition_time": status.get("lastTransitionTime", ""),
         })
 
-    # Summary
     progressing = sum(1 for c in canaries if c["phase"] == "Progressing")
     succeeded = sum(1 for c in canaries if c["phase"] == "Succeeded")
     failed = sum(1 for c in canaries if c["phase"] == "Failed")
@@ -639,7 +631,6 @@ def rollouts_detect(context: str = "") -> Dict[str, Any]:
 def register_rollouts_tools(mcp: FastMCP, non_destructive: bool = False):
     """Register progressive delivery tools with the MCP server."""
 
-    # Argo Rollouts tools
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True))
     def rollouts_list_tool(
         namespace: str = "",
@@ -721,7 +712,6 @@ def register_rollouts_tools(mcp: FastMCP, non_destructive: bool = False):
         """List Argo Rollouts AnalysisRuns."""
         return json.dumps(analysis_runs_list(namespace, context, label_selector), indent=2)
 
-    # Flagger tools
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True))
     def flagger_canaries_list_tool(
         namespace: str = "",

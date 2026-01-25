@@ -59,8 +59,6 @@ def capi_clusters_list(
         status = item.get("status", {})
         spec = item.get("spec", {})
         conditions = status.get("conditions", [])
-
-        # Find key conditions
         ready_cond = next((c for c in conditions if c.get("type") == "Ready"), {})
         infra_ready = next((c for c in conditions if c.get("type") == "InfrastructureReady"), {})
         cp_ready = next((c for c in conditions if c.get("type") == "ControlPlaneReady"), {})
@@ -82,7 +80,6 @@ def capi_clusters_list(
             "failure_message": status.get("failureMessage"),
         })
 
-    # Summary
     ready = sum(1 for c in clusters if c["ready"])
     provisioning = sum(1 for c in clusters if c["phase"] == "Provisioning")
 
@@ -153,7 +150,6 @@ def capi_machines_list(
             "error": "Cluster API is not installed (machines.cluster.x-k8s.io CRD not found)"
         }
 
-    # Build label selector
     selector = label_selector
     if cluster_name:
         cluster_label = f"cluster.x-k8s.io/cluster-name={cluster_name}"
@@ -185,7 +181,6 @@ def capi_machines_list(
             "failure_message": status.get("failureMessage"),
         })
 
-    # Summary
     ready = sum(1 for m in machines if m["ready"])
     running = sum(1 for m in machines if m["phase"] == "Running")
 
@@ -256,7 +251,6 @@ def capi_machinedeployments_list(
             "error": "MachineDeployments CRD not found"
         }
 
-    # Build label selector
     selector = label_selector
     if cluster_name:
         cluster_label = f"cluster.x-k8s.io/cluster-name={cluster_name}"

@@ -63,8 +63,6 @@ def _validate_node_name(name: str) -> tuple:
 def register_cluster_tools(server, non_destructive: bool):
     """Register cluster and context management tools."""
 
-    # ========== Config Toolset ==========
-
     @server.tool(
         annotations=ToolAnnotations(
             title="List Contexts",
@@ -237,8 +235,6 @@ def register_cluster_tools(server, non_destructive: bool):
         except Exception as e:
             logger.error(f"Error setting namespace: {e}")
             return {"success": False, "error": str(e)}
-
-    # ========== Cluster Info Tools ==========
 
     @server.tool(
         annotations=ToolAnnotations(
@@ -592,7 +588,6 @@ def register_cluster_tools(server, non_destructive: bool):
                     }
                 }
 
-                # Get node status
                 for condition in (node.status.conditions or []):
                     if condition.type == "Ready":
                         node_info["status"] = "Ready" if condition.status == "True" else "NotReady"
@@ -601,7 +596,6 @@ def register_cluster_tools(server, non_destructive: bool):
                         else:
                             summary["notReady"] += 1
 
-                # Get node roles
                 for label, value in (node.metadata.labels or {}).items():
                     if label.startswith("node-role.kubernetes.io/"):
                         role = label.split("/")[1]
@@ -617,8 +611,6 @@ def register_cluster_tools(server, non_destructive: bool):
         except Exception as e:
             logger.error(f"Error getting nodes summary: {e}")
             return {"success": False, "error": str(e)}
-
-    # ========== Config Management Tools ==========
 
     @server.tool(
         annotations=ToolAnnotations(
@@ -745,8 +737,6 @@ def register_cluster_tools(server, non_destructive: bool):
         except Exception as e:
             logger.error(f"Error setting stateless mode: {e}")
             return {"success": False, "error": str(e)}
-
-    # ========== Node Kubelet Tools ==========
 
     @server.tool(
         annotations=ToolAnnotations(
@@ -1040,8 +1030,6 @@ def register_cluster_tools(server, non_destructive: bool):
             return {"success": False, "error": str(e)}
 
 
-# Helper functions for formatting kubelet stats
-
 def _format_cpu_stats(cpu: Dict) -> Dict[str, Any]:
     """Format CPU statistics from kubelet stats."""
     if not cpu:
@@ -1238,17 +1226,13 @@ def register_multicluster_tools(server, non_destructive: bool):
             except Exception as e:
                 return {"context": ctx, "success": False, "error": str(e)}
 
-        # Query all clusters in parallel
         results = []
         with concurrent.futures.ThreadPoolExecutor(max_workers=min(len(contexts), 10)) as executor:
             future_to_ctx = {executor.submit(query_cluster, ctx): ctx for ctx in contexts}
             for future in concurrent.futures.as_completed(future_to_ctx):
                 results.append(future.result())
 
-        # Sort results by context name for consistency
         results.sort(key=lambda x: x.get("context", ""))
-
-        # Calculate aggregate stats
         total_items = sum(r.get("count", 0) for r in results if r.get("success"))
         successful_clusters = sum(1 for r in results if r.get("success"))
         failed_clusters = len(results) - successful_clusters
@@ -1292,7 +1276,6 @@ def register_multicluster_tools(server, non_destructive: bool):
         """
         import concurrent.futures
 
-        # Get all contexts if not specified
         if not contexts:
             try:
                 all_contexts = list_contexts()
@@ -1339,17 +1322,13 @@ def register_multicluster_tools(server, non_destructive: bool):
 
             return cluster_health
 
-        # Check all clusters in parallel
         results = []
         with concurrent.futures.ThreadPoolExecutor(max_workers=min(len(contexts), 10)) as executor:
             future_to_ctx = {executor.submit(check_cluster, ctx): ctx for ctx in contexts}
             for future in concurrent.futures.as_completed(future_to_ctx):
                 results.append(future.result())
 
-        # Sort results by context name
         results.sort(key=lambda x: x.get("context", ""))
-
-        # Calculate summary
         reachable = sum(1 for r in results if r.get("reachable"))
         total_nodes = sum(r.get("nodeCount", 0) or 0 for r in results)
         ready_nodes = sum(r.get("readyNodes", 0) or 0 for r in results)
@@ -1394,7 +1373,6 @@ def register_multicluster_tools(server, non_destructive: bool):
         if group_by not in ["status", "namespace"]:
             return {"success": False, "error": "group_by must be 'status' or 'namespace'"}
 
-        # Get all contexts if not specified
         if not contexts:
             try:
                 all_contexts = list_contexts()
@@ -1436,17 +1414,13 @@ def register_multicluster_tools(server, non_destructive: bool):
             except Exception as e:
                 return {"context": ctx, "success": False, "error": str(e)}
 
-        # Count pods in all clusters in parallel
         results = []
         with concurrent.futures.ThreadPoolExecutor(max_workers=min(len(contexts), 10)) as executor:
             future_to_ctx = {executor.submit(count_pods, ctx): ctx for ctx in contexts}
             for future in concurrent.futures.as_completed(future_to_ctx):
                 results.append(future.result())
 
-        # Sort results by context name
         results.sort(key=lambda x: x.get("context", ""))
-
-        # Aggregate totals
         aggregate = {}
         total_pods = 0
         for r in results:
