@@ -330,58 +330,32 @@ def register_pod_tools(
 
         try:
             from kubernetes import client as k8s_client
+            import uuid
 
-            # Generate pod name if not provided
             if not name:
-                import uuid
                 short_id = str(uuid.uuid4())[:8]
                 image_base = image.split("/")[-1].split(":")[0].replace(".", "-")
                 name = f"{image_base}-{short_id}"
 
-            # Build container spec
-            container = k8s_client.V1Container(
-                name=name,
-                image=image,
-                command=command,
-                args=args,
-            )
-
-            # Add environment variables if provided
+            container = k8s_client.V1Container(name=name, image=image, command=command, args=args)
             if env:
-                container.env = [
-                    k8s_client.V1EnvVar(name=k, value=v)
-                    for k, v in env.items()
-                ]
+                container.env = [k8s_client.V1EnvVar(name=k, value=v) for k, v in env.items()]
 
-            # Build pod labels
             pod_labels = {"app": name, "run": name}
             if labels:
                 pod_labels.update(labels)
 
-            # Validate restart policy
             valid_policies = ["Never", "OnFailure", "Always"]
             if restart_policy not in valid_policies:
-                return {
-                    "success": False,
-                    "error": f"Invalid restart_policy '{restart_policy}'. Must be one of: {valid_policies}"
-                }
+                return {"success": False, "error": f"Invalid restart_policy '{restart_policy}'. Must be one of: {valid_policies}"}
 
-            # Build pod spec
             pod = k8s_client.V1Pod(
                 api_version="v1",
                 kind="Pod",
-                metadata=k8s_client.V1ObjectMeta(
-                    name=name,
-                    namespace=namespace,
-                    labels=pod_labels
-                ),
-                spec=k8s_client.V1PodSpec(
-                    containers=[container],
-                    restart_policy=restart_policy
-                )
+                metadata=k8s_client.V1ObjectMeta(name=name, namespace=namespace, labels=pod_labels),
+                spec=k8s_client.V1PodSpec(containers=[container], restart_policy=restart_policy)
             )
 
-            # Create the pod
             v1 = get_k8s_client(context)
             created = v1.create_namespaced_pod(namespace=namespace, body=pod)
 

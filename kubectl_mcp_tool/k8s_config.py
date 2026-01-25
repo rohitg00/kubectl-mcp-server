@@ -26,10 +26,7 @@ from typing import Optional, Any, List, Dict, Callable
 
 logger = logging.getLogger("mcp-server")
 
-# Stateless mode - when enabled, don't cache API clients
 _stateless_mode = os.environ.get("MCP_STATELESS_MODE", "").lower() in ("true", "1", "yes")
-
-# Kubeconfig watcher state
 _kubeconfig_watcher: Optional["KubeconfigWatcher"] = None
 _kubeconfig_last_mtime: Dict[str, float] = {}
 _config_change_callbacks: List[Callable[[], None]] = []
@@ -113,7 +110,6 @@ class KubeconfigWatcher:
         global _config_loaded
         _config_loaded = False
 
-        # Clear provider cache if available
         if _HAS_PROVIDER:
             try:
                 provider = get_provider()
@@ -122,7 +118,6 @@ class KubeconfigWatcher:
             except Exception:
                 pass
 
-        # Notify callbacks
         for callback in _config_change_callbacks:
             try:
                 callback()
@@ -148,15 +143,12 @@ def enable_kubeconfig_watch(check_interval: float = 5.0):
     global _kubeconfig_watcher
 
     if _kubeconfig_watcher is not None:
-        return  # Already enabled
+        return
 
     _kubeconfig_watcher = KubeconfigWatcher(check_interval=check_interval)
-
-    # Add default kubeconfig paths to watch
     kubeconfig_env = os.environ.get('KUBECONFIG', '~/.kube/config')
     for path in kubeconfig_env.split(os.pathsep):
         _kubeconfig_watcher.add_file(path)
-
     _kubeconfig_watcher.start()
 
 
@@ -206,7 +198,6 @@ def set_stateless_mode(enabled: bool):
     else:
         logger.info("Stateless mode disabled - API clients will be cached")
 
-# Try to import provider module for enhanced features
 try:
     from .providers import (
         KubernetesProvider,
@@ -244,7 +235,6 @@ def load_kubernetes_config(context: str = ""):
     from kubernetes import config
     from kubernetes.config.config_exception import ConfigException
 
-    # Try in-cluster config first (for pods running in Kubernetes)
     try:
         config.load_incluster_config()
         logger.info("Loaded in-cluster Kubernetes configuration")
@@ -253,7 +243,6 @@ def load_kubernetes_config(context: str = ""):
     except ConfigException:
         logger.debug("Not running in-cluster, trying kubeconfig...")
 
-    # Fall back to kubeconfig file
     try:
         kubeconfig_path = os.environ.get('KUBECONFIG', '~/.kube/config')
         kubeconfig_path = os.path.expanduser(kubeconfig_path)
@@ -281,7 +270,6 @@ def _patched_load_kube_config(*args, **kwargs):
 
     from kubernetes.config.config_exception import ConfigException
 
-    # Try in-cluster config first
     try:
         from kubernetes import config
         config.load_incluster_config()
@@ -291,7 +279,6 @@ def _patched_load_kube_config(*args, **kwargs):
     except ConfigException:
         pass
 
-    # Fall back to original behavior
     if _original_load_kube_config:
         _original_load_kube_config(*args, **kwargs)
         _config_loaded = True
@@ -315,7 +302,6 @@ def patch_kubernetes_config():
         logger.debug("kubernetes package not available for patching")
 
 
-# Auto-patch when this module is imported
 patch_kubernetes_config()
 
 
@@ -336,10 +322,7 @@ def _load_config_for_context(context: str = "") -> Any:
         UnknownContextError: If context is not found (when provider available)
         RuntimeError: If config cannot be loaded
     """
-    # In stateless mode, always create fresh client (no caching)
-    # This is useful for serverless environments where state shouldn't persist
     if not _stateless_mode and _HAS_PROVIDER:
-        # Use provider module if available (provides caching and validation)
         try:
             provider = get_provider()
             return provider.get_api_client(context)
@@ -348,18 +331,15 @@ def _load_config_for_context(context: str = "") -> Any:
         except Exception as e:
             logger.warning(f"Provider failed, falling back to basic config: {e}")
 
-    # Fallback to basic config loading (also used in stateless mode)
     from kubernetes import client, config
     from kubernetes.config.config_exception import ConfigException
 
-    # Try in-cluster first
     try:
         config.load_incluster_config()
         return client.ApiClient()
     except ConfigException:
         pass
 
-    # Load kubeconfig with optional context
     kubeconfig_path = os.environ.get('KUBECONFIG', '~/.kube/config')
     kubeconfig_path = os.path.expanduser(kubeconfig_path)
 
@@ -380,310 +360,102 @@ def _load_config_for_context(context: str = "") -> Any:
     return client.ApiClient(configuration=api_config)
 
 
-def get_k8s_client(context: str = ""):
-    """Get a configured Kubernetes Core API client.
-
-    Args:
-        context: Optional context name for multi-cluster support
-
-    Returns:
-        kubernetes.client.CoreV1Api: Configured Kubernetes client
-
-    Raises:
-        RuntimeError: If Kubernetes config cannot be loaded
-    """
+def _get_client(context: str, client_class):
+    """Helper to create a configured Kubernetes API client."""
     from kubernetes import client
-
     try:
         api_client = _load_config_for_context(context)
-        return client.CoreV1Api(api_client=api_client)
+        return client_class(api_client=api_client)
     except Exception as e:
         raise RuntimeError(f"Invalid kube-config. Context: {context or 'default'}. Error: {e}")
+
+
+def get_k8s_client(context: str = ""):
+    """Get a configured Kubernetes Core API client."""
+    from kubernetes import client
+    return _get_client(context, client.CoreV1Api)
 
 
 def get_apps_client(context: str = ""):
-    """Get a configured Kubernetes Apps API client.
-
-    Args:
-        context: Optional context name for multi-cluster support
-
-    Returns:
-        kubernetes.client.AppsV1Api: Configured Apps API client
-
-    Raises:
-        RuntimeError: If Kubernetes config cannot be loaded
-    """
+    """Get a configured Kubernetes Apps API client."""
     from kubernetes import client
-
-    try:
-        api_client = _load_config_for_context(context)
-        return client.AppsV1Api(api_client=api_client)
-    except Exception as e:
-        raise RuntimeError(f"Invalid kube-config. Context: {context or 'default'}. Error: {e}")
+    return _get_client(context, client.AppsV1Api)
 
 
 def get_rbac_client(context: str = ""):
-    """Get a configured Kubernetes RBAC API client.
-
-    Args:
-        context: Optional context name for multi-cluster support
-
-    Returns:
-        kubernetes.client.RbacAuthorizationV1Api: Configured RBAC client
-
-    Raises:
-        RuntimeError: If Kubernetes config cannot be loaded
-    """
+    """Get a configured Kubernetes RBAC API client."""
     from kubernetes import client
-
-    try:
-        api_client = _load_config_for_context(context)
-        return client.RbacAuthorizationV1Api(api_client=api_client)
-    except Exception as e:
-        raise RuntimeError(f"Invalid kube-config. Context: {context or 'default'}. Error: {e}")
+    return _get_client(context, client.RbacAuthorizationV1Api)
 
 
 def get_networking_client(context: str = ""):
-    """Get a configured Kubernetes Networking API client.
-
-    Args:
-        context: Optional context name for multi-cluster support
-
-    Returns:
-        kubernetes.client.NetworkingV1Api: Configured Networking client
-
-    Raises:
-        RuntimeError: If Kubernetes config cannot be loaded
-    """
+    """Get a configured Kubernetes Networking API client."""
     from kubernetes import client
-
-    try:
-        api_client = _load_config_for_context(context)
-        return client.NetworkingV1Api(api_client=api_client)
-    except Exception as e:
-        raise RuntimeError(f"Invalid kube-config. Context: {context or 'default'}. Error: {e}")
+    return _get_client(context, client.NetworkingV1Api)
 
 
 def get_storage_client(context: str = ""):
-    """Get a configured Kubernetes Storage API client.
-
-    Args:
-        context: Optional context name for multi-cluster support
-
-    Returns:
-        kubernetes.client.StorageV1Api: Configured Storage client
-
-    Raises:
-        RuntimeError: If Kubernetes config cannot be loaded
-    """
+    """Get a configured Kubernetes Storage API client."""
     from kubernetes import client
-
-    try:
-        api_client = _load_config_for_context(context)
-        return client.StorageV1Api(api_client=api_client)
-    except Exception as e:
-        raise RuntimeError(f"Invalid kube-config. Context: {context or 'default'}. Error: {e}")
+    return _get_client(context, client.StorageV1Api)
 
 
 def get_batch_client(context: str = ""):
-    """Get a configured Kubernetes Batch API client.
-
-    Args:
-        context: Optional context name for multi-cluster support
-
-    Returns:
-        kubernetes.client.BatchV1Api: Configured Batch client
-
-    Raises:
-        RuntimeError: If Kubernetes config cannot be loaded
-    """
+    """Get a configured Kubernetes Batch API client."""
     from kubernetes import client
-
-    try:
-        api_client = _load_config_for_context(context)
-        return client.BatchV1Api(api_client=api_client)
-    except Exception as e:
-        raise RuntimeError(f"Invalid kube-config. Context: {context or 'default'}. Error: {e}")
+    return _get_client(context, client.BatchV1Api)
 
 
 def get_autoscaling_client(context: str = ""):
-    """Get a configured Kubernetes Autoscaling API client.
-
-    Args:
-        context: Optional context name for multi-cluster support
-
-    Returns:
-        kubernetes.client.AutoscalingV1Api: Configured Autoscaling client
-
-    Raises:
-        RuntimeError: If Kubernetes config cannot be loaded
-    """
+    """Get a configured Kubernetes Autoscaling API client."""
     from kubernetes import client
-
-    try:
-        api_client = _load_config_for_context(context)
-        return client.AutoscalingV1Api(api_client=api_client)
-    except Exception as e:
-        raise RuntimeError(f"Invalid kube-config. Context: {context or 'default'}. Error: {e}")
+    return _get_client(context, client.AutoscalingV1Api)
 
 
 def get_policy_client(context: str = ""):
-    """Get a configured Kubernetes Policy API client.
-
-    Args:
-        context: Optional context name for multi-cluster support
-
-    Returns:
-        kubernetes.client.PolicyV1Api: Configured Policy client
-
-    Raises:
-        RuntimeError: If Kubernetes config cannot be loaded
-    """
+    """Get a configured Kubernetes Policy API client."""
     from kubernetes import client
-
-    try:
-        api_client = _load_config_for_context(context)
-        return client.PolicyV1Api(api_client=api_client)
-    except Exception as e:
-        raise RuntimeError(f"Invalid kube-config. Context: {context or 'default'}. Error: {e}")
+    return _get_client(context, client.PolicyV1Api)
 
 
 def get_custom_objects_client(context: str = ""):
-    """Get a configured Kubernetes Custom Objects API client.
-
-    Args:
-        context: Optional context name for multi-cluster support
-
-    Returns:
-        kubernetes.client.CustomObjectsApi: Configured Custom Objects client
-
-    Raises:
-        RuntimeError: If Kubernetes config cannot be loaded
-    """
+    """Get a configured Kubernetes Custom Objects API client."""
     from kubernetes import client
-
-    try:
-        api_client = _load_config_for_context(context)
-        return client.CustomObjectsApi(api_client=api_client)
-    except Exception as e:
-        raise RuntimeError(f"Invalid kube-config. Context: {context or 'default'}. Error: {e}")
+    return _get_client(context, client.CustomObjectsApi)
 
 
 def get_version_client(context: str = ""):
-    """Get a configured Kubernetes Version API client.
-
-    Args:
-        context: Optional context name for multi-cluster support
-
-    Returns:
-        kubernetes.client.VersionApi: Configured Version client
-
-    Raises:
-        RuntimeError: If Kubernetes config cannot be loaded
-    """
+    """Get a configured Kubernetes Version API client."""
     from kubernetes import client
-
-    try:
-        api_client = _load_config_for_context(context)
-        return client.VersionApi(api_client=api_client)
-    except Exception as e:
-        raise RuntimeError(f"Invalid kube-config. Context: {context or 'default'}. Error: {e}")
+    return _get_client(context, client.VersionApi)
 
 
 def get_admissionregistration_client(context: str = ""):
-    """Get a configured Kubernetes Admission Registration API client.
-
-    Args:
-        context: Optional context name for multi-cluster support
-
-    Returns:
-        kubernetes.client.AdmissionregistrationV1Api: Configured Admission client
-
-    Raises:
-        RuntimeError: If Kubernetes config cannot be loaded
-    """
+    """Get a configured Kubernetes Admission Registration API client."""
     from kubernetes import client
-
-    try:
-        api_client = _load_config_for_context(context)
-        return client.AdmissionregistrationV1Api(api_client=api_client)
-    except Exception as e:
-        raise RuntimeError(f"Invalid kube-config. Context: {context or 'default'}. Error: {e}")
+    return _get_client(context, client.AdmissionregistrationV1Api)
 
 
 def get_apiextensions_client(context: str = ""):
-    """Get a configured Kubernetes API Extensions client.
-
-    Args:
-        context: Optional context name for multi-cluster support
-
-    Returns:
-        kubernetes.client.ApiextensionsV1Api: Configured API Extensions client
-
-    Raises:
-        RuntimeError: If Kubernetes config cannot be loaded
-    """
+    """Get a configured Kubernetes API Extensions client."""
     from kubernetes import client
-
-    try:
-        api_client = _load_config_for_context(context)
-        return client.ApiextensionsV1Api(api_client=api_client)
-    except Exception as e:
-        raise RuntimeError(f"Invalid kube-config. Context: {context or 'default'}. Error: {e}")
+    return _get_client(context, client.ApiextensionsV1Api)
 
 
 def get_coordination_client(context: str = ""):
-    """Get a configured Kubernetes Coordination API client.
-
-    Args:
-        context: Optional context name for multi-cluster support
-
-    Returns:
-        kubernetes.client.CoordinationV1Api: Configured Coordination client
-
-    Raises:
-        RuntimeError: If Kubernetes config cannot be loaded
-    """
+    """Get a configured Kubernetes Coordination API client."""
     from kubernetes import client
-
-    try:
-        api_client = _load_config_for_context(context)
-        return client.CoordinationV1Api(api_client=api_client)
-    except Exception as e:
-        raise RuntimeError(f"Invalid kube-config. Context: {context or 'default'}. Error: {e}")
+    return _get_client(context, client.CoordinationV1Api)
 
 
 def get_events_client(context: str = ""):
-    """Get a configured Kubernetes Events API client.
-
-    Args:
-        context: Optional context name for multi-cluster support
-
-    Returns:
-        kubernetes.client.EventsV1Api: Configured Events client
-
-    Raises:
-        RuntimeError: If Kubernetes config cannot be loaded
-    """
+    """Get a configured Kubernetes Events API client."""
     from kubernetes import client
+    return _get_client(context, client.EventsV1Api)
 
-    try:
-        api_client = _load_config_for_context(context)
-        return client.EventsV1Api(api_client=api_client)
-    except Exception as e:
-        raise RuntimeError(f"Invalid kube-config. Context: {context or 'default'}. Error: {e}")
-
-
-# Utility functions for context management
 
 def list_contexts() -> list:
-    """
-    List all available kubeconfig contexts.
-
-    Returns:
-        List of context dictionaries with name, cluster, user, namespace
-    """
-    # Use provider if available
+    """List all available kubeconfig contexts."""
     if _HAS_PROVIDER:
         try:
             provider = get_provider()
@@ -701,7 +473,6 @@ def list_contexts() -> list:
         except Exception as e:
             logger.warning(f"Provider list_contexts failed: {e}")
 
-    # Fallback to direct kubeconfig reading
     from kubernetes import config
 
     try:
@@ -726,22 +497,14 @@ def list_contexts() -> list:
 
 
 def get_active_context() -> Optional[str]:
-    """
-    Get the current active context name.
-
-    Returns:
-        Active context name or None
-    """
-    # Use provider if available
+    """Get the current active context name."""
     if _HAS_PROVIDER:
         try:
             return provider_get_current_context()
         except Exception as e:
             logger.warning(f"Provider get_current_context failed: {e}")
 
-    # Fallback to direct kubeconfig reading
     from kubernetes import config
-
     try:
         kubeconfig_path = os.environ.get('KUBECONFIG', '~/.kube/config')
         kubeconfig_path = os.path.expanduser(kubeconfig_path)
@@ -754,106 +517,33 @@ def get_active_context() -> Optional[str]:
 
 
 def context_exists(context: str) -> bool:
-    """
-    Check if a context exists in kubeconfig.
-
-    Args:
-        context: Context name to check
-
-    Returns:
-        True if context exists
-    """
+    """Check if a context exists in kubeconfig."""
     contexts = list_contexts()
     return any(ctx["name"] == context for ctx in contexts)
 
 
 def _get_kubectl_context_args(context: str = "") -> list:
-    """
-    Get kubectl command arguments for specifying a context.
-
-    This utility function returns the appropriate --context flag arguments
-    for kubectl commands when targeting a specific cluster.
-
-    Args:
-        context: Context name (empty string for default context)
-
-    Returns:
-        List of command arguments, e.g., ["--context", "my-cluster"]
-        or empty list if no context specified
-    """
+    """Get kubectl command arguments for specifying a context."""
     if context and context.strip():
         return ["--context", context.strip()]
     return []
 
 
-# Re-export provider types for convenience
+_BASE_EXPORTS = [
+    "get_k8s_client", "get_apps_client", "get_rbac_client", "get_networking_client",
+    "get_storage_client", "get_batch_client", "get_autoscaling_client", "get_policy_client",
+    "get_custom_objects_client", "get_version_client", "get_admissionregistration_client",
+    "get_apiextensions_client", "get_coordination_client", "get_events_client",
+    "load_kubernetes_config", "patch_kubernetes_config",
+    "list_contexts", "get_active_context", "context_exists",
+    "enable_kubeconfig_watch", "disable_kubeconfig_watch", "on_config_change", "KubeconfigWatcher",
+    "is_stateless_mode", "set_stateless_mode",
+]
+
 if _HAS_PROVIDER:
-    __all__ = [
-        # Client functions
-        "get_k8s_client",
-        "get_apps_client",
-        "get_rbac_client",
-        "get_networking_client",
-        "get_storage_client",
-        "get_batch_client",
-        "get_autoscaling_client",
-        "get_policy_client",
-        "get_custom_objects_client",
-        "get_version_client",
-        "get_admissionregistration_client",
-        "get_apiextensions_client",
-        "get_coordination_client",
-        "get_events_client",
-        # Config functions
-        "load_kubernetes_config",
-        "patch_kubernetes_config",
-        # Context functions
-        "list_contexts",
-        "get_active_context",
-        "context_exists",
-        # Kubeconfig watching
-        "enable_kubeconfig_watch",
-        "disable_kubeconfig_watch",
-        "on_config_change",
-        "KubeconfigWatcher",
-        # Stateless mode
-        "is_stateless_mode",
-        "set_stateless_mode",
-        # Provider types (when available)
-        "KubernetesProvider",
-        "ProviderConfig",
-        "ProviderType",
-        "UnknownContextError",
-        "get_provider",
-        "validate_context",
+    __all__ = _BASE_EXPORTS + [
+        "KubernetesProvider", "ProviderConfig", "ProviderType",
+        "UnknownContextError", "get_provider", "validate_context",
     ]
 else:
-    __all__ = [
-        "get_k8s_client",
-        "get_apps_client",
-        "get_rbac_client",
-        "get_networking_client",
-        "get_storage_client",
-        "get_batch_client",
-        "get_autoscaling_client",
-        "get_policy_client",
-        "get_custom_objects_client",
-        "get_version_client",
-        "get_admissionregistration_client",
-        "get_apiextensions_client",
-        "get_coordination_client",
-        "get_events_client",
-        "load_kubernetes_config",
-        "patch_kubernetes_config",
-        "list_contexts",
-        "get_active_context",
-        "context_exists",
-        # Kubeconfig watching
-        "enable_kubeconfig_watch",
-        "disable_kubeconfig_watch",
-        "on_config_change",
-        "KubeconfigWatcher",
-        # Stateless mode
-        "is_stateless_mode",
-        "set_stateless_mode",
-    ]
+    __all__ = _BASE_EXPORTS
