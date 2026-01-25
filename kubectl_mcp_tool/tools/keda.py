@@ -1,9 +1,5 @@
-"""KEDA autoscaling toolset for kubectl-mcp-server.
+"""KEDA autoscaling toolset for kubectl-mcp-server."""
 
-Provides tools for managing KEDA ScaledObjects, ScaledJobs, and TriggerAuthentications.
-"""
-
-import subprocess
 import json
 from typing import Dict, Any, List
 
@@ -14,48 +10,14 @@ except ImportError:
     from mcp.server.fastmcp import FastMCP
     from mcp.types import ToolAnnotations
 
-from ..k8s_config import _get_kubectl_context_args
 from ..crd_detector import crd_exists
+from .utils import run_kubectl, get_resources
 
 
 SCALEDOBJECT_CRD = "scaledobjects.keda.sh"
 SCALEDJOB_CRD = "scaledjobs.keda.sh"
 TRIGGERAUTH_CRD = "triggerauthentications.keda.sh"
 CLUSTERTRIGGERAUTH_CRD = "clustertriggerauthentications.keda.sh"
-
-
-def _run_kubectl(args: List[str], context: str = "") -> Dict[str, Any]:
-    """Run kubectl command and return result."""
-    cmd = ["kubectl"] + _get_kubectl_context_args(context) + args
-    try:
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
-        if result.returncode == 0:
-            return {"success": True, "output": result.stdout}
-        return {"success": False, "error": result.stderr}
-    except subprocess.TimeoutExpired:
-        return {"success": False, "error": "Command timed out"}
-    except Exception as e:
-        return {"success": False, "error": str(e)}
-
-
-def _get_resources(kind: str, namespace: str = "", context: str = "", label_selector: str = "") -> List[Dict]:
-    """Get Kubernetes resources of a specific kind."""
-    args = ["get", kind, "-o", "json"]
-    if namespace:
-        args.extend(["-n", namespace])
-    else:
-        args.append("-A")
-    if label_selector:
-        args.extend(["-l", label_selector])
-
-    result = _run_kubectl(args, context)
-    if result["success"]:
-        try:
-            data = json.loads(result["output"])
-            return data.get("items", [])
-        except json.JSONDecodeError:
-            return []
-    return []
 
 
 def keda_scaledobjects_list(
@@ -80,7 +42,7 @@ def keda_scaledobjects_list(
         }
 
     objects = []
-    for item in _get_resources("scaledobjects.keda.sh", namespace, context, label_selector):
+    for item in get_resources("scaledobjects.keda.sh", namespace, context, label_selector):
         status = item.get("status", {})
         spec = item.get("spec", {})
         conditions = status.get("conditions", [])
@@ -138,7 +100,7 @@ def keda_scaledobject_get(
         return {"success": False, "error": "KEDA is not installed"}
 
     args = ["get", "scaledobjects.keda.sh", name, "-n", namespace, "-o", "json"]
-    result = _run_kubectl(args, context)
+    result = run_kubectl(args, context)
 
     if result["success"]:
         try:
@@ -176,7 +138,7 @@ def keda_scaledjobs_list(
         }
 
     jobs = []
-    for item in _get_resources("scaledjobs.keda.sh", namespace, context, label_selector):
+    for item in get_resources("scaledjobs.keda.sh", namespace, context, label_selector):
         status = item.get("status", {})
         spec = item.get("spec", {})
         conditions = status.get("conditions", [])
@@ -227,7 +189,7 @@ def keda_triggerauths_list(
     auths = []
 
     if crd_exists(TRIGGERAUTH_CRD, context):
-        for item in _get_resources("triggerauthentications.keda.sh", namespace, context):
+        for item in get_resources("triggerauthentications.keda.sh", namespace, context):
             spec = item.get("spec", {})
             secret_refs = spec.get("secretTargetRef", [])
             env_refs = spec.get("env", [])
@@ -244,7 +206,7 @@ def keda_triggerauths_list(
             })
 
     if include_cluster and crd_exists(CLUSTERTRIGGERAUTH_CRD, context):
-        for item in _get_resources("clustertriggerauthentications.keda.sh", "", context):
+        for item in get_resources("clustertriggerauthentications.keda.sh", "", context):
             spec = item.get("spec", {})
             secret_refs = spec.get("secretTargetRef", [])
             env_refs = spec.get("env", [])
@@ -294,7 +256,7 @@ def keda_triggerauth_get(
     if not crd_exists(crd, context):
         return {"success": False, "error": f"{crd} not found"}
 
-    result = _run_kubectl(args, context)
+    result = run_kubectl(args, context)
 
     if result["success"]:
         try:
@@ -337,7 +299,7 @@ def keda_hpa_list(
     if selector:
         args.extend(["-l", selector])
 
-    result = _run_kubectl(args, context)
+    result = run_kubectl(args, context)
     if not result["success"]:
         return {"success": False, "error": result.get("error", "Failed to list HPAs")}
 

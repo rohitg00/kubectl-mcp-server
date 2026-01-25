@@ -1,7 +1,4 @@
-"""Argo Rollouts and Flagger progressive delivery toolset for kubectl-mcp-server.
-
-Provides tools for managing canary deployments, blue-green deployments, and progressive delivery.
-"""
+"""Argo Rollouts and Flagger progressive delivery toolset for kubectl-mcp-server."""
 
 import subprocess
 import json
@@ -15,55 +12,18 @@ except ImportError:
     from mcp.server.fastmcp import FastMCP
     from mcp.types import ToolAnnotations
 
-from ..k8s_config import _get_kubectl_context_args
 from ..crd_detector import crd_exists
+from .utils import run_kubectl, get_resources
 
 
-# Argo Rollouts CRDs
 ARGO_ROLLOUT_CRD = "rollouts.argoproj.io"
 ARGO_ANALYSIS_TEMPLATE_CRD = "analysistemplates.argoproj.io"
 ARGO_CLUSTER_ANALYSIS_TEMPLATE_CRD = "clusteranalysistemplates.argoproj.io"
 ARGO_ANALYSIS_RUN_CRD = "analysisruns.argoproj.io"
 ARGO_EXPERIMENT_CRD = "experiments.argoproj.io"
-
-# Flagger CRDs
 FLAGGER_CANARY_CRD = "canaries.flagger.app"
 FLAGGER_METRIC_TEMPLATE_CRD = "metrictemplates.flagger.app"
 FLAGGER_ALERT_PROVIDER_CRD = "alertproviders.flagger.app"
-
-
-def _run_kubectl(args: List[str], context: str = "") -> Dict[str, Any]:
-    """Run kubectl command and return result."""
-    cmd = ["kubectl"] + _get_kubectl_context_args(context) + args
-    try:
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
-        if result.returncode == 0:
-            return {"success": True, "output": result.stdout}
-        return {"success": False, "error": result.stderr}
-    except subprocess.TimeoutExpired:
-        return {"success": False, "error": "Command timed out"}
-    except Exception as e:
-        return {"success": False, "error": str(e)}
-
-
-def _get_resources(kind: str, namespace: str = "", context: str = "", label_selector: str = "") -> List[Dict]:
-    """Get Kubernetes resources of a specific kind."""
-    args = ["get", kind, "-o", "json"]
-    if namespace:
-        args.extend(["-n", namespace])
-    else:
-        args.append("-A")
-    if label_selector:
-        args.extend(["-l", label_selector])
-
-    result = _run_kubectl(args, context)
-    if result["success"]:
-        try:
-            data = json.loads(result["output"])
-            return data.get("items", [])
-        except json.JSONDecodeError:
-            return []
-    return []
 
 
 def _argo_rollouts_cli_available() -> bool:
@@ -75,8 +35,6 @@ def _argo_rollouts_cli_available() -> bool:
     except Exception:
         return False
 
-
-# ============== Argo Rollouts Functions ==============
 
 def rollouts_list(
     namespace: str = "",
@@ -100,7 +58,7 @@ def rollouts_list(
         }
 
     rollouts = []
-    for item in _get_resources("rollouts.argoproj.io", namespace, context, label_selector):
+    for item in get_resources("rollouts.argoproj.io", namespace, context, label_selector):
         status = item.get("status", {})
         spec = item.get("spec", {})
 
@@ -176,7 +134,7 @@ def rollout_get(
         return {"success": False, "error": "Argo Rollouts is not installed"}
 
     args = ["get", "rollouts.argoproj.io", name, "-n", namespace, "-o", "json"]
-    result = _run_kubectl(args, context)
+    result = run_kubectl(args, context)
 
     if result["success"]:
         try:
@@ -314,7 +272,7 @@ def rollout_promote(
         "--type=merge",
         "-p", json.dumps(patch)
     ]
-    result = _run_kubectl(args, context)
+    result = run_kubectl(args, context)
 
     if result["success"]:
         return {
@@ -370,7 +328,7 @@ def rollout_abort(
         "--type=merge",
         "-p", json.dumps(patch)
     ]
-    result = _run_kubectl(args, context)
+    result = run_kubectl(args, context)
 
     if result["success"]:
         return {
@@ -426,7 +384,7 @@ def rollout_retry(
         "--type=merge",
         "-p", json.dumps(patch)
     ]
-    result = _run_kubectl(args, context)
+    result = run_kubectl(args, context)
 
     if result["success"]:
         return {
@@ -487,7 +445,7 @@ def rollout_restart(
         "--type=merge",
         "-p", json.dumps(patch)
     ]
-    result = _run_kubectl(args, context)
+    result = run_kubectl(args, context)
 
     if result["success"]:
         return {
@@ -521,7 +479,7 @@ def analysis_runs_list(
         }
 
     runs = []
-    for item in _get_resources("analysisruns.argoproj.io", namespace, context, label_selector):
+    for item in get_resources("analysisruns.argoproj.io", namespace, context, label_selector):
         status = item.get("status", {})
         spec = item.get("spec", {})
 
@@ -551,8 +509,6 @@ def analysis_runs_list(
     }
 
 
-# ============== Flagger Functions ==============
-
 def flagger_canaries_list(
     namespace: str = "",
     context: str = "",
@@ -575,7 +531,7 @@ def flagger_canaries_list(
         }
 
     canaries = []
-    for item in _get_resources("canaries.flagger.app", namespace, context, label_selector):
+    for item in get_resources("canaries.flagger.app", namespace, context, label_selector):
         status = item.get("status", {})
         spec = item.get("spec", {})
         analysis = spec.get("analysis", {})
@@ -631,7 +587,7 @@ def flagger_canary_get(
         return {"success": False, "error": "Flagger is not installed"}
 
     args = ["get", "canaries.flagger.app", name, "-n", namespace, "-o", "json"]
-    result = _run_kubectl(args, context)
+    result = run_kubectl(args, context)
 
     if result["success"]:
         try:

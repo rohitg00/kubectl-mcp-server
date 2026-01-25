@@ -1,7 +1,4 @@
-"""KubeVirt VM lifecycle toolset for kubectl-mcp-server.
-
-Provides tools for managing virtual machines on Kubernetes via KubeVirt.
-"""
+"""KubeVirt VM lifecycle toolset for kubectl-mcp-server."""
 
 import subprocess
 import json
@@ -14,11 +11,10 @@ except ImportError:
     from mcp.server.fastmcp import FastMCP
     from mcp.types import ToolAnnotations
 
-from ..k8s_config import _get_kubectl_context_args
 from ..crd_detector import crd_exists
+from .utils import run_kubectl, get_resources
 
 
-# KubeVirt CRDs
 VM_CRD = "virtualmachines.kubevirt.io"
 VMI_CRD = "virtualmachineinstances.kubevirt.io"
 VMIPRESET_CRD = "virtualmachineinstancepresets.kubevirt.io"
@@ -30,40 +26,6 @@ VMCLONE_CRD = "virtualmachineclones.clone.kubevirt.io"
 INSTANCETYPE_CRD = "virtualmachineinstancetypes.instancetype.kubevirt.io"
 CLUSTERINSTANCETYPE_CRD = "virtualmachineclusterinstancetypes.instancetype.kubevirt.io"
 PREFERENCE_CRD = "virtualmachinepreferences.instancetype.kubevirt.io"
-
-
-def _run_kubectl(args: List[str], context: str = "") -> Dict[str, Any]:
-    """Run kubectl command and return result."""
-    cmd = ["kubectl"] + _get_kubectl_context_args(context) + args
-    try:
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
-        if result.returncode == 0:
-            return {"success": True, "output": result.stdout}
-        return {"success": False, "error": result.stderr}
-    except subprocess.TimeoutExpired:
-        return {"success": False, "error": "Command timed out"}
-    except Exception as e:
-        return {"success": False, "error": str(e)}
-
-
-def _get_resources(kind: str, namespace: str = "", context: str = "", label_selector: str = "") -> List[Dict]:
-    """Get Kubernetes resources of a specific kind."""
-    args = ["get", kind, "-o", "json"]
-    if namespace:
-        args.extend(["-n", namespace])
-    else:
-        args.append("-A")
-    if label_selector:
-        args.extend(["-l", label_selector])
-
-    result = _run_kubectl(args, context)
-    if result["success"]:
-        try:
-            data = json.loads(result["output"])
-            return data.get("items", [])
-        except json.JSONDecodeError:
-            return []
-    return []
 
 
 def _virtctl_available() -> bool:
@@ -118,7 +80,7 @@ def kubevirt_vms_list(
         }
 
     vms = []
-    for item in _get_resources("virtualmachines.kubevirt.io", namespace, context, label_selector):
+    for item in get_resources("virtualmachines.kubevirt.io", namespace, context, label_selector):
         status = item.get("status", {})
         spec = item.get("spec", {})
         conditions = status.get("conditions", [])
@@ -182,7 +144,7 @@ def kubevirt_vm_get(
         return {"success": False, "error": "KubeVirt is not installed"}
 
     args = ["get", "virtualmachines.kubevirt.io", name, "-n", namespace, "-o", "json"]
-    result = _run_kubectl(args, context)
+    result = run_kubectl(args, context)
 
     if result["success"]:
         try:
@@ -220,7 +182,7 @@ def kubevirt_vmis_list(
         }
 
     vmis = []
-    for item in _get_resources("virtualmachineinstances.kubevirt.io", namespace, context, label_selector):
+    for item in get_resources("virtualmachineinstances.kubevirt.io", namespace, context, label_selector):
         status = item.get("status", {})
         spec = item.get("spec", {})
         conditions = status.get("conditions", [])
@@ -300,7 +262,7 @@ def kubevirt_vm_start(
         "--type=merge",
         "-p", json.dumps(patch)
     ]
-    result = _run_kubectl(args, context)
+    result = run_kubectl(args, context)
 
     if result["success"]:
         return {
@@ -354,7 +316,7 @@ def kubevirt_vm_stop(
         "--type=merge",
         "-p", json.dumps(patch)
     ]
-    result = _run_kubectl(args, context)
+    result = run_kubectl(args, context)
 
     if result["success"]:
         return {
@@ -516,7 +478,7 @@ def kubevirt_datasources_list(
         }
 
     datasources = []
-    for item in _get_resources("datasources.cdi.kubevirt.io", namespace, context, label_selector):
+    for item in get_resources("datasources.cdi.kubevirt.io", namespace, context, label_selector):
         spec = item.get("spec", {})
         status = item.get("status", {})
         conditions = status.get("conditions", [])
@@ -557,7 +519,7 @@ def kubevirt_instancetypes_list(
     instancetypes = []
 
     if crd_exists(INSTANCETYPE_CRD, context):
-        for item in _get_resources("virtualmachineinstancetypes.instancetype.kubevirt.io", namespace, context):
+        for item in get_resources("virtualmachineinstancetypes.instancetype.kubevirt.io", namespace, context):
             spec = item.get("spec", {})
             cpu = spec.get("cpu", {})
             memory = spec.get("memory", {})
@@ -573,7 +535,7 @@ def kubevirt_instancetypes_list(
             })
 
     if include_cluster and crd_exists(CLUSTERINSTANCETYPE_CRD, context):
-        for item in _get_resources("virtualmachineclusterinstancetypes.instancetype.kubevirt.io", "", context):
+        for item in get_resources("virtualmachineclusterinstancetypes.instancetype.kubevirt.io", "", context):
             spec = item.get("spec", {})
             cpu = spec.get("cpu", {})
             memory = spec.get("memory", {})
@@ -617,7 +579,7 @@ def kubevirt_datavolumes_list(
         }
 
     datavolumes = []
-    for item in _get_resources("datavolumes.cdi.kubevirt.io", namespace, context, label_selector):
+    for item in get_resources("datavolumes.cdi.kubevirt.io", namespace, context, label_selector):
         spec = item.get("spec", {})
         status = item.get("status", {})
         conditions = status.get("conditions", [])
