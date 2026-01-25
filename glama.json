@@ -1,0 +1,36 @@
+{
+  "$schema": "https://glama.ai/mcp/schemas/server.json",
+  "maintainers": ["rohitg00"],
+  "name": "kubectl-mcp-server",
+  "description": "Production-ready Kubernetes MCP server with 253+ tools, 14 resources, 8 prompts for AI assistants",
+  "repository": "https://github.com/rohitg00/kubectl-mcp-server",
+  "license": "MIT",
+  "runtime": "python",
+  "installInstructions": {
+    "npm": "npx kubectl-mcp-server@1.19.0",
+    "pip": "pip install kubectl-mcp-server==1.19.0",
+    "docker": "docker pull rohitghumare64/kubectl-mcp-server:1.19.0"
+  },
+  "requirements": {
+    "kubectl": "Required - Kubernetes CLI tool",
+    "kubeconfig": "Required - Valid kubeconfig file with cluster access"
+  },
+  "categories": [
+    "kubernetes",
+    "devops",
+    "infrastructure",
+    "cloud-native"
+  ],
+  "keywords": [
+    "kubernetes",
+    "kubectl",
+    "k8s",
+    "mcp",
+    "devops",
+    "gitops",
+    "helm",
+    "argocd",
+    "istio",
+    "velero"
+  ]
+}
