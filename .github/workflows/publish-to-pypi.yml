@@ -12,7 +12,7 @@ jobs:
     environment: pypi
     permissions:
       id-token: write
-      contents: read
+      contents: write
     steps:
     - uses: actions/checkout@v4
       with:
@@ -67,7 +67,7 @@ jobs:
     environment: pypi
     permissions:
       id-token: write
-      contents: read
+      contents: write
     steps:
     - uses: actions/checkout@v4
       with:
