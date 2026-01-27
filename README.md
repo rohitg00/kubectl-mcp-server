@@ -156,6 +156,19 @@ pip install kubectl-mcp-server
 pip install kubectl-mcp-server[ui]
 ```
 
+### Install from GitHub Release
+
+```bash
+# Install specific version directly from GitHub release (replace {VERSION} with desired version)
+pip install https://github.com/rohitg00/kubectl-mcp-server/releases/download/v{VERSION}/kubectl_mcp_server-{VERSION}-py3-none-any.whl
+
+# Example: Install v1.19.0
+pip install https://github.com/rohitg00/kubectl-mcp-server/releases/download/v1.19.0/kubectl_mcp_server-1.19.0-py3-none-any.whl
+
+# Or install latest from git
+pip install git+https://github.com/rohitg00/kubectl-mcp-server.git
+```
+
 ### Prerequisites
 - **Python 3.9+** (for pip installation)
 - **Node.js 14+** (for npx installation)
