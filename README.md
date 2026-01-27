@@ -1,19 +1,30 @@
-# Kubectl MCP Server
+<p align="center">
+  <img src="logos/kubectl-mcp-server-logo-final.svg" alt="kubectl-mcp-server logo" width="200" height="200">
+</p>
 
-**Control your entire Kubernetes infrastructure through natural language conversations with AI.**
+<p align="center">
+  <strong>Control your entire Kubernetes infrastructure through natural language conversations with AI.</strong>
+</p>
 
-Talk to your clusters like you talk to a DevOps expert. Debug crashed pods, optimize costs, deploy applications, audit security, manage Helm charts, and visualize dashboards, all through natural language in your favorite AI assistant or agents.
+<p align="center">
+Talk to your clusters like you talk to a DevOps expert. Debug crashed pods, optimize costs, deploy applications, audit security, manage Helm charts, and visualize dashboards—all through natural language in your favorite AI assistant or agents.
+</p>
 
-[![GitHub Stars](https://img.shields.io/github/stars/rohitg00/kubectl-mcp-server?style=flat&logo=github)](https://github.com/rohitg00/kubectl-mcp-server)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Python](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/)
-[![Kubernetes](https://img.shields.io/badge/kubernetes-%23326ce5.svg?style=flat&logo=kubernetes&logoColor=white)](https://kubernetes.io/)
-[![MCP](https://img.shields.io/badge/MCP-compatible-green.svg)](https://modelcontextprotocol.io)
-[![PyPI](https://img.shields.io/pypi/v/kubectl-mcp-server?color=blue&label=PyPI)](https://pypi.org/project/kubectl-mcp-server/)
-[![npm](https://img.shields.io/npm/v/kubectl-mcp-server?color=green&label=npm)](https://www.npmjs.com/package/kubectl-mcp-server)
-[![Docker](https://img.shields.io/docker/pulls/rohitghumare64/kubectl-mcp-server.svg)](https://hub.docker.com/r/rohitghumare64/kubectl-mcp-server)
-[![Tests](https://img.shields.io/badge/tests-234%20passed-success)](https://github.com/rohitg00/kubectl-mcp-server)
-[![agentregistry](https://img.shields.io/badge/agentregistry-verified-blue?logo=data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgZmlsbD0id2hpdGUiIHZpZXdCb3g9IjAgMCAxNiAxNiI+PHBhdGggZD0iTTE1Ljk5MiA2LjAzN2wtMy4wMjEtLjQzOS0xLjM1LTIuNzM2Yy0uMzQ2LS43MDItMS41MDQtLjcwMi0xLjg1IDBMOC40MjEgNS41OTggNS40IDYuMDM3Yy0uNzc2LjExMy0xLjA4OCAxLjA1My0uNTI4IDEuNTkzbDIuMTg2IDIuMTI5LS41MTYgMy4wMWMtLjEzMy43NzUuNjgyIDEuMzY2IDEuMzc4Ljk5OGwyLjcwMi0xLjQyIDIuNzAyIDEuNDJjLjY5Ni4zNjggMS41MTEtLjIyMyAxLjM3OC0uOTk4bC0uNTE2LTMuMDEgMi4xODYtMi4xMjljLjU2LS41NCAwLjI0OC0xLjQ4LS41MjgtMS41OTN6Ii8+PC9zdmc+)](https://aregistry.ai)
+<p align="center">
+  <a href="https://github.com/rohitg00/kubectl-mcp-server"><img src="https://img.shields.io/github/stars/rohitg00/kubectl-mcp-server?style=flat&logo=github" alt="GitHub Stars"></a>
+  <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT"></a>
+  <a href="https://www.python.org/"><img src="https://img.shields.io/badge/python-3.9+-blue.svg" alt="Python"></a>
+  <a href="https://kubernetes.io/"><img src="https://img.shields.io/badge/kubernetes-%23326ce5.svg?style=flat&logo=kubernetes&logoColor=white" alt="Kubernetes"></a>
+  <a href="https://modelcontextprotocol.io"><img src="https://img.shields.io/badge/MCP-compatible-green.svg" alt="MCP"></a>
+</p>
+
+<p align="center">
+  <a href="https://pypi.org/project/kubectl-mcp-server/"><img src="https://img.shields.io/pypi/v/kubectl-mcp-server?color=blue&label=PyPI" alt="PyPI"></a>
+  <a href="https://www.npmjs.com/package/kubectl-mcp-server"><img src="https://img.shields.io/npm/v/kubectl-mcp-server?color=green&label=npm" alt="npm"></a>
+  <a href="https://hub.docker.com/r/rohitghumare64/kubectl-mcp-server"><img src="https://img.shields.io/docker/pulls/rohitghumare64/kubectl-mcp-server.svg" alt="Docker"></a>
+  <a href="https://github.com/rohitg00/kubectl-mcp-server"><img src="https://img.shields.io/badge/tests-234%20passed-success" alt="Tests"></a>
+  <a href="https://aregistry.ai"><img src="https://img.shields.io/badge/agentregistry-verified-blue?logo=data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgZmlsbD0id2hpdGUiIHZpZXdCb3g9IjAgMCAxNiAxNiI+PHBhdGggZD0iTTE1Ljk5MiA2LjAzN2wtMy4wMjEtLjQzOS0xLjM1LTIuNzM2Yy0uMzQ2LS43MDItMS41MDQtLjcwMi0xLjg1IDBMOC40MjEgNS41OTggNS40IDYuMDM3Yy0uNzc2LjExMy0xLjA4OCAxLjA1My0uNTI4IDEuNTkzbDIuMTg2IDIuMTI5LS41MTYgMy4wMWMtLjEzMy43NzUuNjgyIDEuMzY2IDEuMzc4Ljk5OGwyLjcwMi0xLjQyIDIuNzAyIDEuNDJjLjY5Ni4zNjggMS41MTEtLjIyMyAxLjM3OC0uOTk4bC0uNTE2LTMuMDEgMi4xODYtMi4xMjljLjU2LS41NCAwLjI0OC0xLjQ4LS41MjgtMS41OTN6Ii8+PC9zdmc+" alt="agentregistry"></a>
+</p>
 
 ---
 

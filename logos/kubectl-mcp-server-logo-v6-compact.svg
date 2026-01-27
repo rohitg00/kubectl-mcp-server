@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="200" height="200" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="kBlue" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#326CE5"/>
+      <stop offset="100%" style="stop-color:#1D4ED8"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Compact version - MCP connectors tighter around K8s wheel -->
+  <g transform="translate(100, 80)">
+
+    <!-- MCP-style interlocking connectors (tighter spacing) -->
+    <g fill="none" stroke="#1E293B" stroke-width="6" stroke-linecap="round" stroke-linejoin="round">
+      <!-- Top-left to bottom-right connector -->
+      <path d="M -45,-32
+               Q -45,-48 -25,-48
+               L 18,-48
+               Q 38,-48 38,-28
+               Q 38,-8 18,-8
+               L -18,-8"/>
+      <!-- Bottom-right to top-left connector -->
+      <path d="M 45,32
+               Q 45,48 25,48
+               L -18,48
+               Q -38,48 -38,28
+               Q -38,8 -18,8
+               L 18,8"/>
+    </g>
+
+    <!-- Kubernetes wheel in the center (slightly larger) -->
+    <g transform="scale(0.65)">
+      <polygon points="0,-50 44,-25 44,25 0,50 -44,25 -44,-25"
+               fill="url(#kBlue)"/>
+      <g fill="none" stroke="white" stroke-width="4.5" stroke-linecap="round">
+        <circle cx="0" cy="0" r="6" fill="white"/>
+        <circle cx="0" cy="0" r="27"/>
+        <line x1="0" y1="-10" x2="0" y2="-27"/>
+        <line x1="9" y1="-5" x2="24" y2="-14"/>
+        <line x1="9" y1="5" x2="24" y2="14"/>
+        <line x1="0" y1="10" x2="0" y2="27"/>
+        <line x1="-9" y1="5" x2="-24" y2="14"/>
+        <line x1="-9" y1="-5" x2="-24" y2="-14"/>
+      </g>
+    </g>
+  </g>
+
+  <!-- Project name -->
+  <text x="100" y="165" text-anchor="middle"
+        font-family="Inter, -apple-system, sans-serif"
+        font-size="13" font-weight="700" fill="#326CE5">kubectl-mcp-server</text>
+</svg>
