@@ -1,11 +1,11 @@
-name: Publish to npm
+name: Publish to npm and GitHub Packages
 
 on:
   release:
     types: [published]
 
 jobs:
-  publish:
+  publish-npm:
     runs-on: ubuntu-latest
     environment: npm
     permissions:
@@ -42,3 +42,38 @@ jobs:
       run: npm publish --provenance --access public
       env:
         NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+  publish-github-packages:
+    runs-on: ubuntu-latest
+    needs: publish-npm
+    permissions:
+      contents: read
+      packages: write
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Node.js for GitHub Packages
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        registry-url: 'https://npm.pkg.github.com'
+        scope: '@rohitg00'
+
+    - name: Update package version from release tag
+      run: |
+        VERSION=${GITHUB_REF_NAME#v}
+        npm version $VERSION --no-git-tag-version --allow-same-version
+
+    - name: Publish to GitHub Packages
+      run: |
+        # Update package.json for GitHub Packages
+        node -e "
+          const fs = require('fs');
+          const pkg = require('./package.json');
+          pkg.name = '@rohitg00/kubectl-mcp-server';
+          pkg.publishConfig = { registry: 'https://npm.pkg.github.com' };
+          fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2));
+        "
+        npm publish
+      env:
+        NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
