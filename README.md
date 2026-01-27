@@ -178,8 +178,11 @@ pip install git+https://github.com/rohitg00/kubectl-mcp-server.git
 ### Docker
 
 ```bash
-# Pull and run with Docker
+# Pull from Docker Hub
 docker pull rohitghumare64/kubectl-mcp-server:latest
+
+# Or pull from GitHub Container Registry
+docker pull ghcr.io/rohitg00/kubectl-mcp-server:latest
 
 # Run with stdio transport
 docker run -i -v $HOME/.kube:/root/.kube:ro rohitghumare64/kubectl-mcp-server:latest
