@@ -1,13 +1,12 @@
 <p align="center">
-  <img src="logos/kubectl-mcp-server-logo-final.svg" alt="kubectl-mcp-server logo" width="200" height="200">
+  <img src="logos/kubectl-mcp-server-icon.svg" alt="kubectl-mcp-server logo" width="80" height="80">
+  <br>
+  <strong style="font-size: 24px;">kubectl-mcp-server</strong>
 </p>
 
 <p align="center">
-  <strong>Control your entire Kubernetes infrastructure through natural language conversations with AI.</strong>
-</p>
-
-<p align="center">
-Talk to your clusters like you talk to a DevOps expert. Debug crashed pods, optimize costs, deploy applications, audit security, manage Helm charts, and visualize dashboards—all through natural language in your favorite AI assistant or agents.
+<b>Control your entire Kubernetes infrastructure through natural language conversations with AI.</b><br>
+Talk to your clusters like you talk to a DevOps expert. Debug crashed pods, optimize costs, deploy applications, audit security, manage Helm charts, and visualize dashboards—all through natural language.
 </p>
 
 <p align="center">
