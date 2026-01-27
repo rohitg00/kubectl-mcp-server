@@ -13,7 +13,7 @@ jobs:
       contents: read
       packages: write
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Set up QEMU (for cross-platform builds)
         uses: docker/setup-qemu-action@v3
@@ -29,11 +29,20 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Extract metadata for Docker
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: rohitghumare64/kubectl-mcp-server
+          images: |
+            rohitghumare64/kubectl-mcp-server
+            ghcr.io/${{ github.repository }}
           tags: |
             type=ref,event=branch
             type=semver,pattern={{version}}
@@ -57,4 +66,4 @@ jobs:
           password: ${{ secrets.DOCKERHUB_TOKEN }}
           repository: rohitghumare64/kubectl-mcp-server
           readme-filepath: ./README.md
-          short-description: "MCP server for Kubernetes - AI assistants interact with K8s clusters" 
+          short-description: "MCP server for Kubernetes - AI assistants interact with K8s clusters"
