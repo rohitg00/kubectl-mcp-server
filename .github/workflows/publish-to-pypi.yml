@@ -47,12 +47,18 @@ jobs:
         fi
 
     - name: Build package
-      if: steps.check.outputs.exists != 'true'
       run: python -m build
 
     - name: Publish to PyPI
       if: steps.check.outputs.exists != 'true'
       uses: pypa/gh-action-pypi-publish@release/v1
+
+    - name: Upload wheel to GitHub Release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: |
+          dist/*.whl
+          dist/*.tar.gz
 
   deploy-legacy:
     name: Publish kubectl-mcp-tool (legacy alias)
