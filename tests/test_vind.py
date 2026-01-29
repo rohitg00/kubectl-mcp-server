@@ -355,14 +355,16 @@ class TestVindToolsRegistration:
         assert callable(register_vind_tools)
 
     @pytest.mark.unit
-    def test_vind_tools_register(self, mock_all_kubernetes_apis):
+    @pytest.mark.asyncio
+    async def test_vind_tools_register(self, mock_all_kubernetes_apis):
         """Test that vind tools register correctly."""
         from kubectl_mcp_tool.mcp_server import MCPServer
 
         with patch("kubectl_mcp_tool.mcp_server.MCPServer._check_dependencies", return_value=True):
             server = MCPServer(name="test")
 
-        tool_names = set(server.server._tool_manager._tools.keys())
+        tools = await server.server.list_tools()
+        tool_names = {t.name for t in tools}
 
         vind_tools = [
             "vind_detect_tool",
@@ -384,14 +386,16 @@ class TestVindToolsRegistration:
             assert tool in tool_names, f"vind tool '{tool}' not registered"
 
     @pytest.mark.unit
-    def test_vind_tool_count(self, mock_all_kubernetes_apis):
+    @pytest.mark.asyncio
+    async def test_vind_tool_count(self, mock_all_kubernetes_apis):
         """Test that correct number of vind tools are registered."""
         from kubectl_mcp_tool.mcp_server import MCPServer
 
         with patch("kubectl_mcp_tool.mcp_server.MCPServer._check_dependencies", return_value=True):
             server = MCPServer(name="test")
 
-        tool_names = set(server.server._tool_manager._tools.keys())
+        tools = await server.server.list_tools()
+        tool_names = {t.name for t in tools}
         vind_tools = [name for name in tool_names if name.startswith("vind_")]
         assert len(vind_tools) == 14, f"Expected 14 vind tools, got {len(vind_tools)}: {vind_tools}"
 
@@ -406,18 +410,19 @@ class TestVindToolsRegistration:
         assert server.non_destructive is True
 
     @pytest.mark.unit
-    def test_vind_tools_have_descriptions(self, mock_all_kubernetes_apis):
+    @pytest.mark.asyncio
+    async def test_vind_tools_have_descriptions(self, mock_all_kubernetes_apis):
         """Test that all vind tools have descriptions."""
         from kubectl_mcp_tool.mcp_server import MCPServer
 
         with patch("kubectl_mcp_tool.mcp_server.MCPServer._check_dependencies", return_value=True):
             server = MCPServer(name="test")
 
-        tools = server.server._tool_manager._tools
-        vind_tools = {name: tool for name, tool in tools.items() if name.startswith("vind_")}
+        tools = await server.server.list_tools()
+        vind_tools = [t for t in tools if t.name.startswith("vind_")]
         tools_without_description = [
-            name for name, tool in vind_tools.items()
-            if not hasattr(tool, 'description') or not tool.description or len(tool.description.strip()) == 0
+            t.name for t in vind_tools
+            if not t.description or len(t.description.strip()) == 0
         ]
         assert not tools_without_description, f"vind tools without descriptions: {tools_without_description}"
 
@@ -426,10 +431,10 @@ class TestVindNonDestructiveBlocking:
     """Tests for non-destructive mode blocking of vind write operations."""
 
     @pytest.mark.unit
-    def test_create_blocked_in_non_destructive(self, mock_all_kubernetes_apis):
+    @pytest.mark.asyncio
+    async def test_create_blocked_in_non_destructive(self, mock_all_kubernetes_apis):
         """Test that vind_create_cluster_tool is blocked in non-destructive mode."""
         from kubectl_mcp_tool.tools.vind import register_vind_tools
-        from unittest.mock import MagicMock
 
         try:
             from fastmcp import FastMCP
@@ -439,16 +444,15 @@ class TestVindNonDestructiveBlocking:
         mcp = FastMCP(name="test")
         register_vind_tools(mcp, non_destructive=True)
 
-        for name, tool in mcp._tool_manager._tools.items():
-            if name == "vind_create_cluster_tool":
-                result = tool.fn(name="test")
-                result_dict = json.loads(result)
-                assert result_dict["success"] is False
-                assert "non-destructive" in result_dict["error"].lower()
-                break
+        tool = await mcp.get_tool("vind_create_cluster_tool")
+        result = tool.fn(name="test")
+        result_dict = json.loads(result)
+        assert result_dict["success"] is False
+        assert "non-destructive" in result_dict["error"].lower()
 
     @pytest.mark.unit
-    def test_delete_blocked_in_non_destructive(self, mock_all_kubernetes_apis):
+    @pytest.mark.asyncio
+    async def test_delete_blocked_in_non_destructive(self, mock_all_kubernetes_apis):
         """Test that vind_delete_cluster_tool is blocked in non-destructive mode."""
         from kubectl_mcp_tool.tools.vind import register_vind_tools
 
@@ -460,16 +464,15 @@ class TestVindNonDestructiveBlocking:
         mcp = FastMCP(name="test")
         register_vind_tools(mcp, non_destructive=True)
 
-        for name, tool in mcp._tool_manager._tools.items():
-            if name == "vind_delete_cluster_tool":
-                result = tool.fn(name="test")
-                result_dict = json.loads(result)
-                assert result_dict["success"] is False
-                assert "non-destructive" in result_dict["error"].lower()
-                break
+        tool = await mcp.get_tool("vind_delete_cluster_tool")
+        result = tool.fn(name="test")
+        result_dict = json.loads(result)
+        assert result_dict["success"] is False
+        assert "non-destructive" in result_dict["error"].lower()
 
     @pytest.mark.unit
-    def test_pause_blocked_in_non_destructive(self, mock_all_kubernetes_apis):
+    @pytest.mark.asyncio
+    async def test_pause_blocked_in_non_destructive(self, mock_all_kubernetes_apis):
         """Test that vind_pause_tool is blocked in non-destructive mode."""
         from kubectl_mcp_tool.tools.vind import register_vind_tools
 
@@ -481,16 +484,15 @@ class TestVindNonDestructiveBlocking:
         mcp = FastMCP(name="test")
         register_vind_tools(mcp, non_destructive=True)
 
-        for name, tool in mcp._tool_manager._tools.items():
-            if name == "vind_pause_tool":
-                result = tool.fn(name="test")
-                result_dict = json.loads(result)
-                assert result_dict["success"] is False
-                assert "non-destructive" in result_dict["error"].lower()
-                break
+        tool = await mcp.get_tool("vind_pause_tool")
+        result = tool.fn(name="test")
+        result_dict = json.loads(result)
+        assert result_dict["success"] is False
+        assert "non-destructive" in result_dict["error"].lower()
 
     @pytest.mark.unit
-    def test_read_operations_allowed_in_non_destructive(self, mock_all_kubernetes_apis):
+    @pytest.mark.asyncio
+    async def test_read_operations_allowed_in_non_destructive(self, mock_all_kubernetes_apis):
         """Test that read operations work in non-destructive mode."""
         from kubectl_mcp_tool.tools.vind import register_vind_tools
 
@@ -502,11 +504,9 @@ class TestVindNonDestructiveBlocking:
         mcp = FastMCP(name="test")
         register_vind_tools(mcp, non_destructive=True)
 
-        for name, tool in mcp._tool_manager._tools.items():
-            if name == "vind_detect_tool":
-                with patch("subprocess.run") as mock_run:
-                    mock_run.side_effect = FileNotFoundError()
-                    result = tool.fn()
-                    result_dict = json.loads(result)
-                    assert "installed" in result_dict
-                    break
+        tool = await mcp.get_tool("vind_detect_tool")
+        with patch("subprocess.run") as mock_run:
+            mock_run.side_effect = FileNotFoundError()
+            result = tool.fn()
+            result_dict = json.loads(result)
+            assert "installed" in result_dict

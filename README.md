@@ -108,7 +108,7 @@ Simply ask your AI assistant in natural language:
 - Interactive HTML dashboards with live metrics
 - Visual timeline of events and resource usage
 
-**238 powerful tools** | **8 workflow prompts** | **8 data resources** | **Works with all major AI assistants**
+**253 powerful tools** | **8 workflow prompts** | **8 data resources** | **Works with all major AI assistants**
 
 ## Why kubectl-mcp-server?
 
@@ -425,7 +425,7 @@ Add to `~/.config/roo-code/mcp.json` or `~/.config/kilo-code/mcp.json`:
 
 ## Complete Feature Set
 
-### 238 MCP Tools for Complete Kubernetes Management
+### 253 MCP Tools for Complete Kubernetes Management
 
 | Category | Tools |
 |----------|-------|
@@ -460,7 +460,8 @@ Add to `~/.config/roo-code/mcp.json` or `~/.config/kilo-code/mcp.json`:
 | **Cluster API** | `capi_clusters_list`, `capi_cluster_get`, `capi_machines_list`, `capi_machine_get`, `capi_machinedeployments_list`, `capi_machinedeployment_scale`, `capi_machinesets_list`, `capi_machinehealthchecks_list`, `capi_clusterclasses_list`, `capi_cluster_kubeconfig`, `capi_detect` |
 | **KubeVirt VMs** | `kubevirt_vms_list`, `kubevirt_vm_get`, `kubevirt_vmis_list`, `kubevirt_vm_start`, `kubevirt_vm_stop`, `kubevirt_vm_restart`, `kubevirt_vm_pause`, `kubevirt_vm_unpause`, `kubevirt_vm_migrate`, `kubevirt_datasources_list`, `kubevirt_instancetypes_list`, `kubevirt_datavolumes_list`, `kubevirt_detect` |
 | **Istio/Kiali** | `istio_virtualservices_list`, `istio_virtualservice_get`, `istio_destinationrules_list`, `istio_gateways_list`, `istio_peerauthentications_list`, `istio_authorizationpolicies_list`, `istio_proxy_status`, `istio_analyze`, `istio_sidecar_status`, `istio_detect` |
-| **vCluster (vind)** | `vind_detect`, `vind_list_clusters`, `vind_status`, `vind_get_kubeconfig`, `vind_logs`, `vind_create_cluster`, `vind_delete_cluster`, `vind_pause`, `vind_resume`, `vind_connect`, `vind_disconnect`, `vind_upgrade`, `vind_describe`, `vind_platform_start` |
+| **vCluster (vind)** | `vind_detect_tool`, `vind_list_clusters_tool`, `vind_status_tool`, `vind_get_kubeconfig_tool`, `vind_logs_tool`, `vind_create_cluster_tool`, `vind_delete_cluster_tool`, `vind_pause_tool`, `vind_resume_tool`, `vind_connect_tool`, `vind_disconnect_tool`, `vind_upgrade_tool`, `vind_describe_tool`, `vind_platform_start_tool` |
+| **kind (K8s in Docker)** | `kind_detect_tool`, `kind_version_tool`, `kind_list_clusters_tool`, `kind_get_nodes_tool`, `kind_get_kubeconfig_tool`, `kind_export_logs_tool`, `kind_cluster_info_tool`, `kind_node_labels_tool`, `kind_create_cluster_tool`, `kind_delete_cluster_tool`, `kind_delete_all_clusters_tool`, `kind_load_image_tool`, `kind_load_image_archive_tool`, `kind_build_node_image_tool`, `kind_set_kubeconfig_tool` |
 
 ### MCP Resources
 
@@ -500,7 +501,7 @@ Pre-built workflow prompts for common Kubernetes operations:
 
 ### Key Capabilities
 
-- 🤖 **238 Powerful Tools** - Complete Kubernetes management from pods to security
+- 🤖 **253 Powerful Tools** - Complete Kubernetes management from pods to security
 - 🎯 **8 AI Workflow Prompts** - Pre-built workflows for common operations
 - 📊 **8 MCP Resources** - Browsable Kubernetes data exposure
 - 🎨 **6 Interactive Dashboards** - HTML UI tools for visual cluster management
@@ -740,7 +741,7 @@ EOF
 agentgateway --config gateway.yaml
 ```
 
-Connect clients to `http://localhost:3000/mcp` for unified access to all 238 tools.
+Connect clients to `http://localhost:3000/mcp` for unified access to all 253 tools.
 
 ## In-Cluster Deployment
 
@@ -799,7 +800,7 @@ kubectl apply -f deploy/kagent/toolserver-stdio.yaml
 kagent dashboard
 ```
 
-Your AI agents now have access to all 238 Kubernetes tools. See [kagent quickstart](https://kagent.dev/docs/kagent/getting-started/quickstart).
+Your AI agents now have access to all 253 Kubernetes tools. See [kagent quickstart](https://kagent.dev/docs/kagent/getting-started/quickstart).
 
 ## Architecture
 
@@ -817,7 +818,7 @@ The MCP server implements the [Model Context Protocol](https://github.com/modelc
 ```
 kubectl_mcp_tool/
 ├── mcp_server.py          # Main server (FastMCP, transports)
-├── tools/                  # 238 MCP tools organized by category
+├── tools/                  # 253 MCP tools organized by category
 │   ├── pods.py            # Pod management & diagnostics
 │   ├── deployments.py     # Deployments, StatefulSets, DaemonSets
 │   ├── core.py            # Namespaces, ConfigMaps, Secrets
@@ -898,7 +899,8 @@ Seamlessly manage multiple Kubernetes clusters through natural language. **Every
 
 ### Context Parameter (v1.15.0)
 
-All 238 tools accept an optional `context` parameter to target specific clusters:
+Most kubectl-backed tools accept an optional `context` parameter to target specific clusters.
+Note: vCluster (vind) and kind tools run via their local CLIs and do not accept the `context` parameter.
 
 **Talk to your AI assistant:**
 ```
@@ -987,7 +989,7 @@ pytest tests/ -v -m unit
 tests/
 ├── __init__.py          # Test package
 ├── conftest.py          # Shared fixtures and mocks
-├── test_tools.py        # Unit tests for 238 MCP tools
+├── test_tools.py        # Unit tests for 253 MCP tools
 ├── test_resources.py    # Tests for 8 MCP Resources
 ├── test_prompts.py      # Tests for 8 MCP Prompts
 └── test_server.py       # Server initialization tests

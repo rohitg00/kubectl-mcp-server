@@ -169,8 +169,9 @@ def vind_status(name: str, namespace: str = "vcluster") -> Dict[str, Any]:
         Detailed status information
     """
     result = _run_vcluster(
-        ["list", "--output", "json"],
-        timeout=30
+        ["list"],
+        timeout=30,
+        json_output=True,
     )
 
     if not result["success"]:

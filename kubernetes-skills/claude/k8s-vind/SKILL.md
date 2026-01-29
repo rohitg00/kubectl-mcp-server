@@ -192,7 +192,7 @@ vind_create_cluster_tool(
 
 ### Cluster Not Starting
 
-```python
+```text
 1. vind_detect_tool()
 2. vind_logs_tool(name="my-cluster", tail=200)
 3. vind_status_tool(name="my-cluster")
@@ -200,7 +200,7 @@ vind_create_cluster_tool(
 
 ### Connection Issues
 
-```python
+```text
 1. vind_disconnect_tool()
 2. vind_connect_tool(name="my-cluster")
 3. vind_get_kubeconfig_tool(name="my-cluster")
@@ -208,7 +208,7 @@ vind_create_cluster_tool(
 
 ### Resource Issues
 
-```python
+```text
 1. vind_pause_tool(name="unused-cluster")
 2. vind_delete_cluster_tool(name="old-cluster", delete_namespace=True)
 ```
