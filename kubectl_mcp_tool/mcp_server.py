@@ -93,6 +93,7 @@ from kubectl_mcp_tool.tools import (
     register_capi_tools,
     register_kubevirt_tools,
     register_istio_tools,
+    register_vind_tools,
 )
 from kubectl_mcp_tool.resources import register_resources
 from kubectl_mcp_tool.prompts import register_prompts
@@ -353,7 +354,8 @@ class MCPServer:
         register_capi_tools(self.server, self.non_destructive)
         register_kubevirt_tools(self.server, self.non_destructive)
         register_istio_tools(self.server, self.non_destructive)
-        logger.debug("Advanced ecosystem tools registered (KEDA, Cilium, Rollouts, CAPI, KubeVirt, Istio)")
+        register_vind_tools(self.server, self.non_destructive)
+        logger.debug("Advanced ecosystem tools registered (KEDA, Cilium, Rollouts, CAPI, KubeVirt, Istio, vind)")
 
     def setup_resources(self):
         """Set up MCP resources for Kubernetes data exposure."""
