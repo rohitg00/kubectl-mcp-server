@@ -1,11 +1,42 @@
 ---
 name: k8s-cli
 description: kubectl-mcp-server CLI commands for tool discovery, direct invocation, and diagnostics. Use when exploring available tools, calling tools from command line, or checking server health.
+license: Apache-2.0
+metadata:
+  author: rohitg00
+  version: "1.0.0"
+  tools: 0
+  category: tooling
 ---
 
 # kubectl-mcp-server CLI
 
 Command-line interface for kubectl-mcp-server operations.
+
+## When to Apply
+
+Use this skill when:
+- User mentions: "CLI", "command line", "tool discovery", "server health"
+- Operations: listing tools, calling tools directly, checking dependencies
+- Keywords: "doctor", "tools list", "call", "grep", "info"
+
+## Priority Rules
+
+| Priority | Rule | Impact | Tools |
+|----------|------|--------|-------|
+| 1 | Run doctor to check dependencies | CRITICAL | `kubectl-mcp-server doctor` |
+| 2 | Use tools -d for descriptions | HIGH | `kubectl-mcp-server tools -d` |
+| 3 | Use grep for tool discovery | MEDIUM | `kubectl-mcp-server grep` |
+| 4 | Use call for direct invocation | MEDIUM | `kubectl-mcp-server call` |
+
+## Quick Reference
+
+| Task | Command | Example |
+|------|---------|---------|
+| List tools | `tools -d` | `kubectl-mcp-server tools -d` |
+| Search tools | `grep` | `kubectl-mcp-server grep "*pod*"` |
+| Call tool | `call` | `kubectl-mcp-server call get_pods '{"namespace": "default"}'` |
+| Check health | `doctor` | `kubectl-mcp-server doctor` |
 
 ## Server Commands
 

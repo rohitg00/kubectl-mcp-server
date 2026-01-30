@@ -1,11 +1,49 @@
 ---
 name: k8s-browser
 description: Browser automation for Kubernetes dashboards and web UIs. Use when interacting with Kubernetes Dashboard, Grafana, ArgoCD UI, or other web interfaces. Requires MCP_BROWSER_ENABLED=true.
+license: Apache-2.0
+metadata:
+  author: rohitg00
+  version: "1.0.0"
+  tools: 26
+  category: automation
 ---
 
 # Browser Automation for Kubernetes
 
 Automate Kubernetes web UIs using kubectl-mcp-server's browser tools (26 tools).
+
+## When to Apply
+
+Use this skill when:
+- User mentions: "dashboard", "Grafana", "ArgoCD UI", "web interface", "screenshot"
+- Operations: navigating K8s dashboards, capturing screenshots, automating web UIs
+- Keywords: "browser", "click", "screenshot", "web", "UI automation"
+
+## Priority Rules
+
+| Priority | Rule | Impact | Tools |
+|----------|------|--------|-------|
+| 1 | Enable MCP_BROWSER_ENABLED first | CRITICAL | Environment variable |
+| 2 | Open URL before interactions | HIGH | `browser_open` |
+| 3 | Wait for elements before clicking | HIGH | `browser_wait_for_selector` |
+| 4 | Take screenshots for verification | MEDIUM | `browser_screenshot` |
+
+## Quick Reference
+
+| Task | Tool | Example |
+|------|------|---------|
+| Open URL | `browser_open` | `browser_open(url)` |
+| Click element | `browser_click` | `browser_click(selector)` |
+| Take screenshot | `browser_screenshot` | `browser_screenshot(path)` |
+| Wait for element | `browser_wait_for_selector` | `browser_wait_for_selector(selector)` |
+
+## Prerequisites
+
+- **Browser Tools Enabled**: Required
+  ```bash
+  export MCP_BROWSER_ENABLED=true
+  ```
 
 ## Enable Browser Tools
 

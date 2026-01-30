@@ -1,11 +1,42 @@
 ---
 name: k8s-kubevirt
 description: Virtual machine management with KubeVirt on Kubernetes. Use when creating, managing, or troubleshooting VMs running on Kubernetes clusters.
+license: Apache-2.0
+metadata:
+  author: rohitg00
+  version: "1.0.0"
+  tools: 13
+  category: virtualization
 ---
 
 # KubeVirt VM Management
 
 Manage virtual machines on Kubernetes using kubectl-mcp-server's KubeVirt tools (13 tools).
+
+## When to Apply
+
+Use this skill when:
+- User mentions: "KubeVirt", "virtual machine", "VM", "VirtualMachineInstance", "VMI"
+- Operations: starting/stopping VMs, live migration, managing VM lifecycle
+- Keywords: "VM on Kubernetes", "virtualization", "data volume", "instance type"
+
+## Priority Rules
+
+| Priority | Rule | Impact | Tools |
+|----------|------|--------|-------|
+| 1 | Detect KubeVirt installation first | CRITICAL | `kubevirt_detect_tool` |
+| 2 | Check VM status before operations | HIGH | `kubevirt_vm_get_tool` |
+| 3 | List VMIs for running VMs | HIGH | `kubevirt_vmis_list_tool` |
+| 4 | Use instance types for consistency | MEDIUM | `kubevirt_instancetypes_list_tool` |
+
+## Quick Reference
+
+| Task | Tool | Example |
+|------|------|---------|
+| Detect KubeVirt | `kubevirt_detect_tool` | `kubevirt_detect_tool()` |
+| List VMs | `kubevirt_vms_list_tool` | `kubevirt_vms_list_tool(namespace)` |
+| Start VM | `kubevirt_vm_start_tool` | `kubevirt_vm_start_tool(name, namespace)` |
+| Live migrate VM | `kubevirt_vm_migrate_tool` | `kubevirt_vm_migrate_tool(name, namespace)` |
 
 ## Check Installation
 

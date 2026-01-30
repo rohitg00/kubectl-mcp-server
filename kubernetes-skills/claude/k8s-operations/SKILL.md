@@ -1,16 +1,47 @@
 ---
 name: k8s-operations
 description: kubectl operations for applying, patching, deleting, and executing commands on Kubernetes resources. Use when modifying resources, running commands in pods, or managing resource lifecycle.
+license: Apache-2.0
+metadata:
+  author: rohitg00
+  version: "1.0.0"
+  tools: 14
+  category: operations
 ---
 
 # kubectl Operations
 
 Execute kubectl commands using kubectl-mcp-server's operations tools.
 
+## When to Apply
+
+Use this skill when:
+- User mentions: "apply", "patch", "delete", "exec", "scale", "rollout"
+- Operations: modifying resources, running commands, scaling workloads
+- Keywords: "update", "change", "modify", "run command", "restart"
+
+## Priority Rules
+
+| Priority | Rule | Impact | Tools |
+|----------|------|--------|-------|
+| 1 | Dry run before apply in production | CRITICAL | `kubectl_apply(dry_run=True)` |
+| 2 | Check current state before patching | HIGH | `describe_*` tools |
+| 3 | Avoid force delete unless necessary | HIGH | `kubectl_delete` |
+| 4 | Verify rollout status after changes | MEDIUM | `kubectl_rollout_status` |
+
+## Quick Reference
+
+| Task | Tool | Example |
+|------|------|---------|
+| Apply manifest | `kubectl_apply` | `kubectl_apply(manifest=yaml)` |
+| Patch resource | `kubectl_patch` | `kubectl_patch(type, name, namespace, patch)` |
+| Delete resource | `kubectl_delete` | `kubectl_delete(type, name, namespace)` |
+| Exec command | `kubectl_exec` | `kubectl_exec(pod, namespace, command)` |
+| Scale deployment | `scale_deployment` | `scale_deployment(name, namespace, replicas)` |
+
 ## Apply Resources
 
 ```python
-# Apply YAML manifest
 kubectl_apply(manifest="""
 apiVersion: apps/v1
 kind: Deployment
@@ -32,17 +63,14 @@ spec:
         image: nginx:latest
 """)
 
-# Apply from file
 kubectl_apply(file_path="/path/to/manifest.yaml")
 
-# Dry run
 kubectl_apply(manifest="...", dry_run=True)
 ```
 
 ## Patch Resources
 
 ```python
-# Strategic merge patch
 kubectl_patch(
     resource_type="deployment",
     name="nginx",
@@ -50,7 +78,6 @@ kubectl_patch(
     patch={"spec": {"replicas": 5}}
 )
 
-# JSON patch
 kubectl_patch(
     resource_type="deployment",
     name="nginx",
@@ -59,7 +86,6 @@ kubectl_patch(
     patch_type="json"
 )
 
-# Merge patch
 kubectl_patch(
     resource_type="service",
     name="my-svc",
@@ -72,17 +98,14 @@ kubectl_patch(
 ## Delete Resources
 
 ```python
-# Delete single resource
 kubectl_delete(resource_type="pod", name="my-pod", namespace="default")
 
-# Delete with label selector
 kubectl_delete(
     resource_type="pods",
     namespace="default",
     label_selector="app=test"
 )
 
-# Force delete
 kubectl_delete(
     resource_type="pod",
     name="stuck-pod",
@@ -95,14 +118,12 @@ kubectl_delete(
 ## Execute Commands
 
 ```python
-# Run command in pod
 kubectl_exec(
     pod="my-pod",
     namespace="default",
     command="ls -la /app"
 )
 
-# Specific container
 kubectl_exec(
     pod="my-pod",
     namespace="default",
@@ -110,7 +131,6 @@ kubectl_exec(
     command="cat /etc/config/settings.yaml"
 )
 
-# Interactive debugging
 kubectl_exec(
     pod="my-pod",
     namespace="default",
@@ -121,13 +141,10 @@ kubectl_exec(
 ## Scale Resources
 
 ```python
-# Scale deployment
 scale_deployment(name="nginx", namespace="default", replicas=5)
 
-# Scale to zero
 scale_deployment(name="nginx", namespace="default", replicas=0)
 
-# Scale statefulset
 kubectl_scale(
     resource_type="statefulset",
     name="mysql",
@@ -139,35 +156,30 @@ kubectl_scale(
 ## Rollout Management
 
 ```python
-# Check rollout status
 kubectl_rollout_status(
     resource_type="deployment",
     name="nginx",
     namespace="default"
 )
 
-# Rollout history
 kubectl_rollout_history(
     resource_type="deployment",
     name="nginx",
     namespace="default"
 )
 
-# Restart deployment
 kubectl_rollout_restart(
     resource_type="deployment",
     name="nginx",
     namespace="default"
 )
 
-# Rollback
 rollback_deployment(name="nginx", namespace="default", revision=1)
 ```
 
 ## Labels and Annotations
 
 ```python
-# Add label
 kubectl_label(
     resource_type="pod",
     name="my-pod",
@@ -175,7 +187,6 @@ kubectl_label(
     labels={"env": "production"}
 )
 
-# Add annotation
 kubectl_annotate(
     resource_type="deployment",
     name="nginx",

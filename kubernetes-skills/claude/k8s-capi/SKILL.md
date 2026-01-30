@@ -1,11 +1,42 @@
 ---
 name: k8s-capi
 description: Cluster API lifecycle management for provisioning, scaling, and upgrading Kubernetes clusters. Use when managing cluster infrastructure or multi-cluster operations.
+license: Apache-2.0
+metadata:
+  author: rohitg00
+  version: "1.0.0"
+  tools: 11
+  category: infrastructure
 ---
 
 # Cluster API Lifecycle Management
 
 Manage Kubernetes clusters using kubectl-mcp-server's Cluster API tools (11 tools).
+
+## When to Apply
+
+Use this skill when:
+- User mentions: "Cluster API", "CAPI", "cluster lifecycle", "machine", "workload cluster"
+- Operations: provisioning clusters, scaling nodes, upgrading Kubernetes versions
+- Keywords: "provision cluster", "scale workers", "machine deployment", "cluster class"
+
+## Priority Rules
+
+| Priority | Rule | Impact | Tools |
+|----------|------|--------|-------|
+| 1 | Detect CAPI installation first | CRITICAL | `capi_detect_tool` |
+| 2 | Check cluster phase before operations | HIGH | `capi_cluster_get_tool` |
+| 3 | Monitor machines during scaling | HIGH | `capi_machines_list_tool` |
+| 4 | Get kubeconfig after provisioning | MEDIUM | `capi_cluster_kubeconfig_tool` |
+
+## Quick Reference
+
+| Task | Tool | Example |
+|------|------|---------|
+| Detect CAPI | `capi_detect_tool` | `capi_detect_tool()` |
+| List clusters | `capi_clusters_list_tool` | `capi_clusters_list_tool(namespace)` |
+| Get cluster kubeconfig | `capi_cluster_kubeconfig_tool` | `capi_cluster_kubeconfig_tool(name, namespace)` |
+| Scale workers | `capi_machinedeployment_scale_tool` | `capi_machinedeployment_scale_tool(name, namespace, replicas)` |
 
 ## Check Installation
 

@@ -21,6 +21,8 @@ from .rollouts import register_rollouts_tools
 from .capi import register_capi_tools
 from .kubevirt import register_kubevirt_tools
 from .kiali import register_istio_tools
+from .vind import register_vind_tools
+from .kind import register_kind_tools
 
 __all__ = [
     "register_helm_tools",
@@ -49,4 +51,6 @@ __all__ = [
     "register_capi_tools",
     "register_kubevirt_tools",
     "register_istio_tools",
+    "register_vind_tools",
+    "register_kind_tools",
 ]

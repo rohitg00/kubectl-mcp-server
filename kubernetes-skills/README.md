@@ -1,25 +1,35 @@
 # Kubernetes Skills for AI Coding Agents
 
-Multi-agent Kubernetes skills powered by [kubectl-mcp-server](https://github.com/rohitg00/kubectl-mcp-server) (224+ tools).
+Multi-agent Kubernetes skills powered by [kubectl-mcp-server](https://github.com/rohitg00/kubectl-mcp-server) (270+ tools).
 
 ## Overview
 
 This directory contains Kubernetes operational skills in Claude format (`SKILL.md`). Use [SkillKit](https://github.com/rohitg00/skillkit) to convert to your preferred AI agent format.
+
+Skills follow the [agenstskills.com](https://agenstskills.com) specification with enhanced frontmatter, activation triggers, and priority rules.
 
 ## Directory Structure
 
 ```
 kubernetes-skills/
 ├── README.md
-├── claude/                 # Source skills (24 skills)
+├── claude/                 # Source skills (26 skills)
 │   ├── k8s-core/           # Pods, namespaces, configmaps, secrets
 │   ├── k8s-networking/     # Services, ingress, network policies
 │   ├── k8s-storage/        # PVCs, storage classes, volumes
 │   ├── k8s-deploy/         # Deployments, StatefulSets, DaemonSets
+│   │   ├── SKILL.md
+│   │   ├── references/     # Strategy documentation
+│   │   └── examples/       # Runnable YAML manifests
 │   ├── k8s-operations/     # kubectl apply/patch/delete/exec
 │   ├── k8s-helm/           # Helm charts and releases
+│   │   ├── SKILL.md
+│   │   ├── references/     # Chart structure docs
+│   │   └── scripts/        # Executable scripts
 │   ├── k8s-diagnostics/    # Metrics, health checks
 │   ├── k8s-troubleshoot/   # Debug pods, nodes, workloads
+│   │   ├── SKILL.md
+│   │   └── references/     # Decision trees, error guides
 │   ├── k8s-incident/       # Emergency runbooks
 │   ├── k8s-security/       # RBAC, service accounts
 │   ├── k8s-policy/         # Kyverno/Gatekeeper policies
@@ -27,6 +37,8 @@ kubernetes-skills/
 │   ├── k8s-gitops/         # Flux and ArgoCD
 │   ├── k8s-rollouts/       # Argo Rollouts/Flagger
 │   ├── k8s-autoscaling/    # HPA, VPA, KEDA
+│   │   ├── SKILL.md
+│   │   └── examples/       # HPA and KEDA manifests
 │   ├── k8s-cost/           # Cost optimization
 │   ├── k8s-backup/         # Velero backup/restore
 │   ├── k8s-multicluster/   # Multi-cluster operations
@@ -34,8 +46,51 @@ kubernetes-skills/
 │   ├── k8s-kubevirt/       # KubeVirt VMs
 │   ├── k8s-service-mesh/   # Istio traffic management
 │   ├── k8s-cilium/         # Cilium/Hubble observability
+│   ├── k8s-vind/           # vCluster virtual clusters
+│   │   ├── SKILL.md
+│   │   └── references/     # Workflow documentation
+│   ├── k8s-kind/           # kind local clusters
+│   │   ├── SKILL.md
+│   │   └── references/     # Configuration examples
 │   ├── k8s-browser/        # Browser automation
 │   └── k8s-cli/            # MCP server CLI
+```
+
+## Skill Format
+
+Each skill follows the enhanced agenstskills.com specification:
+
+```yaml
+---
+name: k8s-troubleshoot
+description: Debug Kubernetes pods, nodes, and workloads...
+license: Apache-2.0
+metadata:
+  author: rohitg00
+  version: "1.0.0"
+  tools: 15
+  category: observability
+---
+
+# Kubernetes Troubleshooting
+
+## When to Apply
+Use this skill when:
+- User mentions: "debug", "troubleshoot", "failing", "crash"
+- Pod states: Pending, CrashLoopBackOff, ImagePullBackOff
+- Keywords: "logs", "events", "describe"
+
+## Priority Rules
+| Priority | Rule | Impact | Tools |
+|----------|------|--------|-------|
+| 1 | Check pod status first | CRITICAL | `get_pods` |
+| 2 | View recent events | CRITICAL | `get_events` |
+| 3 | Inspect logs | HIGH | `get_pod_logs` |
+
+## Quick Reference
+| Task | Tool | Example |
+|------|------|---------|
+| Get pods | `get_pods` | `get_pods(namespace)` |
 ```
 
 ## Installation
@@ -86,7 +141,7 @@ Convert manually by copying the content to your agent's format:
 | Windsurf | `.windsurf/rules/<skill>.md` |
 | Goose | `.goose/instructions.md` |
 
-## Skill Coverage (24 Skills)
+## Skill Coverage (26 Skills)
 
 | Category | Skills |
 |----------|--------|
@@ -98,11 +153,12 @@ Convert manually by copying the content to your agent's format:
 | **Scaling** | k8s-autoscaling, k8s-cost, k8s-backup |
 | **Multi-Cluster** | k8s-multicluster, k8s-capi, k8s-kubevirt |
 | **Networking** | k8s-service-mesh, k8s-cilium |
+| **Development** | k8s-vind, k8s-kind |
 | **Tools** | k8s-browser, k8s-cli |
 
 ## MCP Server Features
 
-### Tool Categories (224+ tools)
+### Tool Categories (270+ tools)
 
 | Category | Tools | Examples |
 |----------|-------|----------|
@@ -125,6 +181,8 @@ Convert manually by copying the content to your agent's format:
 | **Cluster API** | 11 | `capi_clusters_list`, `capi_machines_list` |
 | **KubeVirt** | 13 | `kubevirt_vms_list`, `kubevirt_vm_start`, `kubevirt_vm_migrate` |
 | **Istio** | 10 | `istio_virtualservices_list`, `istio_analyze`, `istio_proxy_status` |
+| **vCluster (vind)** | 14 | `vind_create_cluster`, `vind_connect`, `vind_pause` |
+| **kind** | 32 | `kind_create_cluster`, `kind_load_image`, `kind_get_kubeconfig` |
 | **Browser** | 26 | `browser_open`, `browser_screenshot`, `browser_click` (optional) |
 | **UI** | 6 | `ui_dashboard`, `ui_pod_table`, `ui_deployment_chart` |
 
@@ -232,8 +290,9 @@ docker run -v ~/.kube:/root/.kube rohitghumare64/kubectl-mcp-server:latest
 
 ## References
 
-- [kubectl-mcp-server](https://github.com/rohitg00/kubectl-mcp-server) - 224+ Kubernetes MCP tools
+- [kubectl-mcp-server](https://github.com/rohitg00/kubectl-mcp-server) - 270+ Kubernetes MCP tools
 - [SkillKit](https://github.com/rohitg00/skillkit) - Universal CLI for AI agent skills
+- [agenstskills.com](https://agenstskills.com) - Agent skills specification
 - [MCP Protocol](https://modelcontextprotocol.io/) - Model Context Protocol spec
 
 ## License

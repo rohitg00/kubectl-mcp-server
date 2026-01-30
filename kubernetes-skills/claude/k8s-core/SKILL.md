@@ -1,53 +1,76 @@
 ---
 name: k8s-core
 description: Core Kubernetes resource management for pods, namespaces, configmaps, secrets, and nodes. Use when listing, inspecting, or managing fundamental K8s objects.
+license: Apache-2.0
+metadata:
+  author: rohitg00
+  version: "1.0.0"
+  tools: 17
+  category: core
 ---
 
 # Core Kubernetes Resources
 
 Manage fundamental Kubernetes objects using kubectl-mcp-server's core tools.
 
+## When to Apply
+
+Use this skill when:
+- User mentions: "pods", "namespaces", "configmaps", "secrets", "nodes", "events"
+- Operations: listing resources, describing objects, creating/deleting resources
+- Keywords: "show me", "list", "get", "describe", "create", "delete"
+
+## Priority Rules
+
+| Priority | Rule | Impact | Tools |
+|----------|------|--------|-------|
+| 1 | Check namespace exists before operations | CRITICAL | `get_namespaces` |
+| 2 | Never expose secrets in plain text | CRITICAL | Handle `get_secret` output carefully |
+| 3 | Use labels for filtering | HIGH | `label_selector` parameter |
+| 4 | Check events after changes | MEDIUM | `get_events` |
+
+## Quick Reference
+
+| Task | Tool | Example |
+|------|------|---------|
+| List pods | `get_pods` | `get_pods(namespace="default")` |
+| Describe pod | `describe_pod` | `describe_pod(name, namespace)` |
+| Get logs | `get_pod_logs` | `get_pod_logs(name, namespace)` |
+| List namespaces | `get_namespaces` | `get_namespaces()` |
+| Get configmap | `get_configmap` | `get_configmap(name, namespace)` |
+| List nodes | `get_nodes` | `get_nodes()` |
+
 ## Pods
 
 ```python
-# List pods in namespace
 get_pods(namespace="default")
 get_pods(namespace="kube-system", label_selector="app=nginx")
 
-# Get pod details
 describe_pod(name="my-pod", namespace="default")
 
-# Get logs
 get_pod_logs(name="my-pod", namespace="default")
-get_pod_logs(name="my-pod", namespace="default", previous=True)  # Previous container
+get_pod_logs(name="my-pod", namespace="default", previous=True)
 
-# Delete pod
 delete_pod(name="my-pod", namespace="default")
 ```
 
 ## Namespaces
 
 ```python
-# List namespaces
 get_namespaces()
 
-# Create namespace
 create_namespace(name="my-namespace")
 
-# Delete namespace
 delete_namespace(name="my-namespace")
 ```
 
 ## ConfigMaps
 
 ```python
-# List configmaps
 get_configmaps(namespace="default")
 
-# Get specific configmap
 get_configmap(name="my-config", namespace="default")
 
-# Create configmap
 create_configmap(
     name="app-config",
     namespace="default",
@@ -58,13 +81,10 @@ create_configmap(
 ## Secrets
 
 ```python
-# List secrets
 get_secrets(namespace="default")
 
-# Get secret (base64 encoded)
 get_secret(name="my-secret", namespace="default")
 
-# Create secret
 create_secret(
     name="db-credentials",
     namespace="default",
@@ -75,30 +95,23 @@ create_secret(
 ## Nodes
 
 ```python
-# List nodes
 get_nodes()
 
-# Get node details
 describe_node(name="node-1")
 
-# Get nodes summary (CPU, memory, pods)
 get_nodes_summary()
 
-# Cordon/uncordon
 cordon_node(name="node-1")
 uncordon_node(name="node-1")
 
-# Drain node
 drain_node(name="node-1", ignore_daemonsets=True)
 ```
 
 ## Events
 
 ```python
-# Get events in namespace
 get_events(namespace="default")
 
-# Get events for specific resource
 get_events(namespace="default", field_selector="involvedObject.name=my-pod")
 ```
 

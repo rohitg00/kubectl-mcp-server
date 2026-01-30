@@ -1,0 +1,112 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata:
+  name: myapp-bluegreen
+spec:
+  replicas: 3
+  revisionHistoryLimit: 2
+  selector:
+    matchLabels:
+      app: myapp
+  template:
+    metadata:
+      labels:
+        app: myapp
+    spec:
+      containers:
+      - name: myapp
+        image: myapp:v1.0.0
+        ports:
+        - containerPort: 8080
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "200m"
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 15
+          periodSeconds: 20
+  strategy:
+    blueGreen:
+      activeService: myapp-active
+      previewService: myapp-preview
+      autoPromotionEnabled: false
+      scaleDownDelaySeconds: 30
+      prePromotionAnalysis:
+        templates:
+        - templateName: smoke-test
+        args:
+        - name: service-name
+          value: myapp-preview
+      postPromotionAnalysis:
+        templates:
+        - templateName: smoke-test
+        args:
+        - name: service-name
+          value: myapp-active
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: myapp-active
+spec:
+  selector:
+    app: myapp
+  ports:
+  - port: 80
+    targetPort: 8080
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: myapp-preview
+spec:
+  selector:
+    app: myapp
+  ports:
+  - port: 80
+    targetPort: 8080
+---
+apiVersion: argoproj.io/v1alpha1
+kind: AnalysisTemplate
+metadata:
+  name: smoke-test
+spec:
+  args:
+  - name: service-name
+  metrics:
+  - name: smoke-test
+    count: 1
+    successCondition: result == "healthy"
+    provider:
+      job:
+        spec:
+          template:
+            spec:
+              containers:
+              - name: smoke-test
+                image: curlimages/curl:latest
+                command:
+                - sh
+                - -c
+                - |
+                  response=$(curl -s -o /dev/null -w "%{http_code}" http://{{args.service-name}}/health)
+                  if [ "$response" = "200" ]; then
+                    echo "healthy"
+                  else
+                    echo "unhealthy"
+                    exit 1
+                  fi
+              restartPolicy: Never
+          backoffLimit: 0

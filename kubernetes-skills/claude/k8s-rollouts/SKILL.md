@@ -1,11 +1,42 @@
 ---
 name: k8s-rollouts
 description: Progressive delivery with Argo Rollouts and Flagger. Use when implementing canary deployments, blue-green deployments, or traffic shifting strategies.
+license: Apache-2.0
+metadata:
+  author: rohitg00
+  version: "1.0.0"
+  tools: 11
+  category: delivery
 ---
 
 # Progressive Delivery with Argo Rollouts & Flagger
 
 Manage progressive deployments using kubectl-mcp-server's rollout tools (11 tools).
+
+## When to Apply
+
+Use this skill when:
+- User mentions: "canary", "blue-green", "progressive delivery", "Argo Rollouts", "Flagger"
+- Operations: rolling out new versions, traffic splitting, automated rollbacks
+- Keywords: "gradual rollout", "traffic shift", "analysis run", "promote", "abort"
+
+## Priority Rules
+
+| Priority | Rule | Impact | Tools |
+|----------|------|--------|-------|
+| 1 | Detect Argo Rollouts installation first | CRITICAL | `rollouts_detect_tool` |
+| 2 | Check rollout status before promoting | HIGH | `rollout_status_tool` |
+| 3 | Monitor analysis runs for failures | HIGH | `analysis_runs_list_tool` |
+| 4 | Abort immediately on critical failures | CRITICAL | `rollout_abort_tool` |
+
+## Quick Reference
+
+| Task | Tool | Example |
+|------|------|---------|
+| Detect Argo Rollouts | `rollouts_detect_tool` | `rollouts_detect_tool()` |
+| List rollouts | `rollouts_list_tool` | `rollouts_list_tool(namespace)` |
+| Get rollout status | `rollout_status_tool` | `rollout_status_tool(name, namespace)` |
+| Promote rollout | `rollout_promote_tool` | `rollout_promote_tool(name, namespace)` |
 
 ## Check Installation
 

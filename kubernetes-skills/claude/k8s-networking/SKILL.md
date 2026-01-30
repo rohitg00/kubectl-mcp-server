@@ -1,22 +1,50 @@
 ---
 name: k8s-networking
 description: Kubernetes networking management for services, ingresses, endpoints, and network policies. Use when configuring connectivity, load balancing, or network isolation.
+license: Apache-2.0
+metadata:
+  author: rohitg00
+  version: "1.0.0"
+  tools: 8
+  category: networking
 ---
 
 # Kubernetes Networking
 
 Manage Kubernetes networking resources using kubectl-mcp-server's networking tools.
 
+## When to Apply
+
+Use this skill when:
+- User mentions: "service", "ingress", "endpoint", "network policy", "load balancer"
+- Operations: exposing applications, configuring routing, network isolation
+- Keywords: "connectivity", "DNS", "traffic", "port", "firewall"
+
+## Priority Rules
+
+| Priority | Rule | Impact | Tools |
+|----------|------|--------|-------|
+| 1 | Check endpoints before troubleshooting services | CRITICAL | `get_endpoints` |
+| 2 | Verify service selector matches pod labels | HIGH | `get_services`, `get_pods` |
+| 3 | Review network policies for isolation | HIGH | `get_network_policies` |
+| 4 | Test DNS resolution from within pods | MEDIUM | `kubectl_exec` |
+
+## Quick Reference
+
+| Task | Tool | Example |
+|------|------|---------|
+| List services | `get_services` | `get_services(namespace)` |
+| Check backends | `get_endpoints` | `get_endpoints(namespace)` |
+| List ingresses | `get_ingresses` | `get_ingresses(namespace)` |
+| Network policies | `get_network_policies` | `get_network_policies(namespace)` |
+
 ## Services
 
 ```python
-# List services
 get_services(namespace="default")
 
-# Get service details
 describe_service(name="my-service", namespace="default")
 
-# Create service (ClusterIP)
 create_service(
     name="my-service",
     namespace="default",
@@ -24,7 +52,6 @@ create_service(
     ports=[{"port": 80, "targetPort": 8080}]
 )
 
-# Create LoadBalancer
 create_service(
     name="my-lb",
     namespace="default",
@@ -37,24 +64,16 @@ create_service(
 ## Endpoints
 
 ```python
-# List endpoints (service backends)
 get_endpoints(namespace="default")
-
-# Check if service has backends
-get_endpoints(namespace="default")
-# Empty addresses = no pods matching selector
 ```
 
 ## Ingress
 
 ```python
-# List ingresses
 get_ingresses(namespace="default")
 
-# Get ingress details
 describe_ingress(name="my-ingress", namespace="default")
 
-# Create ingress
 kubectl_apply(manifest="""
 apiVersion: networking.k8s.io/v1
 kind: Ingress
@@ -79,13 +98,10 @@ spec:
 ## Network Policies
 
 ```python
-# List network policies
 get_network_policies(namespace="default")
 
-# Get policy details
 describe_network_policy(name="deny-all", namespace="default")
 
-# Create deny-all policy
 kubectl_apply(manifest="""
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
@@ -99,7 +115,6 @@ spec:
   - Egress
 """)
 
-# Allow specific traffic
 kubectl_apply(manifest="""
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
@@ -123,11 +138,10 @@ spec:
 ## Troubleshooting Connectivity
 
 ```python
-# Service not accessible?
-get_endpoints(namespace="default")  # Check backends exist
-get_network_policies(namespace="default")  # Check isolation
+get_endpoints(namespace="default")
 
-# DNS issues?
+get_network_policies(namespace="default")
+
 kubectl_exec(
     pod="debug-pod",
     namespace="default",
