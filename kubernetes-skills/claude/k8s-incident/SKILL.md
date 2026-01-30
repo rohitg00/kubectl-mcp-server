@@ -24,7 +24,7 @@ Use this skill when:
 
 | Priority | Rule | Impact | Tools |
 |----------|------|--------|-------|
-| 1 | Check control plane first | CRITICAL | `get_pods(kube-system)` |
+| 1 | Check control plane first | CRITICAL | `get_pods(namespace="kube-system")` |
 | 2 | Assess node health | CRITICAL | `get_nodes` |
 | 3 | Gather events before changes | HIGH | `get_events` |
 | 4 | Document timeline | HIGH | Manual notes |
@@ -37,7 +37,7 @@ Use this skill when:
 | Pod failure | `get_pod_logs(previous=True)` | `describe_pod`, `get_events` |
 | Node down | `describe_node` | Check kubelet logs |
 | Service unreachable | `get_endpoints` | `get_network_policies` |
-| Control plane | `get_pods(kube-system)` | Check API server logs |
+| Control plane | `get_pods(namespace="kube-system")` | Check API server logs |
 
 ## Incident Triage
 

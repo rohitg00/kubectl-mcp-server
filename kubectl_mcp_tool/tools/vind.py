@@ -416,7 +416,8 @@ def vind_connect(
     name: str,
     namespace: str = "",
     update_current: bool = True,
-    kube_config: str = ""
+    kube_config: str = "",
+    background_proxy: bool = True
 ) -> Dict[str, Any]:
     """Connect kubectl to a vCluster instance.
 
@@ -425,6 +426,7 @@ def vind_connect(
         namespace: Namespace of the vCluster
         update_current: Update current kubeconfig context
         kube_config: Path to kubeconfig file to update
+        background_proxy: Use background proxy to avoid blocking (default: True)
 
     Returns:
         Connection result
@@ -439,6 +441,9 @@ def vind_connect(
 
     if kube_config:
         args.extend(["--kube-config", kube_config])
+
+    if background_proxy:
+        args.append("--background-proxy")
 
     result = _run_vcluster(args, timeout=60)
 
@@ -543,13 +548,15 @@ def vind_describe(name: str, namespace: str = "") -> Dict[str, Any]:
 
 def vind_platform_start(
     host: str = "",
-    port: int = 0
+    port: int = 0,
+    no_port_forwarding: bool = True
 ) -> Dict[str, Any]:
     """Start the vCluster Platform UI.
 
     Args:
         host: Host to bind to (default: localhost)
         port: Port to bind to (default: 9898)
+        no_port_forwarding: Don't start port-forwarding (install only, default: True)
 
     Returns:
         Platform start result
@@ -561,6 +568,9 @@ def vind_platform_start(
 
     if port:
         args.extend(["--port", str(port)])
+
+    if no_port_forwarding:
+        args.append("--no-port-forwarding")
 
     result = _run_vcluster(args, timeout=60)
 

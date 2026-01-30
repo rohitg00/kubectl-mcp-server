@@ -460,7 +460,7 @@ kind version
 
 ## Tool Reference
 
-### Read-Only Tools (11)
+### Read-Only Tools (20)
 | Tool | Description |
 |------|-------------|
 | `kind_detect_tool` | Detect CLI installation |

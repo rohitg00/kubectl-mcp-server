@@ -111,9 +111,9 @@ list_crds()
 ### Pre-deployment Check
 
 ```python
-get_resource_metrics(namespace)
+get_resource_metrics(namespace="production")
 get_nodes_summary()
-compare_namespaces(staging, prod, "deployment")
+compare_namespaces(namespace1="staging", namespace2="prod", resource_type="deployment")
 ```
 
 ### Post-incident Analysis

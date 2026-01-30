@@ -143,11 +143,13 @@ spec:
 ### Create DR Backup
 
 ```python
+from datetime import datetime
+
 velero_backup_create_tool(
-    name="dr-backup-$(date)",
+    name=f"dr-backup-{datetime.now().strftime('%Y%m%d-%H%M%S')}",
     namespaces=["production"]
 )
-velero_backup_get_tool(name="dr-backup-...")
+velero_backup_get_tool(name="dr-backup-20260130-120000")
 ```
 
 ### Restore to New Cluster

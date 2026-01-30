@@ -19,6 +19,8 @@ spec:
       metricName: http_requests_total
       threshold: "100"
       query: sum(rate(http_requests_total{deployment="my-app"}[2m]))
+    authenticationRef:
+      name: prometheus-auth
   - type: cpu
     metricType: Utilization
     metadata:

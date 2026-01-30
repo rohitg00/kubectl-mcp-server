@@ -51,7 +51,7 @@ spec:
           value: myapp-preview
       postPromotionAnalysis:
         templates:
-        - templateName: success-rate
+        - templateName: smoke-test
         args:
         - name: service-name
           value: myapp-active
