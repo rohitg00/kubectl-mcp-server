@@ -1,6 +1,12 @@
 ---
 name: k8s-vind
 description: Manage vCluster (virtual Kubernetes clusters) instances using vind. Use when creating, managing, or operating lightweight virtual clusters for development, testing, or multi-tenancy.
+license: Apache-2.0
+metadata:
+  author: rohitg00
+  version: "1.0.0"
+  tools: 14
+  category: development
 ---
 
 # vCluster (vind) Management
@@ -8,6 +14,39 @@ description: Manage vCluster (virtual Kubernetes clusters) instances using vind.
 Manage virtual Kubernetes clusters using kubectl-mcp-server's vind tools (14 tools).
 
 vCluster enables running fully functional Kubernetes clusters as lightweight workloads inside a host cluster, combining multi-tenancy with strong isolation.
+
+## When to Apply
+
+Use this skill when:
+- User mentions: "vCluster", "vind", "virtual cluster", "lightweight cluster"
+- Operations: creating dev environments, multi-tenant isolation, ephemeral clusters
+- Keywords: "virtual Kubernetes", "dev cluster", "pause cluster", "tenant isolation"
+
+## Priority Rules
+
+| Priority | Rule | Impact | Tools |
+|----------|------|--------|-------|
+| 1 | Detect vCluster CLI first | CRITICAL | `vind_detect_tool` |
+| 2 | Check cluster status before operations | HIGH | `vind_status_tool` |
+| 3 | Connect before kubectl operations | HIGH | `vind_connect_tool` |
+| 4 | Pause unused clusters to save resources | MEDIUM | `vind_pause_tool` |
+
+## Quick Reference
+
+| Task | Tool | Example |
+|------|------|---------|
+| Detect vCluster | `vind_detect_tool` | `vind_detect_tool()` |
+| List clusters | `vind_list_clusters_tool` | `vind_list_clusters_tool()` |
+| Create cluster | `vind_create_cluster_tool` | `vind_create_cluster_tool(name)` |
+| Connect to cluster | `vind_connect_tool` | `vind_connect_tool(name)` |
+
+## Prerequisites
+
+- **vCluster CLI**: Required for all vind tools
+  ```bash
+  curl -L -o vcluster "https://github.com/loft-sh/vcluster/releases/latest/download/vcluster-$(uname -s | tr '[:upper:]' '[:lower:]')-$(uname -m)"
+  chmod +x vcluster && sudo mv vcluster /usr/local/bin/
+  ```
 
 ## Check Installation
 

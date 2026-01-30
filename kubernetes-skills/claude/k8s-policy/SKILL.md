@@ -1,11 +1,42 @@
 ---
 name: k8s-policy
 description: Kubernetes policy management with Kyverno and Gatekeeper. Use when enforcing security policies, validating resources, or auditing policy compliance.
+license: Apache-2.0
+metadata:
+  author: rohitg00
+  version: "1.0.0"
+  tools: 6
+  category: security
 ---
 
 # Kubernetes Policy Management
 
 Manage policies using kubectl-mcp-server's Kyverno and Gatekeeper tools.
+
+## When to Apply
+
+Use this skill when:
+- User mentions: "Kyverno", "Gatekeeper", "OPA", "policy", "compliance"
+- Operations: enforcing policies, checking violations, policy audit
+- Keywords: "require labels", "block privileged", "validate", "enforce"
+
+## Priority Rules
+
+| Priority | Rule | Impact | Tools |
+|----------|------|--------|-------|
+| 1 | Detect policy engine first | CRITICAL | `kyverno_detect_tool`, `gatekeeper_detect_tool` |
+| 2 | Use Audit mode before Enforce | HIGH | validationFailureAction |
+| 3 | Check policy reports for violations | HIGH | `kyverno_clusterpolicyreports_list_tool` |
+| 4 | Review constraint templates | MEDIUM | `gatekeeper_constrainttemplates_list_tool` |
+
+## Quick Reference
+
+| Task | Tool | Example |
+|------|------|---------|
+| List Kyverno cluster policies | `kyverno_clusterpolicies_list_tool` | `kyverno_clusterpolicies_list_tool()` |
+| Get Kyverno policy | `kyverno_clusterpolicy_get_tool` | `kyverno_clusterpolicy_get_tool(name)` |
+| List Gatekeeper constraints | `gatekeeper_constraints_list_tool` | `gatekeeper_constraints_list_tool()` |
+| Get constraint | `gatekeeper_constraint_get_tool` | `gatekeeper_constraint_get_tool(kind, name)` |
 
 ## Kyverno
 
@@ -18,10 +49,8 @@ kyverno_detect_tool()
 ### List Policies
 
 ```python
-# Cluster-wide policies
 kyverno_clusterpolicies_list_tool()
 
-# Namespace policies
 kyverno_policies_list_tool(namespace="default")
 ```
 
@@ -35,23 +64,14 @@ kyverno_policy_get_tool(name="require-resources", namespace="default")
 ### Policy Reports
 
 ```python
-# Cluster policy reports
 kyverno_clusterpolicyreports_list_tool()
 
-# Namespace policy reports
 kyverno_policyreports_list_tool(namespace="default")
-
-# Reports show:
-# - Pass: Resources compliant
-# - Fail: Resources violating policy
-# - Warn: Advisory violations
-# - Error: Policy evaluation errors
 ```
 
 ### Common Kyverno Policies
 
 ```python
-# Require labels
 kubectl_apply(manifest="""
 apiVersion: kyverno.io/v1
 kind: ClusterPolicy
@@ -73,7 +93,6 @@ spec:
             app: "?*"
 """)
 
-# Require resource limits
 kubectl_apply(manifest="""
 apiVersion: kyverno.io/v1
 kind: ClusterPolicy
@@ -110,10 +129,8 @@ gatekeeper_detect_tool()
 ### List Constraints
 
 ```python
-# List all constraints
 gatekeeper_constraints_list_tool()
 
-# List constraint templates
 gatekeeper_constrainttemplates_list_tool()
 ```
 
@@ -131,7 +148,6 @@ gatekeeper_constrainttemplate_get_tool(name="k8srequiredlabels")
 ### Common Gatekeeper Policies
 
 ```python
-# Constraint template for required labels
 kubectl_apply(manifest="""
 apiVersion: templates.gatekeeper.sh/v1
 kind: ConstraintTemplate
@@ -163,7 +179,6 @@ spec:
       }
 """)
 
-# Constraint using template
 kubectl_apply(manifest="""
 apiVersion: constraints.gatekeeper.sh/v1beta1
 kind: K8sRequiredLabels
@@ -182,11 +197,21 @@ spec:
 ## Policy Audit Workflow
 
 ```python
-1. kyverno_detect_tool() or gatekeeper_detect_tool()
-2. kyverno_clusterpolicies_list_tool()  # List policies
-3. kyverno_clusterpolicyreports_list_tool()  # Check violations
-4. # Fix violations or update policies
+kyverno_detect_tool()
+kyverno_clusterpolicies_list_tool()
+kyverno_clusterpolicyreports_list_tool()
 ```
+
+## Prerequisites
+
+- **Kyverno**: Required for Kyverno tools
+  ```bash
+  kubectl create -f https://github.com/kyverno/kyverno/releases/latest/download/install.yaml
+  ```
+- **Gatekeeper**: Required for Gatekeeper tools
+  ```bash
+  kubectl apply -f https://raw.githubusercontent.com/open-policy-agent/gatekeeper/master/deploy/gatekeeper.yaml
+  ```
 
 ## Related Skills
 

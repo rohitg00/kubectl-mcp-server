@@ -1,60 +1,73 @@
 ---
 name: k8s-diagnostics
 description: Kubernetes diagnostics for metrics, health checks, resource comparisons, and cluster analysis. Use when analyzing cluster health, comparing environments, or gathering diagnostic data.
+license: Apache-2.0
+metadata:
+  author: rohitg00
+  version: "1.0.0"
+  tools: 10
+  category: observability
 ---
 
 # Kubernetes Diagnostics
 
 Analyze cluster health and compare resources using kubectl-mcp-server's diagnostic tools.
 
+## When to Apply
+
+Use this skill when:
+- User mentions: "metrics", "health check", "compare", "analysis", "capacity"
+- Operations: cluster health assessment, environment comparison, resource analysis
+- Keywords: "how much", "usage", "difference between", "capacity planning"
+
+## Priority Rules
+
+| Priority | Rule | Impact | Tools |
+|----------|------|--------|-------|
+| 1 | Check metrics-server before using metrics | CRITICAL | `get_resource_metrics` |
+| 2 | Run health check before deployments | HIGH | `cluster_health_check` |
+| 3 | Compare staging vs prod before release | MEDIUM | `compare_namespaces` |
+| 4 | Document baseline metrics | LOW | `get_nodes_summary` |
+
+## Quick Reference
+
+| Task | Tool | Example |
+|------|------|---------|
+| Cluster health | `cluster_health_check` | `cluster_health_check()` |
+| Pod metrics | `get_resource_metrics` | `get_resource_metrics(namespace)` |
+| Node summary | `get_nodes_summary` | `get_nodes_summary()` |
+| Compare envs | `compare_namespaces` | `compare_namespaces(ns1, ns2, type)` |
+| List CRDs | `list_crds` | `list_crds()` |
+
 ## Resource Metrics
 
 ```python
-# Get pod metrics (requires metrics-server)
 get_resource_metrics(namespace="default")
 
-# Get node metrics
 get_node_metrics()
 
-# Top pods by CPU
 get_top_pods(namespace="default", sort_by="cpu")
 
-# Top pods by memory
 get_top_pods(namespace="default", sort_by="memory")
 ```
 
 ## Cluster Health Check
 
 ```python
-# Comprehensive health check
 cluster_health_check()
-# Returns:
-# - API server status
-# - etcd health
-# - Node status
-# - System pods status
-# - Resource pressure
 
-# Quick status
 get_cluster_info()
 ```
 
 ## Compare Environments
 
 ```python
-# Compare namespaces
 compare_namespaces(
     namespace1="staging",
     namespace2="production",
     resource_type="deployment"
 )
-# Shows differences in:
-# - Image versions
-# - Replica counts
-# - Resource limits
-# - Environment variables
 
-# Compare across clusters
 compare_namespaces(
     namespace1="default",
     namespace2="default",
@@ -67,58 +80,49 @@ compare_namespaces(
 ## API Discovery
 
 ```python
-# Get API versions
 get_api_versions()
 
-# Check if CRD exists
 check_crd_exists(crd_name="certificates.cert-manager.io")
 
-# List all CRDs
 list_crds()
 ```
 
 ## Resource Analysis
 
 ```python
-# Get nodes summary
 get_nodes_summary()
-# Returns:
-# - Node name, status
-# - CPU/memory capacity
-# - CPU/memory allocatable
-# - Pod count
-# - Conditions
 
-# View kubeconfig (sanitized)
 kubeconfig_view()
 
-# List contexts
 list_contexts_tool()
 ```
 
 ## Diagnostic Workflows
 
 ### Cluster Overview
+
 ```python
-1. cluster_health_check()      # Overall health
-2. get_nodes_summary()         # Node capacity
-3. get_events(namespace="")    # Cluster-wide events
-4. list_crds()                 # Installed operators
+cluster_health_check()
+get_nodes_summary()
+get_events(namespace="")
+list_crds()
 ```
 
 ### Pre-deployment Check
+
 ```python
-1. get_resource_metrics(namespace)  # Current usage
-2. get_nodes_summary()              # Available capacity
-3. compare_namespaces(staging, prod, "deployment")  # Diff check
+get_resource_metrics(namespace)
+get_nodes_summary()
+compare_namespaces(staging, prod, "deployment")
 ```
 
 ### Post-incident Analysis
+
 ```python
-1. get_events(namespace)       # Recent events
-2. get_pod_logs(name, namespace, previous=True)  # Crash logs
-3. get_resource_metrics(namespace)  # Resource pressure
-4. describe_node(name)         # Node conditions
+get_events(namespace)
+get_pod_logs(name, namespace, previous=True)
+get_resource_metrics(namespace)
+describe_node(name)
 ```
 
 ## Related Skills

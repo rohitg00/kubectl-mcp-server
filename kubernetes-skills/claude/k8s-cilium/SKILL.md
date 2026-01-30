@@ -1,11 +1,42 @@
 ---
 name: k8s-cilium
 description: Cilium and Hubble network observability for Kubernetes. Use when managing network policies, observing traffic flows, or troubleshooting connectivity with eBPF-based networking.
+license: Apache-2.0
+metadata:
+  author: rohitg00
+  version: "1.0.0"
+  tools: 8
+  category: networking
 ---
 
 # Cilium & Hubble Network Observability
 
 Manage eBPF-based networking using kubectl-mcp-server's Cilium tools (8 tools).
+
+## When to Apply
+
+Use this skill when:
+- User mentions: "Cilium", "Hubble", "eBPF", "network policy", "flow"
+- Operations: network policy management, traffic observation, L7 filtering
+- Keywords: "network security", "traffic flow", "dropped packets", "connectivity"
+
+## Priority Rules
+
+| Priority | Rule | Impact | Tools |
+|----------|------|--------|-------|
+| 1 | Detect Cilium installation first | CRITICAL | `cilium_detect_tool` |
+| 2 | Check agent status for health | HIGH | `cilium_status_tool` |
+| 3 | Use Hubble for flow debugging | HIGH | `hubble_flows_query_tool` |
+| 4 | Start with default deny | MEDIUM | CiliumNetworkPolicy |
+
+## Quick Reference
+
+| Task | Tool | Example |
+|------|------|---------|
+| Detect Cilium | `cilium_detect_tool` | `cilium_detect_tool()` |
+| Agent status | `cilium_status_tool` | `cilium_status_tool()` |
+| List policies | `cilium_policies_list_tool` | `cilium_policies_list_tool(namespace)` |
+| Query flows | `hubble_flows_query_tool` | `hubble_flows_query_tool(namespace)` |
 
 ## Check Installation
 
@@ -16,14 +47,7 @@ cilium_detect_tool()
 ## Cilium Status
 
 ```python
-# Get Cilium agent status
 cilium_status_tool()
-
-# Shows:
-# - Cilium health
-# - Cluster connectivity
-# - Controller status
-# - Proxy status
 ```
 
 ## Network Policies
@@ -32,19 +56,12 @@ cilium_status_tool()
 
 ```python
 cilium_policies_list_tool(namespace="default")
-
-# Shows CiliumNetworkPolicies and CiliumClusterwideNetworkPolicies
 ```
 
 ### Get Policy Details
 
 ```python
 cilium_policy_get_tool(name="allow-web", namespace="default")
-
-# Shows:
-# - Ingress rules
-# - Egress rules
-# - Endpoint selector
 ```
 
 ### Create Cilium Network Policy
@@ -82,59 +99,38 @@ spec:
 ## Endpoints
 
 ```python
-# List Cilium endpoints
 cilium_endpoints_list_tool(namespace="default")
-
-# Shows:
-# - Endpoint ID
-# - Pod name
-# - Identity
-# - Policy status (ingress/egress enforcement)
 ```
 
 ## Identities
 
 ```python
-# List Cilium identities
 cilium_identities_list_tool()
-
-# Identities are security groups based on labels
-# Used for policy enforcement
 ```
 
 ## Nodes
 
 ```python
-# List Cilium nodes
 cilium_nodes_list_tool()
-
-# Shows:
-# - Node name
-# - Cilium internal IP
-# - Health status
-# - Encryption status
 ```
 
 ## Hubble Flow Observability
 
 ```python
-# Query network flows
 hubble_flows_query_tool(
     namespace="default",
     pod="my-pod",
     last="5m"
 )
 
-# Filter by verdict
 hubble_flows_query_tool(
     namespace="default",
-    verdict="DROPPED"  # or FORWARDED, AUDIT
+    verdict="DROPPED"
 )
 
-# Filter by type
 hubble_flows_query_tool(
     namespace="default",
-    type="l7"  # L7 (HTTP) flows
+    type="l7"
 )
 ```
 
@@ -171,7 +167,6 @@ spec:
 ## Cluster Mesh
 
 ```python
-# For multi-cluster connectivity
 kubectl_apply(manifest="""
 apiVersion: cilium.io/v2
 kind: CiliumClusterwideNetworkPolicy
@@ -193,28 +188,26 @@ spec:
 ### Pod Can't Reach Service
 
 ```python
-1. cilium_status_tool()  # Check Cilium health
-2. cilium_endpoints_list_tool(namespace)  # Check endpoint status
-3. cilium_policies_list_tool(namespace)  # Check policies
-4. hubble_flows_query_tool(namespace, pod, verdict="DROPPED")  # Find drops
-5. # If policy dropping traffic, update policy
+cilium_status_tool()
+cilium_endpoints_list_tool(namespace)
+cilium_policies_list_tool(namespace)
+hubble_flows_query_tool(namespace, pod, verdict="DROPPED")
 ```
 
 ### Policy Not Working
 
 ```python
-1. cilium_policy_get_tool(name, namespace)  # Verify policy spec
-2. cilium_endpoints_list_tool(namespace)  # Check enforcement mode
-3. hubble_flows_query_tool(namespace)  # Observe actual flows
-4. # Check endpoint selector matches pods
+cilium_policy_get_tool(name, namespace)
+cilium_endpoints_list_tool(namespace)
+hubble_flows_query_tool(namespace)
 ```
 
 ### Network Performance Issues
 
 ```python
-1. cilium_status_tool()  # Check agent status
-2. cilium_nodes_list_tool()  # Check node health
-3. hubble_flows_query_tool(namespace, type="l7")  # Check latency
+cilium_status_tool()
+cilium_nodes_list_tool()
+hubble_flows_query_tool(namespace, type="l7")
 ```
 
 ## Best Practices
@@ -223,6 +216,13 @@ spec:
 2. **Use labels consistently**: Policies rely on label selectors
 3. **Monitor with Hubble**: Observe flows before/after policy changes
 4. **Test in staging**: Verify policies don't break connectivity
+
+## Prerequisites
+
+- **Cilium**: Required for all Cilium tools
+  ```bash
+  cilium install
+  ```
 
 ## Related Skills
 

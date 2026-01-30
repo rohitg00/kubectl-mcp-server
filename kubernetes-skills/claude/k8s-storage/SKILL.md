@@ -1,22 +1,50 @@
 ---
 name: k8s-storage
 description: Kubernetes storage management for PVCs, storage classes, and persistent volumes. Use when provisioning storage, managing volumes, or troubleshooting storage issues.
+license: Apache-2.0
+metadata:
+  author: rohitg00
+  version: "1.0.0"
+  tools: 3
+  category: storage
 ---
 
 # Kubernetes Storage
 
 Manage Kubernetes storage using kubectl-mcp-server's storage tools.
 
+## When to Apply
+
+Use this skill when:
+- User mentions: "PVC", "PV", "storage class", "volume", "disk", "storage"
+- Operations: provisioning storage, mounting volumes, expanding storage
+- Keywords: "persist", "data", "backup storage", "volume claim"
+
+## Priority Rules
+
+| Priority | Rule | Impact | Tools |
+|----------|------|--------|-------|
+| 1 | Verify storage class exists before PVC | CRITICAL | `get_storage_classes` |
+| 2 | Check PVC status before pod deployment | HIGH | `describe_pvc` |
+| 3 | Review access modes for multi-pod access | MEDIUM | `get_pvcs` |
+| 4 | Monitor PV reclaim policy | LOW | `get_persistent_volumes` |
+
+## Quick Reference
+
+| Task | Tool | Example |
+|------|------|---------|
+| List PVCs | `get_pvcs` | `get_pvcs(namespace)` |
+| PVC details | `describe_pvc` | `describe_pvc(name, namespace)` |
+| Storage classes | `get_storage_classes` | `get_storage_classes()` |
+| List PVs | `get_persistent_volumes` | `get_persistent_volumes()` |
+
 ## Persistent Volume Claims (PVCs)
 
 ```python
-# List PVCs
 get_pvcs(namespace="default")
 
-# Get PVC details
 describe_pvc(name="my-pvc", namespace="default")
 
-# Create PVC
 kubectl_apply(manifest="""
 apiVersion: v1
 kind: PersistentVolumeClaim
@@ -32,21 +60,14 @@ spec:
   storageClassName: standard
 """)
 
-# Delete PVC
 kubectl_delete(resource_type="pvc", name="my-pvc", namespace="default")
 ```
 
 ## Storage Classes
 
 ```python
-# List storage classes
 get_storage_classes()
 
-# Get default storage class
-get_storage_classes()
-# Look for: storageclass.kubernetes.io/is-default-class: "true"
-
-# Create storage class
 kubectl_apply(manifest="""
 apiVersion: storage.k8s.io/v1
 kind: StorageClass
@@ -63,23 +84,14 @@ volumeBindingMode: WaitForFirstConsumer
 ## Persistent Volumes
 
 ```python
-# List PVs
 get_persistent_volumes()
 
-# Get PV details
 describe_persistent_volume(name="pv-001")
-
-# Check PV status
-# - Available: Ready to be bound
-# - Bound: Claimed by a PVC
-# - Released: PVC deleted, not yet reclaimed
-# - Failed: Reclamation failed
 ```
 
 ## Volume Snapshots
 
 ```python
-# Create volume snapshot
 kubectl_apply(manifest="""
 apiVersion: snapshot.storage.k8s.io/v1
 kind: VolumeSnapshot
@@ -92,7 +104,6 @@ spec:
     persistentVolumeClaimName: my-pvc
 """)
 
-# Restore from snapshot
 kubectl_apply(manifest="""
 apiVersion: v1
 kind: PersistentVolumeClaim
@@ -114,14 +125,8 @@ spec:
 ## Troubleshooting Storage
 
 ```python
-# PVC stuck in Pending?
 describe_pvc(name="my-pvc", namespace="default")
-# Check events for:
-# - No matching storage class
-# - Insufficient capacity
-# - Volume binding mode
 
-# Pod stuck waiting for volume?
 get_events(namespace="default")
 describe_pod(name="my-pod", namespace="default")
 ```

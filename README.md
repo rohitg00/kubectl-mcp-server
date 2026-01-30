@@ -849,7 +849,7 @@ kubectl_mcp_tool/
 
 ## Agent Skills (25 Skills for AI Coding Agents)
 
-Extend your AI coding agent with Kubernetes expertise using our [Agent Skills](https://agentskills.io) library. Skills provide specialized knowledge and workflows that agents can load on demand.
+Extend your AI coding agent with Kubernetes expertise using our [Agent Skills](https://agenstskills.com) library. Skills provide specialized knowledge and workflows that agents can load on demand.
 
 ### Quick Install
 
