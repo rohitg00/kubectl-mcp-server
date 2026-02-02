@@ -118,7 +118,8 @@ export function BarChart({
   showLabels = true,
   showValues = true,
 }: BarChartProps): React.ReactElement {
-  const max = maxValue || Math.max(...data.map((d) => d.value));
+  const values = data.map((d) => d.value);
+  const max = maxValue ?? (values.length > 0 ? Math.max(...values) : 0);
 
   return (
     <div className="bar-chart" style={{ height }}>

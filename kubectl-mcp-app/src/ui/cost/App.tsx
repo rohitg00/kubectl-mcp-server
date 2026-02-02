@@ -124,10 +124,12 @@ export function CostAnalyzer(): React.ReactElement {
 
   useEffect(() => {
     fetchCostData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- fetchCostData depends on selectedNamespace, so we only call on mount
   }, []);
 
   useEffect(() => {
     fetchCostData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentionally re-fetch when namespace changes
   }, [state.selectedNamespace]);
 
   const handleApply = useCallback(

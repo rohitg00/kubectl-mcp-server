@@ -188,23 +188,23 @@ export function ClusterOverview(): React.ReactElement {
                 <div className="resource-card">
                   <h3>CPU</h3>
                   <ProgressBar
-                    value={state.clusterInfo?.cpuUsed || 65}
+                    value={state.clusterInfo?.cpuUsed ?? 65}
                     max={100}
                     label="Usage"
                   />
                   <div className="resource-detail">
-                    <span>Capacity: {state.clusterInfo?.cpuCapacity || "32 cores"}</span>
+                    <span>Capacity: {state.clusterInfo?.cpuCapacity ?? "32 cores"}</span>
                   </div>
                 </div>
                 <div className="resource-card">
                   <h3>Memory</h3>
                   <ProgressBar
-                    value={state.clusterInfo?.memoryUsed || 72}
+                    value={state.clusterInfo?.memoryUsed ?? 72}
                     max={100}
                     label="Usage"
                   />
                   <div className="resource-detail">
-                    <span>Capacity: {state.clusterInfo?.memoryCapacity || "128 Gi"}</span>
+                    <span>Capacity: {state.clusterInfo?.memoryCapacity ?? "128 Gi"}</span>
                   </div>
                 </div>
               </div>
@@ -230,7 +230,7 @@ export function ClusterOverview(): React.ReactElement {
                       <div className="node-stat">
                         <span className="label">CPU</span>
                         <ProgressBar
-                          value={node.cpu.used || 50}
+                          value={node.cpu.used ?? 50}
                           max={100}
                           size="sm"
                           showPercentage={false}
@@ -239,7 +239,7 @@ export function ClusterOverview(): React.ReactElement {
                       <div className="node-stat">
                         <span className="label">Memory</span>
                         <ProgressBar
-                          value={node.memory.used || 60}
+                          value={node.memory.used ?? 60}
                           max={100}
                           size="sm"
                           showPercentage={false}
@@ -248,7 +248,7 @@ export function ClusterOverview(): React.ReactElement {
                       <div className="node-stat">
                         <span className="label">Pods</span>
                         <ProgressBar
-                          value={node.pods.used || 30}
+                          value={node.pods.used ?? 30}
                           max={100}
                           size="sm"
                           showPercentage={false}

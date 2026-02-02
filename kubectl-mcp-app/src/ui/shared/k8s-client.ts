@@ -230,11 +230,17 @@ class K8sClient {
     types = "Normal,Warning",
     context = ""
   ): Promise<unknown> {
+    const includesWarning = types.includes("Warning");
+    const includesNormal = types.includes("Normal");
+    let fieldSelector = "";
+    if (includesWarning && !includesNormal) {
+      fieldSelector = "type=Warning";
+    } else if (includesNormal && !includesWarning) {
+      fieldSelector = "type=Normal";
+    }
     return this.callTool("get_events", {
       namespace,
-      field_selector: types.includes("Warning")
-        ? ""
-        : "type=Normal",
+      field_selector: fieldSelector,
       context,
     });
   }

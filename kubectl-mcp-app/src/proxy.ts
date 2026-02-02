@@ -28,8 +28,9 @@ export class KubectlMcpProxy {
   private async _doConnect(): Promise<void> {
     if (this.config.backend) {
       console.error(
-        `[proxy] Connecting to remote backend: ${this.config.backend}`
+        `[proxy] Warning: Remote backend connection (${this.config.backend}) is not yet supported.`
       );
+      console.error(`[proxy] Falling back to spawning local kubectl-mcp-server subprocess.`);
     } else {
       console.error("[proxy] Spawning kubectl-mcp-server subprocess");
     }

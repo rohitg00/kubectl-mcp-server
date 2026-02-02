@@ -12,7 +12,7 @@ kubectl-mcp-app provides 8 interactive UI dashboards for Kubernetes management t
 ## Features
 
 | Tool | Description |
-|------|-------------|
+| ---- | ----------- |
 | `k8s-pods` | Interactive pod viewer with filtering, sorting, status indicators, and actions |
 | `k8s-logs` | Real-time log viewer with syntax highlighting, search, and level filtering |
 | `k8s-deploy` | Deployment dashboard with rollout status, scaling, restart, and rollback |
@@ -139,7 +139,7 @@ Connect to an already-running kubectl-mcp-server:
 
 ## CLI Options
 
-```
+```text
 kubectl-mcp-app [OPTIONS]
 
 OPTIONS:
@@ -157,7 +157,7 @@ EXAMPLES:
 
 ## Architecture
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────────────┐
 │                         MCP Host (Claude Desktop)                    │
 ├─────────────────────────────────────────────────────────────────────┤
@@ -288,7 +288,7 @@ npm run test:watch
 
 ### Project Structure
 
-```
+```text
 kubectl-mcp-app/
 ├── src/
 │   ├── server.ts          # MCP server with tool/resource registration

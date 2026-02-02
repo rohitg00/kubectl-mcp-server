@@ -30,7 +30,7 @@ npm run build
 
 ## Project Structure
 
-```
+```text
 kubectl-mcp-app/
 ├── src/
 │   ├── server.ts          # MCP server with tool registration

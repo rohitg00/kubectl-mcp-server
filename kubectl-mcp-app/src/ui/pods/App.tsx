@@ -25,6 +25,7 @@ interface AppState {
   selectedNamespace: string;
   searchQuery: string;
   theme: Theme;
+  currentPage: number;
 }
 
 declare global {
@@ -50,6 +51,7 @@ export function PodViewer(): React.ReactElement {
     selectedNamespace: window.initialArgs?.namespace || "all",
     searchQuery: "",
     theme: getTheme(),
+    currentPage: 1,
   });
 
   const callTool = useCallback(
@@ -334,8 +336,8 @@ export function PodViewer(): React.ReactElement {
           emptyMessage="No pods found"
           pagination={{
             pageSize: 20,
-            currentPage: 1,
-            onPageChange: () => {},
+            currentPage: state.currentPage,
+            onPageChange: (page) => setState((prev) => ({ ...prev, currentPage: page })),
           }}
         />
       </main>

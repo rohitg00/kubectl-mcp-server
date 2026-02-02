@@ -80,7 +80,7 @@ export function HelmManager(): React.ReactElement {
         context: window.initialArgs?.context || "",
       });
 
-      if (data?.releases) {
+      if (data?.releases !== undefined) {
         setState((prev) => ({
           ...prev,
           releases: data.releases,

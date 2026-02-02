@@ -31,7 +31,7 @@ for (const app of UI_APPS) {
   console.log(`Building ${app}...`);
 
   try {
-    execSync(`UI_APP=${app} npx vite build`, {
+    execSync(`npx vite build`, {
       cwd: rootDir,
       stdio: "inherit",
       env: { ...process.env, UI_APP: app },

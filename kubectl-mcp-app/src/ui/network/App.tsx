@@ -149,10 +149,8 @@ export function NetworkTopology(): React.ReactElement {
       });
 
       state.ingresses.forEach((ingress) => {
-        if (
-          ingress.endpoints?.includes(service.name) ||
-          (ingress.hosts && service.name.includes("nginx"))
-        ) {
+        const matchesEndpoint = ingress.endpoints?.includes(service.name);
+        if (matchesEndpoint) {
           edges.push({
             source: `ingress-${ingress.name}`,
             target: `service-${service.name}`,

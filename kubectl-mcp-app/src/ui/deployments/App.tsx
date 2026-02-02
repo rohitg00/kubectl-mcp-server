@@ -131,10 +131,12 @@ export function DeploymentDashboard(): React.ReactElement {
   useEffect(() => {
     fetchNamespaces();
     fetchDeployments();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- fetch on mount only
   }, []);
 
   useEffect(() => {
     fetchDeployments();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- re-fetch when namespace changes
   }, [state.selectedNamespace]);
 
   const handleScale = useCallback(
@@ -223,6 +225,7 @@ export function DeploymentDashboard(): React.ReactElement {
   });
 
   const getDeploymentStatus = (d: Deployment): string => {
+    if (d.replicas === 0) return "Scaled to zero";
     if (d.readyReplicas === d.replicas && d.replicas > 0) return "Running";
     if (d.updatedReplicas < d.replicas) return "Progressing";
     if (d.readyReplicas === 0) return "Failed";

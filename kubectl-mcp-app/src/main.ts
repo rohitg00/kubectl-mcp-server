@@ -10,11 +10,26 @@ function parseArgs(args: string[]): KubectlMcpServerConfig {
     const arg = args[i];
 
     if (arg === "--backend" || arg === "-b") {
-      config.backend = args[++i];
+      const value = args[++i];
+      if (!value || value.startsWith("-")) {
+        console.error(`Error: --backend requires a URL argument`);
+        process.exit(1);
+      }
+      config.backend = value;
     } else if (arg === "--context" || arg === "-c") {
-      config.context = args[++i];
+      const value = args[++i];
+      if (!value || value.startsWith("-")) {
+        console.error(`Error: --context requires a NAME argument`);
+        process.exit(1);
+      }
+      config.context = value;
     } else if (arg === "--namespace" || arg === "-n") {
-      config.namespace = args[++i];
+      const value = args[++i];
+      if (!value || value.startsWith("-")) {
+        console.error(`Error: --namespace requires a NAME argument`);
+        process.exit(1);
+      }
+      config.namespace = value;
     } else if (arg === "--help" || arg === "-h") {
       printHelp();
       process.exit(0);
