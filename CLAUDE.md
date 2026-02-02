@@ -2,18 +2,61 @@
 
 ## Project Overview
 - **Name**: kubectl-mcp-server
-- **Version**: 1.21.0
+- **Version**: 1.22.0
 - **Description**: A Model Context Protocol (MCP) server for Kubernetes with 270+ tools, 8 resources, and 8 prompts
 - **Framework**: FastMCP 3.0.0b1 (Python)
 - **Repository**: https://github.com/rohitg00/kubectl-mcp-server
 
-## Current State (as of 2026-01-29)
+## Current State (as of 2026-02-02)
 
-### Latest Release: v1.21.0
-- **Changes**: Comprehensive kind support - expanded from 15 to 32 tools
+### Latest Release: v1.22.0
+- **Changes**: Added kubectl-mcp-app - 8 interactive UI dashboards for Kubernetes management
 - **Tool Count**: 270 core tools
 - **Skills**: 26 Agent Skills covering all tools
 - **Optional**: 26 browser tools (with MCP_BROWSER_ENABLED=true)
+- **NEW**: kubectl-mcp-app npm package with 8 interactive UIs
+
+### Release v1.22.0 Changes
+
+#### kubectl-mcp-app (New npm Package)
+Added standalone npm package for interactive Kubernetes UI dashboards using MCP ext-apps SDK.
+
+**Installation:**
+```bash
+npm install -g kubectl-mcp-app
+# or
+npx kubectl-mcp-app
+```
+
+**8 Interactive UI Tools:**
+| Tool | Description |
+|------|-------------|
+| `k8s-pods` | Interactive pod viewer with filtering, sorting, status indicators |
+| `k8s-logs` | Real-time log viewer with syntax highlighting and search |
+| `k8s-deploy` | Deployment dashboard with rollout status, scaling, rollback |
+| `k8s-helm` | Helm release manager with upgrade/rollback actions |
+| `k8s-cluster` | Cluster overview with node health and resource metrics |
+| `k8s-cost` | Cost analyzer with waste detection and recommendations |
+| `k8s-events` | Events timeline with type filtering and grouping |
+| `k8s-network` | Network topology graph showing Services/Pods/Ingress |
+
+**Features:**
+- TypeScript + React 19 + Vite
+- Single-file HTML bundles (~220KB each)
+- Dark/light theme support
+- 27 tests with full coverage
+
+**Claude Desktop Configuration:**
+```json
+{
+  "mcpServers": {
+    "kubectl-app": {
+      "command": "npx",
+      "args": ["kubectl-mcp-app"]
+    }
+  }
+}
+```
 
 ### Release v1.21.0 Changes
 

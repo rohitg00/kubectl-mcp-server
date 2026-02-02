@@ -674,6 +674,54 @@ kubectl-mcp-server
 - Remote CDP connections
 - Session management
 
+## Optional: kubectl-mcp-app (8 Interactive UI Dashboards)
+
+A standalone npm package that provides beautiful, interactive UI dashboards for Kubernetes management using the MCP ext-apps SDK.
+
+**Installation:**
+
+```bash
+# Via npm
+npm install -g kubectl-mcp-app
+
+# Or via npx (no install)
+npx kubectl-mcp-app
+```
+
+**Claude Desktop Configuration:**
+
+```json
+{
+  "mcpServers": {
+    "kubectl-app": {
+      "command": "npx",
+      "args": ["kubectl-mcp-app"]
+    }
+  }
+}
+```
+
+**8 Interactive UI Tools:**
+
+| Tool | Description |
+| ---- | ----------- |
+| `k8s-pods` | Interactive pod viewer with filtering, sorting, status indicators |
+| `k8s-logs` | Real-time log viewer with syntax highlighting and search |
+| `k8s-deploy` | Deployment dashboard with rollout status, scaling, rollback |
+| `k8s-helm` | Helm release manager with upgrade/rollback actions |
+| `k8s-cluster` | Cluster overview with node health and resource metrics |
+| `k8s-cost` | Cost analyzer with waste detection and recommendations |
+| `k8s-events` | Events timeline with type filtering and grouping |
+| `k8s-network` | Network topology graph showing Services/Pods/Ingress |
+
+**Features:**
+- 🎨 Dark/light theme support
+- 📊 Real-time data visualization
+- 🖱️ Interactive actions (scale, restart, delete)
+- 🔗 Seamless integration with kubectl-mcp-server
+
+**More Info**: See [kubectl-mcp-app/README.md](./kubectl-mcp-app/README.md) for full documentation.
+
 ## Enterprise: OAuth 2.1 Authentication
 
 Secure your MCP server with OAuth 2.1 authentication (RFC 9728).
