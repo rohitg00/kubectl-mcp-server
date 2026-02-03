@@ -150,8 +150,37 @@ class KubernetesProvider:
             raise ProviderError(f"Failed to load context '{self.config.context}': {e}")
 
     def _initialize_kubeconfig(self):
-        """Initialize for multi-cluster kubeconfig provider."""
+        """Initialize for multi-cluster kubeconfig provider.
+
+        Falls back to in-cluster config if kubeconfig file is not found.
+        """
         from kubernetes import config
+        from kubernetes.config.config_exception import ConfigException
+
+        kubeconfig_exists = os.path.exists(self.config.kubeconfig_path)
+
+        if not kubeconfig_exists:
+            try:
+                config.load_incluster_config()
+                self._in_cluster = True
+                self._active_context = "in-cluster"
+                self._contexts_cache = []
+                logger.info(
+                    f"Kubeconfig not found at {self.config.kubeconfig_path}, "
+                    f"using in-cluster config"
+                )
+                return
+            except ConfigException:
+                raise ProviderError(
+                    f"No Kubernetes configuration found. "
+                    f"Kubeconfig not found at '{self.config.kubeconfig_path}' and "
+                    f"in-cluster config is not available. "
+                    f"Ensure a valid kubeconfig exists, or if running inside a "
+                    f"Kubernetes pod, verify the ServiceAccount token is mounted "
+                    f"and KUBERNETES_SERVICE_HOST/KUBERNETES_SERVICE_PORT env vars "
+                    f"are set. For in-cluster deployments, set "
+                    f"MCP_K8S_PROVIDER=in-cluster."
+                )
 
         try:
             contexts, active = config.list_kube_config_contexts(

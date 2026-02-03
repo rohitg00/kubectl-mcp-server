@@ -203,6 +203,7 @@ try:
         KubernetesProvider,
         ProviderConfig,
         ProviderType,
+        ProviderError,
         UnknownContextError,
         get_provider,
         get_context_names,
@@ -262,8 +263,20 @@ def load_kubernetes_config(context: str = ""):
 
 
 def _patched_load_kube_config(*args, **kwargs):
-    """Patched version of load_kube_config that tries in-cluster first."""
+    """Patched version of load_kube_config that tries in-cluster first.
+
+    When called with explicit arguments (config_file, context, client_configuration),
+    always pass through to the original function. Only try in-cluster as a
+    fallback for bare calls during initial module loading.
+    """
     global _config_loaded, _original_load_kube_config
+
+    has_explicit_args = bool(args) or bool(kwargs)
+
+    if has_explicit_args and _original_load_kube_config:
+        _original_load_kube_config(*args, **kwargs)
+        _config_loaded = True
+        return
 
     if _config_loaded:
         return
@@ -326,7 +339,7 @@ def _load_config_for_context(context: str = "") -> Any:
         try:
             provider = get_provider()
             return provider.get_api_client(context)
-        except UnknownContextError:
+        except (UnknownContextError, ProviderError):
             raise
         except Exception as e:
             logger.warning(f"Provider failed, falling back to basic config: {e}")
@@ -338,10 +351,19 @@ def _load_config_for_context(context: str = "") -> Any:
         config.load_incluster_config()
         return client.ApiClient()
     except ConfigException:
-        pass
+        logger.debug("In-cluster config not available in fallback path")
 
     kubeconfig_path = os.environ.get('KUBECONFIG', '~/.kube/config')
     kubeconfig_path = os.path.expanduser(kubeconfig_path)
+
+    if not os.path.exists(kubeconfig_path):
+        raise RuntimeError(
+            f"No Kubernetes configuration found. "
+            f"In-cluster config not available and kubeconfig not found at '{kubeconfig_path}'. "
+            f"If running in a Kubernetes pod, ensure the ServiceAccount token is mounted "
+            f"and KUBERNETES_SERVICE_HOST/KUBERNETES_SERVICE_PORT env vars are set. "
+            f"Set MCP_K8S_PROVIDER=in-cluster for in-cluster deployments."
+        )
 
     api_config = client.Configuration()
 
@@ -543,7 +565,8 @@ _BASE_EXPORTS = [
 if _HAS_PROVIDER:
     __all__ = _BASE_EXPORTS + [
         "KubernetesProvider", "ProviderConfig", "ProviderType",
-        "UnknownContextError", "get_provider", "validate_context",
+        "ProviderError", "UnknownContextError",
+        "get_provider", "validate_context",
     ]
 else:
     __all__ = _BASE_EXPORTS
