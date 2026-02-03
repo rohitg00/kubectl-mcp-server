@@ -36,9 +36,12 @@ spec:
           env:
             - name: MCP_DEBUG
               value: "0"
-            # Use in-cluster config (ServiceAccount token)
+            - name: MCP_K8S_PROVIDER
+              value: "in-cluster"
             - name: KUBERNETES_SERVICE_HOST
               value: "kubernetes.default.svc"
+            - name: KUBERNETES_SERVICE_PORT
+              value: "443"
           resources:
             requests:
               memory: "128Mi"
