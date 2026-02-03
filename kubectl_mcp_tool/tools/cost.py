@@ -6,16 +6,9 @@ from typing import Any, Dict, List, Optional
 
 from mcp.types import ToolAnnotations
 
-from ..k8s_config import get_k8s_client, get_apps_client
+from ..k8s_config import get_k8s_client, get_apps_client, _get_kubectl_context_args
 
 logger = logging.getLogger("mcp-server")
-
-
-def _get_kubectl_context_args(context: str) -> List[str]:
-    """Get kubectl context arguments if context is specified."""
-    if context:
-        return ["--context", context]
-    return []
 
 
 def _parse_cpu(cpu_str: str) -> int:
@@ -28,7 +21,7 @@ def _parse_cpu(cpu_str: str) -> int:
             return int(cpu_str[:-1]) // 1000000
         else:
             return int(float(cpu_str) * 1000)
-    except:
+    except (ValueError, TypeError):
         return 0
 
 
@@ -50,7 +43,7 @@ def _parse_memory(mem_str: str) -> int:
             return int(mem_str[:-1]) * 1000000000
         else:
             return int(mem_str)
-    except:
+    except (ValueError, TypeError):
         return 0
 
 
@@ -61,11 +54,11 @@ def _calculate_available(hard: str, used: str) -> str:
         used_num = int(re.sub(r'[^\d]', '', str(used)) or 0)
         suffix = re.sub(r'[\d]', '', str(hard))
         return f"{max(0, hard_num - used_num)}{suffix}"
-    except:
+    except (ValueError, TypeError):
         return "N/A"
 
 
-def register_cost_tools(server, non_destructive: bool):
+def register_cost_tools(server: "FastMCP", non_destructive: bool):
     """Register cost and resource optimization tools."""
 
     @server.tool(

@@ -4,19 +4,12 @@ from typing import Any, Dict, List, Optional
 
 from mcp.types import ToolAnnotations
 
-from ..k8s_config import get_k8s_client, get_networking_client
+from ..k8s_config import get_k8s_client, get_networking_client, _get_kubectl_context_args
 
 logger = logging.getLogger("mcp-server")
 
 
-def _get_kubectl_context_args(context: str) -> List[str]:
-    """Get kubectl context arguments if context is specified."""
-    if context:
-        return ["--context", context]
-    return []
-
-
-def register_networking_tools(server, non_destructive: bool):
+def register_networking_tools(server: "FastMCP", non_destructive: bool):
     """Register networking-related tools."""
 
     @server.tool(
@@ -271,7 +264,7 @@ def register_networking_tools(server, non_destructive: bool):
             # Get endpoints
             try:
                 endpoints = v1.read_namespaced_endpoints(service_name, namespace)
-            except:
+            except Exception:
                 endpoints = None
 
             # Get pods matching selector
@@ -355,10 +348,16 @@ def register_networking_tools(server, non_destructive: bool):
             context: Kubernetes context to use (uses current context if not specified)
         """
         try:
-            import os
-            ctx_args = " ".join(_get_kubectl_context_args(context))
-            cmd = f"kubectl {ctx_args} port-forward {pod_name} {local_port}:{pod_port} -n {namespace} &"
-            os.system(cmd)
+            cmd = ["kubectl"] + _get_kubectl_context_args(context) + [
+                "port-forward", pod_name,
+                f"{int(local_port)}:{int(pod_port)}",
+                "-n", namespace
+            ]
+            subprocess.Popen(
+                cmd,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
             return {
                 "success": True,
                 "context": context or "current",

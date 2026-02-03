@@ -2,7 +2,7 @@
 Unit tests for all MCP tools in kubectl-mcp-server.
 
 This module contains comprehensive tests for all Kubernetes tools
-provided by the MCP server (224 total with ecosystem tools).
+provided by the MCP server.
 """
 
 import pytest
@@ -12,40 +12,37 @@ from unittest.mock import patch, MagicMock
 from datetime import datetime
 
 
-# Complete list of all 235 tools that must be registered (136 core + 6 UI + 93 ecosystem)
 EXPECTED_TOOLS = [
-    # Pods (pods.py)
+    # Pods (pods.py) - 12 tools
     "get_pods", "get_logs", "get_pod_events", "check_pod_health", "exec_in_pod",
     "cleanup_pods", "run_pod", "get_pod_conditions", "get_previous_logs", "diagnose_pod_crash",
     "detect_pending_pods", "get_evicted_pods",
-    # Deployments (deployments.py)
+    # Deployments (deployments.py) - 8 tools
     "get_deployments", "create_deployment", "scale_deployment", "restart_deployment",
     "get_statefulsets", "get_daemonsets", "get_replicasets", "get_jobs",
-    # Core (core.py)
+    # Core (core.py) - 6 tools
     "get_namespaces", "get_configmaps", "get_secrets", "get_events",
     "get_resource_quotas", "get_limit_ranges",
-    # Cluster (cluster.py) - includes multi-cluster config tools
+    # Cluster (cluster.py) - 22 tools
     "get_current_context", "switch_context", "list_contexts_tool",
     "get_context_details", "set_namespace_for_context", "get_cluster_info",
     "get_cluster_version", "get_nodes", "get_api_resources", "health_check",
     "kubeconfig_view", "get_api_versions", "check_crd_exists", "list_crds", "get_nodes_summary",
     "node_logs_tool", "node_stats_summary_tool", "node_top_tool",
-    # Config management tools (cluster.py)
     "get_server_config_status", "enable_kubeconfig_watching", "disable_kubeconfig_watching",
     "set_server_stateless_mode",
-    # Multi-cluster tools (cluster.py)
     "multi_cluster_query", "multi_cluster_health", "multi_cluster_pod_count",
-    # Networking (networking.py)
+    # Networking (networking.py) - 8 tools
     "get_services", "get_endpoints", "get_ingress", "port_forward",
     "diagnose_network_connectivity", "check_dns_resolution", "trace_service_chain",
     "analyze_network_policies",
-    # Storage (storage.py)
+    # Storage (storage.py) - 3 tools
     "get_pvcs", "get_persistent_volumes", "get_storage_classes",
-    # Security (security.py)
+    # Security (security.py) - 10 tools
     "get_rbac_roles", "get_cluster_roles", "get_service_accounts",
     "audit_rbac_permissions", "check_secrets_security", "get_pod_security_info",
     "get_admission_webhooks", "get_crds", "get_priority_classes", "analyze_pod_security",
-    # Helm (helm.py) - 37 tools
+    # Helm (helm.py) - 35 tools
     "helm_list", "helm_status", "helm_history", "helm_get_values", "helm_get_manifest",
     "helm_get_notes", "helm_get_hooks", "helm_get_all", "helm_show_chart",
     "helm_show_values", "helm_show_readme", "helm_show_crds", "helm_show_all",
@@ -55,77 +52,90 @@ EXPECTED_TOOLS = [
     "helm_template_apply", "helm_create", "helm_lint", "helm_package", "helm_pull",
     "helm_dependency_list", "helm_dependency_update", "helm_dependency_build",
     "helm_version", "helm_env",
-    # Operations (operations.py)
+    # Operations (operations.py) - 15 tools
     "kubectl_apply", "kubectl_describe", "kubectl_patch", "kubectl_rollout",
     "kubectl_create", "delete_resource", "kubectl_cp", "backup_resource",
     "label_resource", "annotate_resource", "taint_node", "wait_for_condition",
     "node_management", "kubectl_generic", "kubectl_explain",
-    # Diagnostics (diagnostics.py)
+    # Diagnostics (diagnostics.py) - 3 tools
     "compare_namespaces", "get_pod_metrics", "get_node_metrics",
-    # Cost (cost.py)
+    # Cost (cost.py) - 9 tools
     "get_resource_recommendations", "get_idle_resources", "get_resource_quotas_usage",
     "get_cost_analysis", "get_overprovisioned_resources", "get_resource_trends",
     "get_namespace_cost_allocation", "optimize_resource_requests", "get_resource_usage",
-    # Autoscaling (deployments.py)
+    # Autoscaling (deployments.py) - 2 tools
     "get_hpa", "get_pdb",
-    # UI tools (ui.py) - 6 tools for MCP-UI interactive dashboards
-    "show_pod_logs_ui", "show_pods_dashboard_ui", "show_resource_yaml_ui",
-    "show_cluster_overview_ui", "show_events_timeline_ui", "render_k8s_dashboard_screenshot",
-    # GitOps tools (gitops.py) - 7 tools for Flux and ArgoCD
+    # GitOps tools (gitops.py) - 7 tools
     "gitops_apps_list_tool", "gitops_app_get_tool", "gitops_app_sync_tool", "gitops_app_status_tool",
     "gitops_sources_list_tool", "gitops_source_get_tool", "gitops_detect_engine_tool",
     # Cert-Manager tools (certs.py) - 9 tools
     "certs_list_tool", "certs_get_tool", "certs_issuers_list_tool", "certs_issuer_get_tool",
     "certs_renew_tool", "certs_status_explain_tool", "certs_challenges_list_tool",
     "certs_requests_list_tool", "certs_detect_tool",
-    # Policy tools (policy.py) - 6 tools for Kyverno and Gatekeeper
+    # Policy tools (policy.py) - 6 tools
     "policy_list_tool", "policy_get_tool", "policy_violations_list_tool", "policy_explain_denial_tool",
     "policy_audit_tool", "policy_detect_tool",
-    # Backup tools (backup.py) - 11 tools for Velero
+    # Backup tools (backup.py) - 11 tools
     "backup_list_tool", "backup_get_tool", "backup_create_tool", "backup_delete_tool",
     "restore_list_tool", "restore_create_tool", "restore_get_tool", "backup_locations_list_tool",
     "backup_schedules_list_tool", "backup_schedule_create_tool", "backup_detect_tool",
-    # KEDA tools (keda.py) - 7 tools for autoscaling
+    # KEDA tools (keda.py) - 7 tools
     "keda_scaledobjects_list_tool", "keda_scaledobject_get_tool", "keda_scaledjobs_list_tool",
     "keda_triggerauths_list_tool", "keda_triggerauth_get_tool", "keda_hpa_list_tool", "keda_detect_tool",
-    # Cilium tools (cilium.py) - 8 tools for network observability
+    # Cilium tools (cilium.py) - 8 tools
     "cilium_policies_list_tool", "cilium_policy_get_tool", "cilium_endpoints_list_tool",
     "cilium_identities_list_tool", "cilium_nodes_list_tool", "cilium_status_tool",
     "hubble_flows_query_tool", "cilium_detect_tool",
-    # Rollouts tools (rollouts.py) - 11 tools for progressive delivery
+    # Rollouts tools (rollouts.py) - 11 tools
     "rollouts_list_tool", "rollout_get_tool", "rollout_status_tool", "rollout_promote_tool",
     "rollout_abort_tool", "rollout_retry_tool", "rollout_restart_tool", "analysis_runs_list_tool",
     "flagger_canaries_list_tool", "flagger_canary_get_tool", "rollouts_detect_tool",
-    # Cluster API tools (capi.py) - 11 tools for cluster lifecycle
+    # Cluster API tools (capi.py) - 11 tools
     "capi_clusters_list_tool", "capi_cluster_get_tool", "capi_machines_list_tool",
     "capi_machine_get_tool", "capi_machinedeployments_list_tool", "capi_machinedeployment_scale_tool",
     "capi_machinesets_list_tool", "capi_machinehealthchecks_list_tool", "capi_clusterclasses_list_tool",
     "capi_cluster_kubeconfig_tool", "capi_detect_tool",
-    # KubeVirt tools (kubevirt.py) - 13 tools for VM management
+    # KubeVirt tools (kubevirt.py) - 13 tools
     "kubevirt_vms_list_tool", "kubevirt_vm_get_tool", "kubevirt_vmis_list_tool",
     "kubevirt_vm_start_tool", "kubevirt_vm_stop_tool", "kubevirt_vm_restart_tool",
     "kubevirt_vm_pause_tool", "kubevirt_vm_unpause_tool", "kubevirt_vm_migrate_tool",
     "kubevirt_datasources_list_tool", "kubevirt_instancetypes_list_tool",
     "kubevirt_datavolumes_list_tool", "kubevirt_detect_tool",
-    # Istio/Kiali tools (kiali.py) - 10 tools for service mesh
+    # Istio/Kiali tools (kiali.py) - 10 tools
     "istio_virtualservices_list_tool", "istio_virtualservice_get_tool", "istio_destinationrules_list_tool",
     "istio_gateways_list_tool", "istio_peerauthentications_list_tool", "istio_authorizationpolicies_list_tool",
     "istio_proxy_status_tool", "istio_analyze_tool", "istio_sidecar_status_tool", "istio_detect_tool",
+    # vind tools (vind.py) - 14 tools
+    "vind_detect_tool", "vind_list_clusters_tool", "vind_status_tool", "vind_get_kubeconfig_tool",
+    "vind_logs_tool", "vind_create_cluster_tool", "vind_delete_cluster_tool", "vind_pause_tool",
+    "vind_resume_tool", "vind_connect_tool", "vind_disconnect_tool", "vind_upgrade_tool",
+    "vind_describe_tool", "vind_platform_start_tool",
+    # kind tools (kind.py) - 32 tools
+    "kind_detect_tool", "kind_version_tool", "kind_list_clusters_tool", "kind_get_nodes_tool",
+    "kind_get_kubeconfig_tool", "kind_export_logs_tool", "kind_cluster_info_tool", "kind_node_labels_tool",
+    "kind_create_cluster_tool", "kind_delete_cluster_tool", "kind_delete_all_clusters_tool",
+    "kind_load_image_tool", "kind_load_image_archive_tool", "kind_build_node_image_tool",
+    "kind_set_kubeconfig_tool", "kind_config_validate_tool", "kind_config_generate_tool",
+    "kind_config_show_tool", "kind_available_images_tool", "kind_registry_create_tool",
+    "kind_registry_connect_tool", "kind_registry_status_tool", "kind_node_exec_tool",
+    "kind_node_logs_tool", "kind_node_inspect_tool", "kind_node_restart_tool",
+    "kind_network_inspect_tool", "kind_port_mappings_tool", "kind_ingress_setup_tool",
+    "kind_cluster_status_tool", "kind_images_list_tool", "kind_provider_info_tool",
 ]
+
+EXPECTED_TOOL_COUNT = 275
 
 
 class TestAllToolsRegistered:
-    """Comprehensive tests to verify all 235 tools are registered (136 core + 6 UI + 93 ecosystem)."""
+    """Comprehensive tests to verify all expected tools are registered."""
 
     @pytest.mark.unit
     def test_all_164_tools_registered(self):
-        """Verify all 235 expected tools are registered (excluding optional browser tools)."""
+        """Verify all expected tools are registered (excluding optional browser tools)."""
         import os
         from kubectl_mcp_tool.mcp_server import MCPServer
 
-        # Disable browser tools for this test
         with patch.dict(os.environ, {"MCP_BROWSER_ENABLED": "false"}):
-            # Reload browser module to pick up env change
             import importlib
             import kubectl_mcp_tool.tools.browser as browser_module
             importlib.reload(browser_module)
@@ -140,14 +150,11 @@ class TestAllToolsRegistered:
             tools = asyncio.run(get_tools())
             tool_names = {t.name for t in tools}
 
-            # Verify count (235 tools = 136 core + 6 UI + 93 ecosystem, browser tools disabled)
-            assert len(tools) == 235, f"Expected 235 tools, got {len(tools)}"
+            assert len(tools) == EXPECTED_TOOL_COUNT, f"Expected {EXPECTED_TOOL_COUNT} tools, got {len(tools)}"
 
-            # Check for missing tools
             missing_tools = set(EXPECTED_TOOLS) - tool_names
             assert not missing_tools, f"Missing tools: {missing_tools}"
 
-            # Check for unexpected tools (tools not in expected list)
             unexpected_tools = tool_names - set(EXPECTED_TOOLS)
             assert not unexpected_tools, f"Unexpected tools: {unexpected_tools}"
 
@@ -176,8 +183,9 @@ class TestAllToolsRegistered:
             register_capi_tools,
             register_kubevirt_tools,
             register_istio_tools,
+            register_vind_tools,
+            register_kind_tools,
         )
-        # All imports should succeed
         assert callable(register_helm_tools)
         assert callable(register_pod_tools)
         assert callable(register_core_tools)
@@ -189,18 +197,18 @@ class TestAllToolsRegistered:
         assert callable(register_operations_tools)
         assert callable(register_diagnostics_tools)
         assert callable(register_cost_tools)
-        # Ecosystem tools
         assert callable(register_gitops_tools)
         assert callable(register_certs_tools)
         assert callable(register_policy_tools)
         assert callable(register_backup_tools)
-        # Advanced ecosystem tools
         assert callable(register_keda_tools)
         assert callable(register_cilium_tools)
         assert callable(register_rollouts_tools)
         assert callable(register_capi_tools)
         assert callable(register_kubevirt_tools)
         assert callable(register_istio_tools)
+        assert callable(register_vind_tools)
+        assert callable(register_kind_tools)
 
     @pytest.mark.unit
     def test_all_tools_have_descriptions(self):

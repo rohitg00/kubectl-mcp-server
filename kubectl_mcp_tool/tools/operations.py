@@ -7,17 +7,12 @@ from typing import Any, Dict, List, Optional
 
 from mcp.types import ToolAnnotations
 
+from kubectl_mcp_tool.k8s_config import _get_kubectl_context_args
+
 logger = logging.getLogger("mcp-server")
 
 
-def _get_kubectl_context_args(context: str) -> List[str]:
-    """Get kubectl context arguments if context is specified."""
-    if context:
-        return ["--context", context]
-    return []
-
-
-def register_operations_tools(server, non_destructive: bool):
+def register_operations_tools(server: "FastMCP", non_destructive: bool):
     """Register kubectl operations tools (apply, describe, patch, etc.)."""
 
     def check_destructive():
@@ -43,6 +38,7 @@ def register_operations_tools(server, non_destructive: bool):
         blocked = check_destructive()
         if blocked:
             return blocked
+        temp_path = None
         try:
             with tempfile.NamedTemporaryFile(mode='w', suffix='.yaml', delete=False) as f:
                 f.write(manifest)
@@ -51,8 +47,6 @@ def register_operations_tools(server, non_destructive: bool):
             cmd = ["kubectl"] + _get_kubectl_context_args(context) + ["apply", "-f", temp_path, "-n", namespace]
             result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
 
-            os.unlink(temp_path)
-
             if result.returncode == 0:
                 return {"success": True, "context": context or "current", "output": result.stdout.strip()}
             else:
@@ -60,6 +54,12 @@ def register_operations_tools(server, non_destructive: bool):
         except Exception as e:
             logger.error(f"Error applying manifest: {e}")
             return {"success": False, "error": str(e)}
+        finally:
+            if temp_path:
+                try:
+                    os.unlink(temp_path)
+                except OSError:
+                    pass
 
     @server.tool(
         annotations=ToolAnnotations(
@@ -105,7 +105,11 @@ def register_operations_tools(server, non_destructive: bool):
             # Security: validate command starts with allowed operations
             allowed_prefixes = [
                 "get", "describe", "logs", "top", "explain", "api-resources",
-                "config", "version", "cluster-info", "auth"
+                "version", "cluster-info", "auth"
+            ]
+            allowed_config_subcommands = [
+                "config view", "config current-context", "config get-contexts",
+                "config get-clusters", "config use-context"
             ]
             cmd_parts = shlex.split(command)
             if not cmd_parts:
@@ -115,10 +119,25 @@ def register_operations_tools(server, non_destructive: bool):
             if cmd_parts[0] == "kubectl":
                 cmd_parts = cmd_parts[1:]
 
-            if not cmd_parts or cmd_parts[0] not in allowed_prefixes:
+            if not cmd_parts:
+                return {"success": False, "error": "Empty command"}
+
+            if cmd_parts[0] == "config":
+                cmd_prefix = " ".join(cmd_parts[:2])
+                if cmd_prefix not in allowed_config_subcommands:
+                    return {
+                        "success": False,
+                        "error": f"Config subcommand not allowed. Allowed: {', '.join(allowed_config_subcommands)}"
+                    }
+                if "--raw" in cmd_parts:
+                    return {
+                        "success": False,
+                        "error": "config view --raw is not allowed (may expose secrets)"
+                    }
+            elif cmd_parts[0] not in allowed_prefixes:
                 return {
                     "success": False,
-                    "error": f"Command not allowed. Allowed: {', '.join(allowed_prefixes)}"
+                    "error": f"Command not allowed. Allowed: {', '.join(allowed_prefixes + ['config'])}"
                 }
 
             full_cmd = ["kubectl"] + _get_kubectl_context_args(context) + cmd_parts

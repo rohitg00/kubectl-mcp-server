@@ -23,15 +23,10 @@ import logging
 import asyncio
 import os
 import platform
-import signal
-from pathlib import Path
 from typing import List, Optional, Any, Dict
 
-# Import k8s_config early to patch kubernetes config for in-cluster support
-# This must be done before any tools are imported
 import kubectl_mcp_tool.k8s_config  # noqa: F401
 
-# Import safety mode for operation control
 from kubectl_mcp_tool.safety import (
     SafetyMode,
     set_safety_mode,
@@ -39,7 +34,6 @@ from kubectl_mcp_tool.safety import (
     get_mode_info,
 )
 
-# Import observability for metrics and tracing
 from kubectl_mcp_tool.observability import (
     get_stats_collector,
     get_metrics,
@@ -52,7 +46,6 @@ from kubectl_mcp_tool.observability import (
     record_tool_error_metric,
 )
 
-# Import config loader
 from kubectl_mcp_tool.config import (
     load_config,
     get_config,
@@ -60,11 +53,12 @@ from kubectl_mcp_tool.config import (
     setup_sighup_handler,
 )
 
-# Import custom prompts
 from kubectl_mcp_tool.prompts import (
     load_prompts_from_config,
     get_builtin_prompts,
 )
+
+from kubectl_mcp_tool import __version__
 
 from kubectl_mcp_tool.tools import (
     register_helm_tools,
@@ -134,23 +128,13 @@ for handler in logging.root.handlers[:]:
     if isinstance(handler, logging.StreamHandler) and handler.stream == sys.stdout:
         logging.root.removeHandler(handler)
 
-# FastMCP 3 from gofastmcp.com (standalone package)
-# To revert to official SDK: from mcp.server.fastmcp import FastMCP
 try:
     from fastmcp import FastMCP
 except ImportError:
-    logger.error("FastMCP not found. Installing...")
-    import subprocess
-    try:
-        subprocess.check_call(
-            [sys.executable, "-m", "pip", "install", "fastmcp>=3.0.0b1"],
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL
-        )
-        from fastmcp import FastMCP
-    except Exception as e:
-        logger.error(f"Failed to install FastMCP: {e}")
-        raise
+    raise ImportError(
+        "FastMCP is required but not installed. "
+        "Install with: pip install 'fastmcp>=3.0.0b1'"
+    )
 
 
 class MCPServer:
@@ -622,7 +606,7 @@ class MCPServer:
                         },
                         "serverInfo": {
                             "name": self.name,
-                            "version": "1.2.0"
+                            "version": __version__
                         }
                     }
                 elif method == "tools/list":

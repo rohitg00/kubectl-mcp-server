@@ -153,9 +153,8 @@ class TestGitOpsTools:
         from kubectl_mcp_tool.mcp_server import MCPServer
 
         with patch("kubectl_mcp_tool.mcp_server.MCPServer._check_dependencies", return_value=True):
-            server = MCPServer(name="test", non_destructive=True)
+            server = MCPServer(name="test", disable_destructive=True)
 
-        # Server should initialize with non_destructive=True
         assert server.non_destructive is True
 
 
@@ -263,9 +262,8 @@ class TestBackupTools:
         from kubectl_mcp_tool.mcp_server import MCPServer
 
         with patch("kubectl_mcp_tool.mcp_server.MCPServer._check_dependencies", return_value=True):
-            server = MCPServer(name="test", non_destructive=True)
+            server = MCPServer(name="test", disable_destructive=True)
 
-        # Server should initialize with non_destructive=True
         assert server.non_destructive is True
 
 

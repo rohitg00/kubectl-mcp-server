@@ -7,17 +7,13 @@ It's a tool from Kubernetes SIG for local development and CI testing.
 import subprocess
 import json
 import re
+import shlex
 import os
 import tempfile
 import yaml
 from typing import Dict, Any, List, Optional
 
-try:
-    from fastmcp import FastMCP
-    from fastmcp.tools import ToolAnnotations
-except ImportError:
-    from mcp.server.fastmcp import FastMCP
-    from mcp.types import ToolAnnotations
+from mcp.types import ToolAnnotations
 
 
 def _kind_available() -> bool:
@@ -911,7 +907,7 @@ def kind_node_exec(
         }
 
     result = _run_docker(
-        ["exec", node] + command.split(),
+        ["exec", node] + shlex.split(command),
         timeout=120
     )
 
@@ -1350,7 +1346,7 @@ def kind_provider_info() -> Dict[str, Any]:
         }
 
 
-def register_kind_tools(mcp: FastMCP, non_destructive: bool = False):
+def register_kind_tools(mcp: "FastMCP", non_destructive: bool = False):
     """Register kind (Kubernetes IN Docker) tools with the MCP server."""
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True))

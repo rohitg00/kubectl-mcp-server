@@ -10,19 +10,13 @@ from ..k8s_config import (
     get_autoscaling_client,
     get_policy_client,
     _load_config_for_context,
+    _get_kubectl_context_args,
 )
 
 logger = logging.getLogger("mcp-server")
 
 
-def _get_kubectl_context_args(context: str) -> List[str]:
-    """Get kubectl context arguments if context is specified."""
-    if context:
-        return ["--context", context]
-    return []
-
-
-def register_deployment_tools(server, non_destructive: bool):
+def register_deployment_tools(server: "FastMCP", non_destructive: bool):
     """Register deployment and workload management tools."""
 
     @server.tool(
