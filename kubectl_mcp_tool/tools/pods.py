@@ -8,24 +8,17 @@ import json
 import logging
 import shlex
 import subprocess
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 from mcp.types import ToolAnnotations
 
-from kubectl_mcp_tool.k8s_config import get_k8s_client
+from kubectl_mcp_tool.k8s_config import get_k8s_client, _get_kubectl_context_args
 
 logger = logging.getLogger("mcp-server")
 
 
-def _get_kubectl_context_args(context: str = "") -> List[str]:
-    """Get kubectl context arguments."""
-    if context:
-        return ["--context", context]
-    return []
-
-
 def register_pod_tools(
-    server,
+    server: "FastMCP",
     non_destructive: bool
 ):
     """Register all Pod-related tools with the MCP server.
@@ -210,6 +203,8 @@ def register_pod_tools(
             container: Container name (for multi-container pods)
             context: Kubernetes context to use (uses current context if not specified)
         """
+        if non_destructive:
+            return {"success": False, "error": "Blocked: non-destructive mode"}
         try:
             cmd = ["kubectl"] + _get_kubectl_context_args(context) + [
                 "exec", pod_name, "-n", namespace
@@ -778,8 +773,10 @@ def register_pod_tools(
                 },
                 "evictedPods": evicted,
                 "recommendations": [
-                    "DiskPressure: Clean up disk space or increase ephemeral-storage limits" if "DiskPressure" in by_reason else None,
-                    "MemoryPressure: Increase memory limits or add more nodes" if "MemoryPressure" in by_reason else None
+                    rec for rec in [
+                        "DiskPressure: Clean up disk space or increase ephemeral-storage limits" if "DiskPressure" in by_reason else None,
+                        "MemoryPressure: Increase memory limits or add more nodes" if "MemoryPressure" in by_reason else None
+                    ] if rec is not None
                 ]
             }
         except Exception as e:

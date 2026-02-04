@@ -9,12 +9,7 @@ import json
 import re
 from typing import Dict, Any, List, Optional
 
-try:
-    from fastmcp import FastMCP
-    from fastmcp.tools import ToolAnnotations
-except ImportError:
-    from mcp.server.fastmcp import FastMCP
-    from mcp.types import ToolAnnotations
+from mcp.types import ToolAnnotations
 
 
 def _vcluster_available() -> bool:
@@ -584,7 +579,7 @@ def vind_platform_start(
     return result
 
 
-def register_vind_tools(mcp: FastMCP, non_destructive: bool = False):
+def register_vind_tools(mcp: "FastMCP", non_destructive: bool = False):
     """Register vind (vCluster in Docker) tools with the MCP server."""
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True))

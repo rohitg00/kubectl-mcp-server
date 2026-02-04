@@ -8,6 +8,8 @@ from typing import Any, Callable, Dict, List, Optional
 import yaml
 from mcp.types import ToolAnnotations
 
+from kubectl_mcp_tool.k8s_config import _get_kubectl_context_args
+
 logger = logging.getLogger("mcp-server")
 
 
@@ -18,15 +20,43 @@ def _get_helm_context_args(context: str) -> List[str]:
     return []
 
 
-def _get_kubectl_context_args(context: str) -> List[str]:
-    """Get kubectl context arguments if context is specified."""
-    if context:
-        return ["--context", context]
-    return []
+def _add_helm_repo(repo: str, chart: str) -> tuple:
+    """Add a Helm repo and return the updated chart reference.
+
+    Args:
+        repo: Repository in format 'repo_name=repo_url'
+        chart: Original chart reference
+
+    Returns:
+        Tuple of (success: bool, chart_or_error: str)
+    """
+    repo_parts = repo.split("=", 1)
+    if len(repo_parts) != 2:
+        return False, "Repository format should be 'repo_name=repo_url'"
+
+    repo_name, repo_url = (p.strip() for p in repo_parts)
+    if not repo_name or not repo_url:
+        return False, "Repository format should be 'repo_name=repo_url'"
+    try:
+        subprocess.check_output(
+            ["helm", "repo", "add", repo_name, repo_url],
+            stderr=subprocess.PIPE, text=True
+        )
+        subprocess.check_output(
+            ["helm", "repo", "update"],
+            stderr=subprocess.PIPE, text=True
+        )
+    except subprocess.CalledProcessError as e:
+        error_msg = e.stderr if hasattr(e, 'stderr') else str(e)
+        return False, f"Failed to add Helm repo: {error_msg}"
+
+    if '/' not in chart:
+        chart = f"{repo_name}/{chart}"
+    return True, chart
 
 
 def register_helm_tools(
-    server,
+    server: "FastMCP",
     non_destructive: bool,
     check_helm_fn: Callable[[], bool]
 ):
@@ -69,25 +99,10 @@ def register_helm_tools(
 
         try:
             if repo:
-                try:
-                    repo_parts = repo.split('=')
-                    if len(repo_parts) != 2:
-                        return {"success": False, "error": "Repository format should be 'repo_name=repo_url'"}
-
-                    repo_name, repo_url = repo_parts
-                    repo_add_cmd = ["helm", "repo", "add", repo_name, repo_url]
-                    logger.debug(f"Running command: {' '.join(repo_add_cmd)}")
-                    subprocess.check_output(repo_add_cmd, stderr=subprocess.PIPE, text=True)
-
-                    repo_update_cmd = ["helm", "repo", "update"]
-                    logger.debug(f"Running command: {' '.join(repo_update_cmd)}")
-                    subprocess.check_output(repo_update_cmd, stderr=subprocess.PIPE, text=True)
-
-                    if '/' not in chart:
-                        chart = f"{repo_name}/{chart}"
-                except subprocess.CalledProcessError as e:
-                    logger.error(f"Error adding Helm repo: {e.stderr if hasattr(e, 'stderr') else str(e)}")
-                    return {"success": False, "error": f"Failed to add Helm repo: {e.stderr if hasattr(e, 'stderr') else str(e)}"}
+                success, result = _add_helm_repo(repo, chart)
+                if not success:
+                    return {"success": False, "error": result}
+                chart = result
 
             cmd = ["helm"] + _get_helm_context_args(context) + ["install", name, chart, "-n", namespace]
 
@@ -162,25 +177,10 @@ def register_helm_tools(
 
         try:
             if repo:
-                try:
-                    repo_parts = repo.split('=')
-                    if len(repo_parts) != 2:
-                        return {"success": False, "error": "Repository format should be 'repo_name=repo_url'"}
-
-                    repo_name, repo_url = repo_parts
-                    repo_add_cmd = ["helm", "repo", "add", repo_name, repo_url]
-                    logger.debug(f"Running command: {' '.join(repo_add_cmd)}")
-                    subprocess.check_output(repo_add_cmd, stderr=subprocess.PIPE, text=True)
-
-                    repo_update_cmd = ["helm", "repo", "update"]
-                    logger.debug(f"Running command: {' '.join(repo_update_cmd)}")
-                    subprocess.check_output(repo_update_cmd, stderr=subprocess.PIPE, text=True)
-
-                    if '/' not in chart:
-                        chart = f"{repo_name}/{chart}"
-                except subprocess.CalledProcessError as e:
-                    logger.error(f"Error adding Helm repo: {e.stderr if hasattr(e, 'stderr') else str(e)}")
-                    return {"success": False, "error": f"Failed to add Helm repo: {e.stderr if hasattr(e, 'stderr') else str(e)}"}
+                success, result = _add_helm_repo(repo, chart)
+                if not success:
+                    return {"success": False, "error": result}
+                chart = result
 
             cmd = ["helm"] + _get_helm_context_args(context) + ["upgrade", name, chart, "-n", namespace]
 

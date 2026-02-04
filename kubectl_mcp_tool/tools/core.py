@@ -7,19 +7,13 @@ from mcp.types import ToolAnnotations
 from ..k8s_config import (
     get_k8s_client,
     get_apiextensions_client,
+    _get_kubectl_context_args,
 )
 
 logger = logging.getLogger("mcp-server")
 
 
-def _get_kubectl_context_args(context: str) -> List[str]:
-    """Get kubectl context arguments if context is specified."""
-    if context:
-        return ["--context", context]
-    return []
-
-
-def register_core_tools(server, non_destructive: bool):
+def register_core_tools(server: "FastMCP", non_destructive: bool):
     """Register core Kubernetes resource tools."""
 
     @server.tool(

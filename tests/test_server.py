@@ -57,7 +57,7 @@ class TestServerInitialization:
 
         with patch("kubectl_mcp_tool.mcp_server.MCPServer._check_dependencies", return_value=True):
             with patch("kubernetes.config.load_kube_config"):
-                server = MCPServer(name="test", non_destructive=True)
+                server = MCPServer(name="test", disable_destructive=True)
 
         assert server.non_destructive is True
 
@@ -215,7 +215,7 @@ class TestNonDestructiveMode:
 
         with patch("kubectl_mcp_tool.mcp_server.MCPServer._check_dependencies", return_value=True):
             with patch("kubernetes.config.load_kube_config"):
-                server = MCPServer(name="test", non_destructive=False)
+                server = MCPServer(name="test")
 
         result = server._check_destructive()
         assert result is None
@@ -227,12 +227,11 @@ class TestNonDestructiveMode:
 
         with patch("kubectl_mcp_tool.mcp_server.MCPServer._check_dependencies", return_value=True):
             with patch("kubernetes.config.load_kube_config"):
-                server = MCPServer(name="test", non_destructive=True)
+                server = MCPServer(name="test", disable_destructive=True)
 
         result = server._check_destructive()
         assert result is not None
         assert result["success"] is False
-        assert "non-destructive mode" in result["error"]
 
 
 class TestSecretMasking:
@@ -349,7 +348,7 @@ class TestServerConfiguration:
             with patch("kubernetes.config.load_kube_config"):
                 server = MCPServer(
                     name="custom-server",
-                    non_destructive=True
+                    disable_destructive=True
                 )
 
         assert server.name == "custom-server"

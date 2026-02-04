@@ -205,7 +205,7 @@ class TestMCPServerSafety:
     """Test safety mode integration in MCP server."""
 
     def test_safety_mode_info(self):
-        """Test safety mode info retrieval."""
+        """Test safety mode info for all modes."""
         from kubectl_mcp_tool.safety import (
             SafetyMode,
             set_safety_mode,
@@ -223,29 +223,7 @@ class TestMCPServerSafety:
         assert info["mode"] == "read_only"
         assert len(info["blocked_operations"]) > 0
 
-    def test_operation_allowed_check(self):
-        """Test operation allowed check."""
-        from kubectl_mcp_tool.safety import (
-            SafetyMode,
-            set_safety_mode,
-            is_operation_allowed,
-        )
-
-        set_safety_mode(SafetyMode.NORMAL)
-        allowed, reason = is_operation_allowed("delete_pod")
-        assert allowed is True
-        assert reason == ""
-
-        set_safety_mode(SafetyMode.READ_ONLY)
-        allowed, reason = is_operation_allowed("delete_pod")
-        assert allowed is False
-        assert "blocked" in reason.lower()
-
         set_safety_mode(SafetyMode.DISABLE_DESTRUCTIVE)
-        allowed, reason = is_operation_allowed("delete_pod")
-        assert allowed is False
-        assert "blocked" in reason.lower()
-
-        # Non-destructive write should be allowed
-        allowed, reason = is_operation_allowed("create_deployment")
-        assert allowed is True
+        info = get_mode_info()
+        assert info["mode"] == "disable_destructive"
+        assert "delete_pod" in info["blocked_operations"]

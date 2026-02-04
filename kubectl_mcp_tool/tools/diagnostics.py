@@ -4,19 +4,12 @@ from typing import Any, Dict, List, Optional
 
 from mcp.types import ToolAnnotations
 
-from ..k8s_config import get_k8s_client, get_apps_client
+from ..k8s_config import get_k8s_client, get_apps_client, _get_kubectl_context_args
 
 logger = logging.getLogger("mcp-server")
 
 
-def _get_kubectl_context_args(context: str) -> List[str]:
-    """Get kubectl context arguments if context is specified."""
-    if context:
-        return ["--context", context]
-    return []
-
-
-def register_diagnostics_tools(server, non_destructive: bool):
+def register_diagnostics_tools(server: "FastMCP", non_destructive: bool):
     """Register diagnostic and troubleshooting tools.
 
     Note: Pod-specific diagnostic tools (diagnose_pod_crash, detect_pending_pods,

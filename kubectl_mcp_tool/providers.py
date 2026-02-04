@@ -3,7 +3,6 @@ import logging
 from enum import Enum
 from typing import Any, Dict, List, Optional, Tuple
 from dataclasses import dataclass, field
-from functools import lru_cache
 
 logger = logging.getLogger("mcp-server")
 

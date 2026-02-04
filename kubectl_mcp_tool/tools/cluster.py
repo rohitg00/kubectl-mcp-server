@@ -23,16 +23,10 @@ from kubectl_mcp_tool.k8s_config import (
     disable_kubeconfig_watch,
     is_stateless_mode,
     set_stateless_mode,
+    _get_kubectl_context_args,
 )
 
 logger = logging.getLogger("mcp-server")
-
-
-def _get_kubectl_context_args(context: str = "") -> List[str]:
-    """Get kubectl context arguments."""
-    if context:
-        return ["--context", context]
-    return []
 
 
 # DNS-1123 subdomain regex for node name validation
@@ -60,7 +54,7 @@ def _validate_node_name(name: str) -> tuple:
     return True, None
 
 
-def register_cluster_tools(server, non_destructive: bool):
+def register_cluster_tools(server: "FastMCP", non_destructive: bool):
     """Register cluster and context management tools."""
 
     @server.tool(
