@@ -347,6 +347,11 @@ def register_networking_tools(server: "FastMCP", non_destructive: bool):
             namespace: Namespace of the pod
             context: Kubernetes context to use (uses current context if not specified)
         """
+        if non_destructive:
+            return {
+                "success": False,
+                "error": "port_forward is not allowed in non-destructive mode"
+            }
         try:
             cmd = ["kubectl"] + _get_kubectl_context_args(context) + [
                 "port-forward", pod_name,

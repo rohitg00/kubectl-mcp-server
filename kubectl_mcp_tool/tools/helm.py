@@ -30,11 +30,13 @@ def _add_helm_repo(repo: str, chart: str) -> tuple:
     Returns:
         Tuple of (success: bool, chart_or_error: str)
     """
-    repo_parts = repo.split('=')
+    repo_parts = repo.split("=", 1)
     if len(repo_parts) != 2:
         return False, "Repository format should be 'repo_name=repo_url'"
 
-    repo_name, repo_url = repo_parts
+    repo_name, repo_url = (p.strip() for p in repo_parts)
+    if not repo_name or not repo_url:
+        return False, "Repository format should be 'repo_name=repo_url'"
     try:
         subprocess.check_output(
             ["helm", "repo", "add", repo_name, repo_url],

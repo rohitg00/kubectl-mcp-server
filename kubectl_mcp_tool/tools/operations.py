@@ -105,8 +105,9 @@ def register_operations_tools(server: "FastMCP", non_destructive: bool):
             # Security: validate command starts with allowed operations
             allowed_prefixes = [
                 "get", "describe", "logs", "top", "explain", "api-resources",
-                "version", "cluster-info", "auth"
+                "version", "cluster-info"
             ]
+            allowed_auth_subcommands = ["can-i"]
             allowed_config_subcommands = [
                 "config view", "config current-context", "config get-contexts",
                 "config get-clusters", "config use-context"
@@ -134,10 +135,16 @@ def register_operations_tools(server: "FastMCP", non_destructive: bool):
                         "success": False,
                         "error": "config view --raw is not allowed (may expose secrets)"
                     }
+            elif cmd_parts[0] == "auth":
+                if len(cmd_parts) < 2 or cmd_parts[1] not in allowed_auth_subcommands:
+                    return {
+                        "success": False,
+                        "error": f"Auth subcommand not allowed. Allowed: {', '.join(allowed_auth_subcommands)}"
+                    }
             elif cmd_parts[0] not in allowed_prefixes:
                 return {
                     "success": False,
-                    "error": f"Command not allowed. Allowed: {', '.join(allowed_prefixes + ['config'])}"
+                    "error": f"Command not allowed. Allowed: {', '.join(allowed_prefixes + ['config', 'auth can-i'])}"
                 }
 
             full_cmd = ["kubectl"] + _get_kubectl_context_args(context) + cmd_parts

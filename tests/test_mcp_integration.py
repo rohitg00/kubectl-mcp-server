@@ -205,7 +205,7 @@ class TestMCPServerSafety:
     """Test safety mode integration in MCP server."""
 
     def test_safety_mode_info(self):
-        """Test safety mode info retrieval."""
+        """Test safety mode info for all modes."""
         from kubectl_mcp_tool.safety import (
             SafetyMode,
             set_safety_mode,
@@ -217,23 +217,6 @@ class TestMCPServerSafety:
         assert info["mode"] == "normal"
         assert "description" in info
         assert info["blocked_operations"] == []
-
-        set_safety_mode(SafetyMode.READ_ONLY)
-        info = get_mode_info()
-        assert info["mode"] == "read_only"
-        assert len(info["blocked_operations"]) > 0
-
-    def test_safety_mode_info(self):
-        """Test safety mode info."""
-        from kubectl_mcp_tool.safety import (
-            SafetyMode,
-            set_safety_mode,
-            get_mode_info,
-        )
-
-        set_safety_mode(SafetyMode.NORMAL)
-        info = get_mode_info()
-        assert info["mode"] == "normal"
 
         set_safety_mode(SafetyMode.READ_ONLY)
         info = get_mode_info()

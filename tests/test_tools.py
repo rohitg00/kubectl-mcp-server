@@ -123,14 +123,14 @@ EXPECTED_TOOLS = [
     "kind_cluster_status_tool", "kind_images_list_tool", "kind_provider_info_tool",
 ]
 
-EXPECTED_TOOL_COUNT = 275
+EXPECTED_TOOL_COUNT = len(EXPECTED_TOOLS)
 
 
 class TestAllToolsRegistered:
     """Comprehensive tests to verify all expected tools are registered."""
 
     @pytest.mark.unit
-    def test_all_164_tools_registered(self):
+    def test_all_tools_registered(self):
         """Verify all expected tools are registered (excluding optional browser tools)."""
         import os
         from kubectl_mcp_tool.mcp_server import MCPServer

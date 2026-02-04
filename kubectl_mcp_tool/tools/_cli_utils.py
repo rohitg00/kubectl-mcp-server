@@ -1,4 +1,3 @@
-import shlex
 import subprocess
 from functools import lru_cache
 from typing import Any, Dict, List, Optional
@@ -52,7 +51,7 @@ def run_cli(
     Returns:
         Dict with success status and output/error
     """
-    cmd = [binary] + args
+    cmd = [binary, *args]
 
     try:
         result = subprocess.run(

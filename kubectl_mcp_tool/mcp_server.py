@@ -130,11 +130,11 @@ for handler in logging.root.handlers[:]:
 
 try:
     from fastmcp import FastMCP
-except ImportError:
+except ImportError as err:
     raise ImportError(
         "FastMCP is required but not installed. "
         "Install with: pip install 'fastmcp>=3.0.0b1'"
-    )
+    ) from err
 
 
 class MCPServer:
