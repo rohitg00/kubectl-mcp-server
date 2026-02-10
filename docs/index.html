@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>kubectl-mcp-server — AI-Powered Kubernetes Management</title>
+<meta name="description" content="Control your entire Kubernetes infrastructure through natural language. 270+ MCP tools. Listed on CNCF Landscape and Docker MCP Catalog. Open source.">
+<meta property="og:title" content="kubectl-mcp-server — AI-Powered Kubernetes Management">
+<meta property="og:description" content="270+ MCP tools for Kubernetes. CNCF Landscape listed. Docker MCP Catalog. 15+ AI clients. Open source.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://rohitg00.github.io/kubectl-mcp-server">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⎈</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fira+Mono:wght@400;500&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#09090b;--surface:#18181b;--border:#27272a;--text:#fafafa;--muted:#a1a1aa;--dim:#71717a}
+html{scroll-behavior:smooth}
+body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--text);line-height:1.6;overflow-x:hidden}
+code,.mono{font-family:'Fira Mono',monospace}
+a{color:var(--text);text-decoration:none}
+a:hover{text-decoration:underline}
+
+.container{max-width:1000px;margin:0 auto;padding:0 24px}
+
+.hero{padding:100px 0 60px;text-align:center}
+.hero-icon{width:72px;height:72px;margin:0 auto 28px;opacity:0.9}
+.hero h1{font-size:clamp(1.8rem,4.5vw,2.8rem);font-weight:700;letter-spacing:-0.04em;margin-bottom:12px}
+.hero .tagline{font-size:clamp(0.95rem,2vw,1.15rem);color:var(--muted);max-width:600px;margin:0 auto 36px;line-height:1.7}
+.hero-badges{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-bottom:36px}
+.hero-badges img{height:20px}
+.hero-cta{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:10px 24px;border-radius:6px;font-size:14px;font-weight:500;transition:all 0.15s}
+.btn-primary{background:var(--text);color:var(--bg)}
+.btn-primary:hover{opacity:0.85;text-decoration:none}
+.btn-outline{border:1px solid var(--border);color:var(--text)}
+.btn-outline:hover{border-color:var(--dim);text-decoration:none}
+
+.install{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:16px 24px;max-width:460px;margin:28px auto 0;font-family:'Fira Mono',monospace;font-size:14px;color:var(--muted);position:relative}
+.install .cmd{color:var(--text)}
+.install-copy{position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:1px solid var(--border);color:var(--dim);padding:3px 8px;border-radius:4px;cursor:pointer;font-size:11px;font-family:'Fira Mono',monospace}
+.install-copy:hover{color:var(--text);border-color:var(--dim)}
+
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:1px;background:var(--border);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin:60px 0}
+.stat{background:var(--surface);padding:24px 16px;text-align:center}
+.stat-number{font-size:1.75rem;font-weight:700;letter-spacing:-0.02em}
+.stat-label{font-size:12px;color:var(--dim);margin-top:2px;text-transform:uppercase;letter-spacing:0.06em}
+
+section{padding:56px 0}
+.section-title{font-size:clamp(1.25rem,2.5vw,1.6rem);font-weight:600;letter-spacing:-0.03em;margin-bottom:6px}
+.section-sub{color:var(--muted);font-size:15px;margin-bottom:36px}
+.section-header{text-align:center;margin-bottom:36px}
+
+.milestones{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px}
+.milestone{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:24px}
+.milestone-tag{display:inline-block;font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:0.08em;color:var(--dim);margin-bottom:10px;font-family:'Fira Mono',monospace}
+.milestone h3{font-size:16px;font-weight:600;margin-bottom:6px}
+.milestone p{color:var(--muted);font-size:13px;line-height:1.6;margin-bottom:10px}
+.milestone a{font-size:12px;color:var(--dim);font-family:'Fira Mono',monospace}
+.milestone a:hover{color:var(--text)}
+
+.features{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px}
+.feature{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:24px}
+.feature h3{font-size:15px;font-weight:600;margin-bottom:6px}
+.feature p{color:var(--muted);font-size:13px;line-height:1.6}
+
+.tools-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+.tool-cat{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:16px}
+.tool-cat h4{font-size:14px;font-weight:600;margin-bottom:4px}
+.tool-cat .count{color:var(--dim);font-size:12px;font-family:'Fira Mono',monospace}
+.tool-cat p{color:var(--muted);font-size:12px;margin-top:4px}
+
+.clients{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
+.client{border:1px solid var(--border);border-radius:6px;padding:8px 16px;font-size:13px;color:var(--muted)}
+
+.registries-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}
+.registry{display:block;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px;text-align:center;transition:border-color 0.15s}
+.registry:hover{border-color:var(--dim);text-decoration:none}
+.registry-name{font-weight:600;font-size:14px;margin-bottom:2px}
+.registry-meta{color:var(--dim);font-size:11px;font-family:'Fira Mono',monospace}
+
+.press{display:flex;flex-wrap:wrap;gap:12px;justify-content:center}
+.press-item{display:block;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px 18px;font-size:13px;color:var(--muted);transition:border-color 0.15s}
+.press-item:hover{border-color:var(--dim);text-decoration:none}
+.press-item strong{color:var(--text);font-weight:500}
+
+.install-section{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px}
+.install-card{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:20px}
+.install-card h3{font-size:14px;font-weight:600;margin-bottom:8px}
+.install-card code{color:var(--muted);font-size:13px}
+
+.cta-section{text-align:center;padding:80px 0 60px}
+.cta-section h2{font-size:clamp(1.3rem,2.5vw,1.8rem);font-weight:600;letter-spacing:-0.03em;margin-bottom:12px}
+.cta-section p{color:var(--muted);max-width:480px;margin:0 auto 28px;font-size:15px}
+
+footer{border-top:1px solid var(--border);padding:20px 0;text-align:center;color:var(--dim);font-size:13px;font-family:'Fira Mono',monospace}
+footer a{color:var(--dim)}footer a:hover{color:var(--text)}
+
+@media(max-width:640px){
+  .hero{padding:60px 0 40px}
+  .stats{grid-template-columns:repeat(2,1fr)}
+  .features,.milestones{grid-template-columns:1fr}
+  .tools-grid{grid-template-columns:repeat(2,1fr)}
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+  <section class="hero">
+    <div class="hero-icon">
+      <svg width="72" height="72" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+        <defs><linearGradient id="kBlue" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#fafafa"/><stop offset="100%" style="stop-color:#a1a1aa"/></linearGradient></defs>
+        <g transform="translate(50, 50)">
+          <g fill="none" stroke="#3f3f46" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M -35,-22 Q -35,-36 -18,-36 L 14,-36 Q 30,-36 30,-20 Q 30,-4 14,-4 L -14,-4"/>
+            <path d="M 35,22 Q 35,36 18,36 L -14,36 Q -30,36 -30,20 Q -30,4 -14,4 L 14,4"/>
+          </g>
+          <g transform="scale(0.72)">
+            <polygon points="0,-42 37,-21 37,21 0,42 -37,21 -37,-21" fill="url(#kBlue)"/>
+            <g fill="none" stroke="#09090b" stroke-width="3.5" stroke-linecap="round">
+              <circle cx="0" cy="0" r="5" fill="#09090b"/><circle cx="0" cy="0" r="22"/>
+              <line x1="0" y1="-8" x2="0" y2="-22"/><line x1="7" y1="-4" x2="19" y2="-11"/>
+              <line x1="7" y1="4" x2="19" y2="11"/><line x1="0" y1="8" x2="0" y2="22"/>
+              <line x1="-7" y1="4" x2="-19" y2="11"/><line x1="-7" y1="-4" x2="-19" y2="-11"/>
+            </g>
+          </g>
+        </g>
+      </svg>
+    </div>
+    <h1>kubectl-mcp-server</h1>
+    <p class="tagline">Control your entire Kubernetes infrastructure through natural language. 270+ tools. Listed on CNCF Landscape and Docker MCP Catalog.</p>
+
+    <div class="hero-badges">
+      <img src="https://img.shields.io/github/stars/rohitg00/kubectl-mcp-server?style=flat&logo=github&color=181717" alt="Stars">
+      <img src="https://img.shields.io/pypi/v/kubectl-mcp-server?color=333&label=PyPI" alt="PyPI">
+      <img src="https://img.shields.io/npm/v/kubectl-mcp-server?color=333&label=npm" alt="npm">
+      <img src="https://img.shields.io/docker/pulls/rohitghumare64/kubectl-mcp-server.svg?color=333" alt="Docker">
+      <img src="https://img.shields.io/badge/License-MIT-333.svg" alt="MIT">
+      <img src="https://img.shields.io/badge/MCP-compatible-333.svg" alt="MCP">
+    </div>
+
+    <div class="hero-cta">
+      <a href="https://github.com/rohitg00/kubectl-mcp-server" class="btn btn-primary">GitHub</a>
+      <a href="https://landscape.cncf.io/?selected=kubectl-mcp-server" class="btn btn-outline">CNCF Landscape</a>
+      <a href="https://hub.docker.com/mcp/server/kubectl-mcp-server/overview" class="btn btn-outline">Docker MCP Catalog</a>
+    </div>
+
+    <div class="install">
+      <span class="cmd">npx -y kubectl-mcp-server</span>
+      <button class="install-copy" onclick="navigator.clipboard.writeText('npx -y kubectl-mcp-server')">copy</button>
+    </div>
+  </section>
+
+  <div class="stats">
+    <div class="stat"><div class="stat-number">800+</div><div class="stat-label">Stars</div></div>
+    <div class="stat"><div class="stat-number">270+</div><div class="stat-label">Tools</div></div>
+    <div class="stat"><div class="stat-number">15+</div><div class="stat-label">AI Clients</div></div>
+    <div class="stat"><div class="stat-number">9+</div><div class="stat-label">Registries</div></div>
+    <div class="stat"><div class="stat-number">160+</div><div class="stat-label">Forks</div></div>
+    <div class="stat"><div class="stat-number">234</div><div class="stat-label">Tests</div></div>
+  </div>
+
+  <section>
+    <div class="section-header">
+      <h2 class="section-title">Key Milestones</h2>
+      <p class="section-sub">From open-source project to the cloud-native AI ecosystem</p>
+    </div>
+
+    <div class="milestones">
+      <div class="milestone">
+        <div class="milestone-tag">CNCF</div>
+        <h3>CNCF Landscape</h3>
+        <p>Listed on the CNCF Landscape under Provisioning &gt; Automation &amp; Configuration. Recognized as part of the cloud-native ecosystem alongside industry-standard tools.</p>
+        <a href="https://landscape.cncf.io/?selected=kubectl-mcp-server">landscape.cncf.io &rarr;</a>
+      </div>
+
+      <div class="milestone">
+        <div class="milestone-tag">Docker</div>
+        <h3>Docker MCP Catalog</h3>
+        <p>Officially listed on Docker's curated MCP Catalog under the trusted <code>mcp/</code> namespace. One-command install for any MCP-compatible client.</p>
+        <a href="https://hub.docker.com/mcp/server/kubectl-mcp-server/overview">hub.docker.com &rarr;</a>
+      </div>
+
+      <div class="milestone">
+        <div class="milestone-tag">Ecosystem</div>
+        <h3>9+ MCP Registries</h3>
+        <p>Listed on Docker MCP Catalog, LobeHub, PulseMCP, Augment Code, MCPServers.org, MCPMarket, Playbooks, Glama, Smithery, and awesome-mcp-servers.</p>
+        <a href="#registries">see all &rarr;</a>
+      </div>
+
+      <div class="milestone">
+        <div class="milestone-tag">Integrations</div>
+        <h3>kagent + CNCF Sandbox</h3>
+        <p>Integrated with kagent (CNCF Sandbox project) as a ToolServer, giving AI agents access to 270+ Kubernetes tools through the cloud-native stack.</p>
+        <a href="https://kagent.dev/docs/kmcp/deploy/server">kagent.dev &rarr;</a>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-header">
+      <h2 class="section-title">What You Can Do</h2>
+      <p class="section-sub">Talk to your clusters like you talk to a DevOps expert</p>
+    </div>
+
+    <div class="features">
+      <div class="feature">
+        <h3>Debug &amp; Troubleshoot</h3>
+        <p>Analyze crashed pods, inspect logs, diagnose network issues, and get AI-powered root cause analysis with actionable fixes.</p>
+      </div>
+      <div class="feature">
+        <h3>Optimize Costs</h3>
+        <p>Detect over-provisioned resources, get rightsizing recommendations, and identify idle workloads wasting cloud spend.</p>
+      </div>
+      <div class="feature">
+        <h3>Audit Security</h3>
+        <p>RBAC permission auditing, security policy scanning with Kyverno and Gatekeeper, certificate management, and vulnerability assessment.</p>
+      </div>
+      <div class="feature">
+        <h3>Manage Helm Charts</h3>
+        <p>Full Helm v3 lifecycle: install, upgrade, rollback, search repos, inspect values, and manage releases across clusters.</p>
+      </div>
+      <div class="feature">
+        <h3>Multi-Cluster Operations</h3>
+        <p>Switch contexts, compare deployments across clusters, manage kind local clusters, and vCluster virtual clusters.</p>
+      </div>
+      <div class="feature">
+        <h3>Interactive Dashboards</h3>
+        <p>8 interactive UI tools: pods, logs, deployments, Helm, cluster overview, cost analysis, events, and network topology.</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-header">
+      <h2 class="section-title">270+ Tools, One Server</h2>
+      <p class="section-sub">The most comprehensive MCP server for Kubernetes</p>
+    </div>
+
+    <div class="tools-grid">
+      <div class="tool-cat"><h4>Core K8s</h4><span class="count">70+ tools</span><p>Pods, Deployments, Services, ConfigMaps, Namespaces, Nodes</p></div>
+      <div class="tool-cat"><h4>Helm v3</h4><span class="count">16 tools</span><p>Install, upgrade, rollback, search, inspect, repos</p></div>
+      <div class="tool-cat"><h4>Security &amp; RBAC</h4><span class="count">10 tools</span><p>Roles, bindings, service accounts, policy audit</p></div>
+      <div class="tool-cat"><h4>Networking</h4><span class="count">16 tools</span><p>Services, Ingress, NetworkPolicies, DNS, Cilium</p></div>
+      <div class="tool-cat"><h4>GitOps</h4><span class="count">7 tools</span><p>Flux, ArgoCD sync status, reconciliation</p></div>
+      <div class="tool-cat"><h4>Cert-Manager</h4><span class="count">9 tools</span><p>Certificates, issuers, challenges, renewal</p></div>
+      <div class="tool-cat"><h4>Cost Optimization</h4><span class="count">8 tools</span><p>Resource analysis, rightsizing, waste detection</p></div>
+      <div class="tool-cat"><h4>Service Mesh</h4><span class="count">10 tools</span><p>Istio VirtualServices, DestinationRules, Gateways</p></div>
+      <div class="tool-cat"><h4>Progressive Delivery</h4><span class="count">11 tools</span><p>Argo Rollouts, Flagger canary and blue-green</p></div>
+      <div class="tool-cat"><h4>Cluster Lifecycle</h4><span class="count">11 tools</span><p>CAPI clusters, machines, MachineDeployments</p></div>
+      <div class="tool-cat"><h4>KubeVirt</h4><span class="count">13 tools</span><p>VMs, live migration, start, stop, pause</p></div>
+      <div class="tool-cat"><h4>kind &amp; vCluster</h4><span class="count">46 tools</span><p>Local dev clusters, virtual multi-tenancy</p></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-header">
+      <h2 class="section-title">Works With Your AI Client</h2>
+      <p class="section-sub">Compatible with 15+ MCP-enabled AI assistants</p>
+    </div>
+
+    <div class="clients">
+      <div class="client">Claude Desktop</div>
+      <div class="client">Claude Code</div>
+      <div class="client">Cursor</div>
+      <div class="client">Windsurf</div>
+      <div class="client">GitHub Copilot</div>
+      <div class="client">Gemini CLI</div>
+      <div class="client">Goose</div>
+      <div class="client">Roo Code</div>
+      <div class="client">Augment Code</div>
+      <div class="client">Cline</div>
+      <div class="client">OpenCode</div>
+      <div class="client">Continue</div>
+      <div class="client">Amp</div>
+      <div class="client">Kilo</div>
+      <div class="client">Zencoder</div>
+    </div>
+  </section>
+
+  <section id="registries">
+    <div class="section-header">
+      <h2 class="section-title">Available Everywhere</h2>
+      <p class="section-sub">Listed on every major MCP server registry</p>
+    </div>
+
+    <div class="registries-grid">
+      <a href="https://landscape.cncf.io/?selected=kubectl-mcp-server" class="registry"><div class="registry-name">CNCF Landscape</div><div class="registry-meta">provisioning</div></a>
+      <a href="https://hub.docker.com/mcp/server/kubectl-mcp-server/overview" class="registry"><div class="registry-name">Docker MCP Catalog</div><div class="registry-meta">mcp/ namespace</div></a>
+      <a href="https://glama.ai/mcp/servers/@rohitg00/kubectl-mcp-server" class="registry"><div class="registry-name">Glama</div><div class="registry-meta">verified</div></a>
+      <a href="https://lobehub.com/mcp/rohitg00-kubectl-mcp-server" class="registry"><div class="registry-name">LobeHub</div><div class="registry-meta">listed</div></a>
+      <a href="https://www.pulsemcp.com/servers/rohitg00-kubectl" class="registry"><div class="registry-name">PulseMCP</div><div class="registry-meta">top pick</div></a>
+      <a href="https://www.augmentcode.com/mcp/kubectl-mcp-server" class="registry"><div class="registry-name">Augment Code</div><div class="registry-meta">listed</div></a>
+      <a href="https://mcpservers.org/servers/rohitg00/kubectl-mcp-server" class="registry"><div class="registry-name">MCPServers.org</div><div class="registry-meta">listed</div></a>
+      <a href="https://mcpmarket.com/server/kubectl" class="registry"><div class="registry-name">MCPMarket</div><div class="registry-meta">listed</div></a>
+      <a href="https://playbooks.com/mcp/rohitg00-kubectl" class="registry"><div class="registry-name">Playbooks</div><div class="registry-meta">listed</div></a>
+      <a href="https://mcp.so/server/kubectl-mcp-server/rohitg00" class="registry"><div class="registry-name">MCP.so</div><div class="registry-meta">listed</div></a>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-header">
+      <h2 class="section-title">Install in Seconds</h2>
+      <p class="section-sub">Multiple installation methods for every workflow</p>
+    </div>
+
+    <div class="install-section">
+      <div class="install-card">
+        <h3>npx (Zero Install)</h3>
+        <code>npx -y kubectl-mcp-server</code>
+      </div>
+      <div class="install-card">
+        <h3>pip (Python)</h3>
+        <code>pip install kubectl-mcp-server</code>
+      </div>
+      <div class="install-card">
+        <h3>Docker</h3>
+        <code>docker run mcp/kubectl-mcp-server</code>
+      </div>
+    </div>
+  </section>
+
+  <section id="press">
+    <div class="section-header">
+      <h2 class="section-title">Featured In</h2>
+    </div>
+    <div class="press">
+      <a href="https://medium.com/devops-ai-decoded/top-10-mcp-servers-for-kubernetes-orchestration-in-2026-eb3dbd98da90" class="press-item"><strong>Medium</strong> &mdash; Top 10 MCP Servers for K8s Orchestration 2026</a>
+      <a href="https://skywork.ai/skypage/en/unlocking-kubernetes-ai-kubectl-mcp-server/1977575603227267072" class="press-item"><strong>Skywork AI</strong> &mdash; Unlocking Kubernetes with AI: kubectl-mcp-server</a>
+      <a href="https://medium.com/@jinvishal2011/ai-driven-kubernetes-management-using-claude-desktop-model-context-protocol-mcp-a353d68956b2" class="press-item"><strong>Medium</strong> &mdash; AI-Driven Kubernetes Management Using Claude Desktop + MCP</a>
+      <a href="https://deepwiki.com/rohitg00/kubectl-mcp-server" class="press-item"><strong>DeepWiki</strong> &mdash; kubectl-mcp-server Documentation</a>
+    </div>
+  </section>
+
+  <section class="cta-section">
+    <h2>Ready to talk to your clusters?</h2>
+    <p>Open source, MIT licensed, works with your existing kubeconfig. Get started in under a minute.</p>
+    <div class="hero-cta">
+      <a href="https://github.com/rohitg00/kubectl-mcp-server" class="btn btn-primary">Get Started</a>
+      <a href="https://pypi.org/project/kubectl-mcp-server/" class="btn btn-outline">PyPI</a>
+      <a href="https://www.npmjs.com/package/kubectl-mcp-server" class="btn btn-outline">npm</a>
+    </div>
+  </section>
+</div>
+
+<footer>
+  <div class="container">
+    kubectl-mcp-server &middot; MIT &middot; <a href="https://github.com/rohitg00/kubectl-mcp-server">github</a> &middot; <a href="https://pypi.org/project/kubectl-mcp-server/">pypi</a> &middot; <a href="https://www.npmjs.com/package/kubectl-mcp-server">npm</a> &middot; <a href="https://hub.docker.com/mcp/server/kubectl-mcp-server/overview">docker</a>
+  </div>
+</footer>
+
+</body>
+</html>
