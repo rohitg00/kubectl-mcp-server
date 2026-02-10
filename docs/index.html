@@ -12,96 +12,145 @@
 <meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="../logos/kubectl-mcp-server-icon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Fira+Mono:wght@400;500&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Fira+Mono:wght@400;500&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-:root{--bg:#09090b;--surface:#18181b;--border:#27272a;--text:#fafafa;--muted:#a1a1aa;--dim:#71717a}
+:root{
+  --k8s:#326CE5;
+  --k8s-light:#4A85F0;
+  --k8s-dark:#1A4DB5;
+  --k8s-glow:rgba(50,108,229,0.15);
+  --k8s-glow-strong:rgba(50,108,229,0.3);
+  --bg:#0a0e1a;
+  --surface:#111827;
+  --surface-hover:#1a2337;
+  --border:rgba(50,108,229,0.15);
+  --border-hover:rgba(50,108,229,0.4);
+  --text:#f0f4ff;
+  --muted:#8b9cc7;
+  --dim:#5b6b8f;
+}
 html{scroll-behavior:smooth}
 body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--text);line-height:1.6;overflow-x:hidden}
 code,.mono{font-family:'Fira Mono',monospace}
-a{color:var(--text);text-decoration:none}
-a:hover{text-decoration:underline}
+a{color:var(--k8s-light);text-decoration:none;transition:color 0.2s}
+a:hover{color:#fff}
 
-.container{max-width:1000px;margin:0 auto;padding:0 24px}
+.container{max-width:1080px;margin:0 auto;padding:0 24px}
 
-.hero{padding:100px 0 60px;text-align:center}
-.hero-icon{width:72px;height:72px;margin:0 auto 28px;opacity:0.9}
-.hero h1{font-size:clamp(1.8rem,4.5vw,2.8rem);font-weight:700;letter-spacing:-0.04em;margin-bottom:12px}
-.hero .tagline{font-size:clamp(0.95rem,2vw,1.15rem);color:var(--muted);max-width:600px;margin:0 auto 36px;line-height:1.7}
-.hero-badges{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-bottom:36px}
-.hero-badges img{height:20px}
-.hero-cta{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
-.btn{display:inline-flex;align-items:center;gap:6px;padding:10px 24px;border-radius:6px;font-size:14px;font-weight:500;transition:all 0.15s}
-.btn-primary{background:var(--text);color:var(--bg)}
-.btn-primary:hover{opacity:0.85;text-decoration:none}
-.btn-outline{border:1px solid var(--border);color:var(--text)}
-.btn-outline:hover{border-color:var(--dim);text-decoration:none}
+@keyframes fadeUp{from{opacity:0;transform:translateY(30px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes pulse{0%,100%{opacity:0.4}50%{opacity:1}}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+@keyframes shimmer{0%{background-position:-200% 0}100%{background-position:200% 0}}
+@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
 
-.install{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:16px 24px;max-width:460px;margin:28px auto 0;font-family:'Fira Mono',monospace;font-size:14px;color:var(--muted);position:relative}
+.reveal{opacity:0;transform:translateY(30px);transition:opacity 0.7s ease,transform 0.7s ease}
+.reveal.visible{opacity:1;transform:translateY(0)}
+
+.hero{padding:120px 0 80px;text-align:center;position:relative;overflow:hidden}
+.hero::before{content:'';position:absolute;top:-50%;left:-50%;width:200%;height:200%;background:radial-gradient(ellipse at 50% 30%,var(--k8s-glow) 0%,transparent 60%);pointer-events:none}
+.hero-icon{width:88px;height:88px;margin:0 auto 32px;animation:float 4s ease-in-out infinite;filter:drop-shadow(0 0 30px rgba(50,108,229,0.4))}
+.hero h1{font-size:clamp(2.2rem,5vw,3.5rem);font-weight:800;letter-spacing:-0.04em;margin-bottom:16px;background:linear-gradient(135deg,#fff 0%,var(--k8s-light) 50%,#fff 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.hero .tagline{font-size:clamp(1rem,2vw,1.2rem);color:var(--muted);max-width:620px;margin:0 auto 40px;line-height:1.8}
+.hero-badges{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-bottom:40px}
+.hero-badges img{height:22px;transition:transform 0.2s;border-radius:3px}
+.hero-badges img:hover{transform:scale(1.1)}
+.hero-cta{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+
+.btn{display:inline-flex;align-items:center;gap:8px;padding:12px 28px;border-radius:8px;font-size:14px;font-weight:600;transition:all 0.3s;position:relative;overflow:hidden}
+.btn::after{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,0.1),transparent);opacity:0;transition:opacity 0.3s}
+.btn:hover::after{opacity:1}
+.btn-primary{background:var(--k8s);color:#fff;box-shadow:0 4px 20px rgba(50,108,229,0.3)}
+.btn-primary:hover{background:var(--k8s-light);box-shadow:0 6px 30px rgba(50,108,229,0.5);transform:translateY(-2px);color:#fff}
+.btn-outline{border:1px solid var(--border-hover);color:var(--text);backdrop-filter:blur(4px)}
+.btn-outline:hover{border-color:var(--k8s);background:var(--k8s-glow);transform:translateY(-2px);color:#fff}
+
+.install{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px 28px;max-width:480px;margin:32px auto 0;font-family:'Fira Mono',monospace;font-size:14px;color:var(--muted);position:relative;transition:border-color 0.3s,box-shadow 0.3s}
+.install:hover{border-color:var(--k8s);box-shadow:0 0 30px var(--k8s-glow)}
+.install .prompt{color:var(--k8s-light)}
 .install .cmd{color:var(--text)}
-.install-copy{position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:1px solid var(--border);color:var(--dim);padding:3px 8px;border-radius:4px;cursor:pointer;font-size:11px;font-family:'Fira Mono',monospace}
-.install-copy:hover{color:var(--text);border-color:var(--dim)}
+.install-copy{position:absolute;right:12px;top:50%;transform:translateY(-50%);background:var(--k8s-glow);border:1px solid var(--border);color:var(--muted);padding:4px 12px;border-radius:6px;cursor:pointer;font-size:11px;font-family:'Fira Mono',monospace;transition:all 0.2s}
+.install-copy:hover{color:#fff;border-color:var(--k8s);background:rgba(50,108,229,0.2)}
 
-.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:1px;background:var(--border);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin:60px 0}
-.stat{background:var(--surface);padding:24px 16px;text-align:center}
-.stat-number{font-size:1.75rem;font-weight:700;letter-spacing:-0.02em}
-.stat-label{font-size:12px;color:var(--dim);margin-top:2px;text-transform:uppercase;letter-spacing:0.06em}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1px;background:var(--border);border:1px solid var(--border);border-radius:16px;overflow:hidden;margin:80px 0}
+.stat{background:var(--surface);padding:28px 16px;text-align:center;transition:background 0.3s}
+.stat:hover{background:var(--surface-hover)}
+.stat-number{font-size:2rem;font-weight:800;letter-spacing:-0.02em;color:var(--k8s-light)}
+.stat-label{font-size:11px;color:var(--dim);margin-top:4px;text-transform:uppercase;letter-spacing:0.1em;font-weight:600}
 
-section{padding:56px 0}
-.section-title{font-size:clamp(1.25rem,2.5vw,1.6rem);font-weight:600;letter-spacing:-0.03em;margin-bottom:6px}
-.section-sub{color:var(--muted);font-size:15px;margin-bottom:36px}
-.section-header{text-align:center;margin-bottom:36px}
+section{padding:80px 0}
+.section-title{font-size:clamp(1.4rem,3vw,2rem);font-weight:700;letter-spacing:-0.03em;margin-bottom:8px}
+.section-sub{color:var(--muted);font-size:15px;margin-bottom:40px}
+.section-header{text-align:center;margin-bottom:48px}
 
-.milestones{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px}
-.milestone{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:24px}
-.milestone-tag{display:inline-block;font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:0.08em;color:var(--dim);margin-bottom:10px;font-family:'Fira Mono',monospace}
-.milestone h3{font-size:16px;font-weight:600;margin-bottom:6px}
-.milestone p{color:var(--muted);font-size:13px;line-height:1.6;margin-bottom:10px}
-.milestone a{font-size:12px;color:var(--dim);font-family:'Fira Mono',monospace}
-.milestone a:hover{color:var(--text)}
+.milestones{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:20px}
+.milestone{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:28px;transition:all 0.4s;position:relative;overflow:hidden}
+.milestone::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--k8s),transparent);opacity:0;transition:opacity 0.4s}
+.milestone:hover{border-color:var(--border-hover);transform:translateY(-4px);box-shadow:0 12px 40px rgba(50,108,229,0.12)}
+.milestone:hover::before{opacity:1}
+.milestone-tag{display:inline-block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:var(--k8s-light);margin-bottom:12px;font-family:'Fira Mono',monospace;padding:4px 10px;background:var(--k8s-glow);border-radius:4px}
+.milestone h3{font-size:17px;font-weight:700;margin-bottom:8px}
+.milestone p{color:var(--muted);font-size:13px;line-height:1.7;margin-bottom:12px}
+.milestone a{font-size:12px;color:var(--k8s-light);font-family:'Fira Mono',monospace;transition:color 0.2s}
+.milestone a:hover{color:#fff}
 
-.features{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px}
-.feature{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:24px}
-.feature h3{font-size:15px;font-weight:600;margin-bottom:6px}
-.feature p{color:var(--muted);font-size:13px;line-height:1.6}
+.features{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:20px}
+.feature{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:28px;transition:all 0.4s;position:relative}
+.feature::after{content:'';position:absolute;inset:0;border-radius:14px;background:linear-gradient(135deg,var(--k8s-glow),transparent);opacity:0;transition:opacity 0.4s;pointer-events:none}
+.feature:hover{border-color:var(--border-hover);transform:translateY(-3px);box-shadow:0 10px 30px rgba(50,108,229,0.1)}
+.feature:hover::after{opacity:1}
+.feature-icon{font-size:24px;margin-bottom:12px;display:block}
+.feature h3{font-size:16px;font-weight:700;margin-bottom:8px;position:relative;z-index:1}
+.feature p{color:var(--muted);font-size:13px;line-height:1.7;position:relative;z-index:1}
 
-.tools-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
-.tool-cat{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:16px}
-.tool-cat h4{font-size:14px;font-weight:600;margin-bottom:4px}
-.tool-cat .count{color:var(--dim);font-size:12px;font-family:'Fira Mono',monospace}
-.tool-cat p{color:var(--muted);font-size:12px;margin-top:4px}
+.tools-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
+.tool-cat{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;transition:all 0.3s;cursor:default}
+.tool-cat:hover{border-color:var(--border-hover);background:var(--surface-hover);transform:translateY(-2px)}
+.tool-cat h4{font-size:14px;font-weight:700;margin-bottom:4px;display:flex;align-items:center;justify-content:space-between}
+.tool-cat .count{color:var(--k8s-light);font-size:12px;font-family:'Fira Mono',monospace;font-weight:600}
+.tool-cat p{color:var(--muted);font-size:12px;margin-top:6px;line-height:1.5}
 
-.clients{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
-.client{border:1px solid var(--border);border-radius:6px;padding:8px 16px;font-size:13px;color:var(--muted)}
+.clients{display:flex;flex-wrap:wrap;gap:10px;justify-content:center}
+.client{border:1px solid var(--border);border-radius:8px;padding:10px 18px;font-size:13px;color:var(--muted);transition:all 0.3s;cursor:default;font-weight:500}
+.client:hover{border-color:var(--k8s);color:var(--text);background:var(--k8s-glow);transform:translateY(-2px)}
 
-.registries-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}
-.registry{display:block;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px;text-align:center;transition:border-color 0.15s}
-.registry:hover{border-color:var(--dim);text-decoration:none}
-.registry-name{font-weight:600;font-size:14px;margin-bottom:2px}
-.registry-meta{color:var(--dim);font-size:11px;font-family:'Fira Mono',monospace}
+.registries-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px}
+.registry{display:block;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px;text-align:center;transition:all 0.3s;position:relative;overflow:hidden}
+.registry::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,var(--k8s-glow),transparent);opacity:0;transition:opacity 0.3s;pointer-events:none}
+.registry:hover{border-color:var(--k8s);transform:translateY(-3px);box-shadow:0 8px 24px rgba(50,108,229,0.15);color:#fff}
+.registry:hover::before{opacity:1}
+.registry-name{font-weight:700;font-size:14px;margin-bottom:4px;position:relative;z-index:1}
+.registry-meta{color:var(--dim);font-size:11px;font-family:'Fira Mono',monospace;position:relative;z-index:1}
 
-.press{display:flex;flex-wrap:wrap;gap:12px;justify-content:center}
-.press-item{display:block;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px 18px;font-size:13px;color:var(--muted);transition:border-color 0.15s}
-.press-item:hover{border-color:var(--dim);text-decoration:none}
-.press-item strong{color:var(--text);font-weight:500}
+.press{display:flex;flex-direction:column;gap:12px;max-width:700px;margin:0 auto}
+.press-item{display:block;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px 24px;font-size:14px;color:var(--muted);transition:all 0.3s}
+.press-item:hover{border-color:var(--k8s);transform:translateX(8px);box-shadow:0 4px 20px rgba(50,108,229,0.1);color:var(--text)}
+.press-item strong{color:var(--k8s-light);font-weight:700}
 
-.install-section{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px}
-.install-card{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:20px}
-.install-card h3{font-size:14px;font-weight:600;margin-bottom:8px}
-.install-card code{color:var(--muted);font-size:13px}
+.install-section{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px}
+.install-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:24px;transition:all 0.3s}
+.install-card:hover{border-color:var(--border-hover);transform:translateY(-2px)}
+.install-card h3{font-size:14px;font-weight:700;margin-bottom:10px;color:var(--text)}
+.install-card code{color:var(--k8s-light);font-size:13px;background:rgba(50,108,229,0.08);padding:3px 8px;border-radius:4px}
 
-.cta-section{text-align:center;padding:80px 0 60px}
-.cta-section h2{font-size:clamp(1.3rem,2.5vw,1.8rem);font-weight:600;letter-spacing:-0.03em;margin-bottom:12px}
-.cta-section p{color:var(--muted);max-width:480px;margin:0 auto 28px;font-size:15px}
+.cta-section{text-align:center;padding:100px 0 80px;position:relative}
+.cta-section::before{content:'';position:absolute;bottom:0;left:-50%;width:200%;height:100%;background:radial-gradient(ellipse at 50% 100%,var(--k8s-glow) 0%,transparent 60%);pointer-events:none}
+.cta-section h2{font-size:clamp(1.5rem,3vw,2.2rem);font-weight:700;letter-spacing:-0.03em;margin-bottom:16px;position:relative}
+.cta-section p{color:var(--muted);max-width:500px;margin:0 auto 32px;font-size:16px;position:relative}
 
-footer{border-top:1px solid var(--border);padding:20px 0;text-align:center;color:var(--dim);font-size:13px;font-family:'Fira Mono',monospace}
-footer a{color:var(--dim)}footer a:hover{color:var(--text)}
+footer{border-top:1px solid var(--border);padding:24px 0;text-align:center;color:var(--dim);font-size:13px;font-family:'Fira Mono',monospace}
+footer a{color:var(--dim);transition:color 0.2s}
+footer a:hover{color:var(--k8s-light)}
+
+.divider{width:60px;height:2px;background:linear-gradient(90deg,var(--k8s),var(--k8s-light));margin:0 auto 20px;border-radius:2px}
 
 @media(max-width:640px){
-  .hero{padding:60px 0 40px}
+  .hero{padding:80px 0 50px}
   .stats{grid-template-columns:repeat(2,1fr)}
   .features,.milestones{grid-template-columns:1fr}
   .tools-grid{grid-template-columns:repeat(2,1fr)}
+  .press{max-width:100%}
 }
 </style>
 </head>
@@ -110,17 +159,26 @@ footer a{color:var(--dim)}footer a:hover{color:var(--text)}
 <div class="container">
   <section class="hero">
     <div class="hero-icon">
-      <svg width="72" height="72" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-        <defs><linearGradient id="kBlue" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#fafafa"/><stop offset="100%" style="stop-color:#a1a1aa"/></linearGradient></defs>
-        <g transform="translate(50, 50)">
-          <g fill="none" stroke="#3f3f46" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">
+      <svg width="88" height="88" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="kBlue" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" style="stop-color:#4A85F0"/>
+            <stop offset="100%" style="stop-color:#326CE5"/>
+          </linearGradient>
+          <filter id="glow">
+            <feGaussianBlur stdDeviation="2" result="blur"/>
+            <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+          </filter>
+        </defs>
+        <g transform="translate(50, 50)" filter="url(#glow)">
+          <g fill="none" stroke="#326CE5" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round" opacity="0.7">
             <path d="M -35,-22 Q -35,-36 -18,-36 L 14,-36 Q 30,-36 30,-20 Q 30,-4 14,-4 L -14,-4"/>
             <path d="M 35,22 Q 35,36 18,36 L -14,36 Q -30,36 -30,20 Q -30,4 -14,4 L 14,4"/>
           </g>
           <g transform="scale(0.72)">
             <polygon points="0,-42 37,-21 37,21 0,42 -37,21 -37,-21" fill="url(#kBlue)"/>
-            <g fill="none" stroke="#09090b" stroke-width="3.5" stroke-linecap="round">
-              <circle cx="0" cy="0" r="5" fill="#09090b"/><circle cx="0" cy="0" r="22"/>
+            <g fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round">
+              <circle cx="0" cy="0" r="5" fill="#fff"/><circle cx="0" cy="0" r="22"/>
               <line x1="0" y1="-8" x2="0" y2="-22"/><line x1="7" y1="-4" x2="19" y2="-11"/>
               <line x1="7" y1="4" x2="19" y2="11"/><line x1="0" y1="8" x2="0" y2="22"/>
               <line x1="-7" y1="4" x2="-19" y2="11"/><line x1="-7" y1="-4" x2="-19" y2="-11"/>
@@ -133,27 +191,30 @@ footer a{color:var(--dim)}footer a:hover{color:var(--text)}
     <p class="tagline">Control your entire Kubernetes infrastructure through natural language. 270+ tools. Listed on CNCF Landscape and Docker MCP Catalog.</p>
 
     <div class="hero-badges">
-      <img src="https://img.shields.io/github/stars/rohitg00/kubectl-mcp-server?style=flat&logo=github&color=181717" alt="Stars">
-      <img src="https://img.shields.io/pypi/v/kubectl-mcp-server?color=333&label=PyPI" alt="PyPI">
-      <img src="https://img.shields.io/npm/v/kubectl-mcp-server?color=333&label=npm" alt="npm">
-      <img src="https://img.shields.io/docker/pulls/rohitghumare64/kubectl-mcp-server.svg?color=333" alt="Docker">
-      <img src="https://img.shields.io/badge/License-MIT-333.svg" alt="MIT">
-      <img src="https://img.shields.io/badge/MCP-compatible-333.svg" alt="MCP">
+      <img src="https://img.shields.io/github/stars/rohitg00/kubectl-mcp-server?style=flat&logo=github&color=326CE5&labelColor=0a0e1a" alt="Stars">
+      <img src="https://img.shields.io/pypi/v/kubectl-mcp-server?color=326CE5&labelColor=0a0e1a&label=PyPI" alt="PyPI">
+      <img src="https://img.shields.io/npm/v/kubectl-mcp-server?color=326CE5&labelColor=0a0e1a&label=npm" alt="npm">
+      <img src="https://img.shields.io/docker/pulls/rohitghumare64/kubectl-mcp-server.svg?color=326CE5&labelColor=0a0e1a" alt="Docker">
+      <img src="https://img.shields.io/badge/License-MIT-326CE5.svg?labelColor=0a0e1a" alt="MIT">
+      <img src="https://img.shields.io/badge/MCP-compatible-326CE5.svg?labelColor=0a0e1a" alt="MCP">
     </div>
 
     <div class="hero-cta">
-      <a href="https://github.com/rohitg00/kubectl-mcp-server" class="btn btn-primary">GitHub</a>
+      <a href="https://github.com/rohitg00/kubectl-mcp-server" class="btn btn-primary">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+        GitHub
+      </a>
       <a href="https://landscape.cncf.io/?selected=kubectl-mcp-server" class="btn btn-outline">CNCF Landscape</a>
       <a href="https://hub.docker.com/mcp/server/kubectl-mcp-server/overview" class="btn btn-outline">Docker MCP Catalog</a>
     </div>
 
     <div class="install">
-      <span class="cmd">npx -y kubectl-mcp-server</span>
-      <button class="install-copy" onclick="navigator.clipboard.writeText('npx -y kubectl-mcp-server')">copy</button>
+      <span class="prompt">$</span> <span class="cmd">npx -y kubectl-mcp-server</span>
+      <button class="install-copy" onclick="navigator.clipboard.writeText('npx -y kubectl-mcp-server').then(()=>{this.textContent='copied!';setTimeout(()=>this.textContent='copy',1500)})">copy</button>
     </div>
   </section>
 
-  <div class="stats">
+  <div class="stats reveal">
     <div class="stat"><div class="stat-number">800+</div><div class="stat-label">Stars</div></div>
     <div class="stat"><div class="stat-number">270+</div><div class="stat-label">Tools</div></div>
     <div class="stat"><div class="stat-number">15+</div><div class="stat-label">AI Clients</div></div>
@@ -162,8 +223,9 @@ footer a{color:var(--dim)}footer a:hover{color:var(--text)}
     <div class="stat"><div class="stat-number">234</div><div class="stat-label">Tests</div></div>
   </div>
 
-  <section>
+  <section class="reveal">
     <div class="section-header">
+      <div class="divider"></div>
       <h2 class="section-title">Key Milestones</h2>
       <p class="section-sub">From open-source project to the cloud-native AI ecosystem</p>
     </div>
@@ -172,7 +234,7 @@ footer a{color:var(--dim)}footer a:hover{color:var(--text)}
       <div class="milestone">
         <div class="milestone-tag">CNCF</div>
         <h3>CNCF Landscape</h3>
-        <p>Listed on the CNCF Landscape under Provisioning &gt; Automation &amp; Configuration. Recognized as part of the cloud-native ecosystem alongside industry-standard tools.</p>
+        <p>Listed on the CNCF Landscape under Provisioning &gt; Automation &amp; Configuration. Recognized alongside industry-standard cloud-native tools.</p>
         <a href="https://landscape.cncf.io/?selected=kubectl-mcp-server">landscape.cncf.io &rarr;</a>
       </div>
 
@@ -199,64 +261,73 @@ footer a{color:var(--dim)}footer a:hover{color:var(--text)}
     </div>
   </section>
 
-  <section>
+  <section class="reveal">
     <div class="section-header">
+      <div class="divider"></div>
       <h2 class="section-title">What You Can Do</h2>
       <p class="section-sub">Talk to your clusters like you talk to a DevOps expert</p>
     </div>
 
     <div class="features">
       <div class="feature">
+        <span class="feature-icon">&#9881;</span>
         <h3>Debug &amp; Troubleshoot</h3>
         <p>Analyze crashed pods, inspect logs, diagnose network issues, and get AI-powered root cause analysis with actionable fixes.</p>
       </div>
       <div class="feature">
+        <span class="feature-icon">&#9878;</span>
         <h3>Optimize Costs</h3>
         <p>Detect over-provisioned resources, get rightsizing recommendations, and identify idle workloads wasting cloud spend.</p>
       </div>
       <div class="feature">
+        <span class="feature-icon">&#9888;</span>
         <h3>Audit Security</h3>
         <p>RBAC permission auditing, security policy scanning with Kyverno and Gatekeeper, certificate management, and vulnerability assessment.</p>
       </div>
       <div class="feature">
+        <span class="feature-icon">&#9733;</span>
         <h3>Manage Helm Charts</h3>
         <p>Full Helm v3 lifecycle: install, upgrade, rollback, search repos, inspect values, and manage releases across clusters.</p>
       </div>
       <div class="feature">
+        <span class="feature-icon">&#8644;</span>
         <h3>Multi-Cluster Operations</h3>
         <p>Switch contexts, compare deployments across clusters, manage kind local clusters, and vCluster virtual clusters.</p>
       </div>
       <div class="feature">
+        <span class="feature-icon">&#9636;</span>
         <h3>Interactive Dashboards</h3>
         <p>8 interactive UI tools: pods, logs, deployments, Helm, cluster overview, cost analysis, events, and network topology.</p>
       </div>
     </div>
   </section>
 
-  <section>
+  <section class="reveal">
     <div class="section-header">
+      <div class="divider"></div>
       <h2 class="section-title">270+ Tools, One Server</h2>
       <p class="section-sub">The most comprehensive MCP server for Kubernetes</p>
     </div>
 
     <div class="tools-grid">
-      <div class="tool-cat"><h4>Core K8s</h4><span class="count">70+ tools</span><p>Pods, Deployments, Services, ConfigMaps, Namespaces, Nodes</p></div>
-      <div class="tool-cat"><h4>Helm v3</h4><span class="count">16 tools</span><p>Install, upgrade, rollback, search, inspect, repos</p></div>
-      <div class="tool-cat"><h4>Security &amp; RBAC</h4><span class="count">10 tools</span><p>Roles, bindings, service accounts, policy audit</p></div>
-      <div class="tool-cat"><h4>Networking</h4><span class="count">16 tools</span><p>Services, Ingress, NetworkPolicies, DNS, Cilium</p></div>
-      <div class="tool-cat"><h4>GitOps</h4><span class="count">7 tools</span><p>Flux, ArgoCD sync status, reconciliation</p></div>
-      <div class="tool-cat"><h4>Cert-Manager</h4><span class="count">9 tools</span><p>Certificates, issuers, challenges, renewal</p></div>
-      <div class="tool-cat"><h4>Cost Optimization</h4><span class="count">8 tools</span><p>Resource analysis, rightsizing, waste detection</p></div>
-      <div class="tool-cat"><h4>Service Mesh</h4><span class="count">10 tools</span><p>Istio VirtualServices, DestinationRules, Gateways</p></div>
-      <div class="tool-cat"><h4>Progressive Delivery</h4><span class="count">11 tools</span><p>Argo Rollouts, Flagger canary and blue-green</p></div>
-      <div class="tool-cat"><h4>Cluster Lifecycle</h4><span class="count">11 tools</span><p>CAPI clusters, machines, MachineDeployments</p></div>
-      <div class="tool-cat"><h4>KubeVirt</h4><span class="count">13 tools</span><p>VMs, live migration, start, stop, pause</p></div>
-      <div class="tool-cat"><h4>kind &amp; vCluster</h4><span class="count">46 tools</span><p>Local dev clusters, virtual multi-tenancy</p></div>
+      <div class="tool-cat"><h4>Core K8s <span class="count">70+</span></h4><p>Pods, Deployments, Services, ConfigMaps, Namespaces, Nodes</p></div>
+      <div class="tool-cat"><h4>Helm v3 <span class="count">16</span></h4><p>Install, upgrade, rollback, search, inspect, repos</p></div>
+      <div class="tool-cat"><h4>Security &amp; RBAC <span class="count">10</span></h4><p>Roles, bindings, service accounts, policy audit</p></div>
+      <div class="tool-cat"><h4>Networking <span class="count">16</span></h4><p>Services, Ingress, NetworkPolicies, DNS, Cilium</p></div>
+      <div class="tool-cat"><h4>GitOps <span class="count">7</span></h4><p>Flux, ArgoCD sync status, reconciliation</p></div>
+      <div class="tool-cat"><h4>Cert-Manager <span class="count">9</span></h4><p>Certificates, issuers, challenges, renewal</p></div>
+      <div class="tool-cat"><h4>Cost Optimization <span class="count">8</span></h4><p>Resource analysis, rightsizing, waste detection</p></div>
+      <div class="tool-cat"><h4>Service Mesh <span class="count">10</span></h4><p>Istio VirtualServices, DestinationRules, Gateways</p></div>
+      <div class="tool-cat"><h4>Progressive Delivery <span class="count">11</span></h4><p>Argo Rollouts, Flagger canary and blue-green</p></div>
+      <div class="tool-cat"><h4>Cluster Lifecycle <span class="count">11</span></h4><p>CAPI clusters, machines, MachineDeployments</p></div>
+      <div class="tool-cat"><h4>KubeVirt <span class="count">13</span></h4><p>VMs, live migration, start, stop, pause</p></div>
+      <div class="tool-cat"><h4>kind &amp; vCluster <span class="count">46</span></h4><p>Local dev clusters, virtual multi-tenancy</p></div>
     </div>
   </section>
 
-  <section>
+  <section class="reveal">
     <div class="section-header">
+      <div class="divider"></div>
       <h2 class="section-title">Works With Your AI Client</h2>
       <p class="section-sub">Compatible with 15+ MCP-enabled AI assistants</p>
     </div>
@@ -280,8 +351,9 @@ footer a{color:var(--dim)}footer a:hover{color:var(--text)}
     </div>
   </section>
 
-  <section id="registries">
+  <section id="registries" class="reveal">
     <div class="section-header">
+      <div class="divider"></div>
       <h2 class="section-title">Available Everywhere</h2>
       <p class="section-sub">Listed on every major MCP server registry</p>
     </div>
@@ -300,8 +372,9 @@ footer a{color:var(--dim)}footer a:hover{color:var(--text)}
     </div>
   </section>
 
-  <section>
+  <section class="reveal">
     <div class="section-header">
+      <div class="divider"></div>
       <h2 class="section-title">Install in Seconds</h2>
       <p class="section-sub">Multiple installation methods for every workflow</p>
     </div>
@@ -322,8 +395,9 @@ footer a{color:var(--dim)}footer a:hover{color:var(--text)}
     </div>
   </section>
 
-  <section id="press">
+  <section id="press" class="reveal">
     <div class="section-header">
+      <div class="divider"></div>
       <h2 class="section-title">Featured In</h2>
     </div>
     <div class="press">
@@ -334,7 +408,7 @@ footer a{color:var(--dim)}footer a:hover{color:var(--text)}
     </div>
   </section>
 
-  <section class="cta-section">
+  <section class="cta-section reveal">
     <h2>Ready to talk to your clusters?</h2>
     <p>Open source, MIT licensed, works with your existing kubeconfig. Get started in under a minute.</p>
     <div class="hero-cta">
@@ -350,6 +424,13 @@ footer a{color:var(--dim)}footer a:hover{color:var(--text)}
     kubectl-mcp-server &middot; MIT &middot; <a href="https://github.com/rohitg00/kubectl-mcp-server">github</a> &middot; <a href="https://pypi.org/project/kubectl-mcp-server/">pypi</a> &middot; <a href="https://www.npmjs.com/package/kubectl-mcp-server">npm</a> &middot; <a href="https://hub.docker.com/mcp/server/kubectl-mcp-server/overview">docker</a>
   </div>
 </footer>
+
+<script>
+const obs = new IntersectionObserver((entries) => {
+  entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); obs.unobserve(e.target); } });
+}, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+document.querySelectorAll('.reveal').forEach(el => obs.observe(el));
+</script>
 
 </body>
 </html>
