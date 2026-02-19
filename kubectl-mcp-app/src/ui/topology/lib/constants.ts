@@ -14,5 +14,5 @@ export const KIND_COLORS: Record<string, string> = {
   HPA: '#14b8a6',
   NetworkPolicy: '#ef4444',
   Job: '#22c55e',
-  CronJob: '#8b5cf6',
+  CronJob: '#d946ef',
 };

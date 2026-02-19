@@ -330,7 +330,7 @@ export const ClusterScene = forwardRef<ClusterSceneHandle, ClusterSceneProps>(fu
         if (node.kind !== 'Pod') group.position.y = node.y;
         s.meshFactory.updateStatus(group, node.status);
       } else {
-        const group = s.meshFactory.create({ name: node.name, status: node.status, type: node.kind, replicas: node.resource.replicas, currentUtilization: node.resource.currentUtilization, y: node.y });
+        const group = s.meshFactory.create({ name: node.name, status: node.status, kind: node.kind, replicas: node.resource.replicas, currentUtilization: node.resource.currentUtilization, y: node.y });
         if (!group) continue;
         group.userData.resourceId = node.id;
         group.userData.resourceType = node.kind;
@@ -376,13 +376,6 @@ export const ClusterScene = forwardRef<ClusterSceneHandle, ClusterSceneProps>(fu
     const s = sceneRef.current;
     if (!s) return;
 
-    for (const [id, line] of s.connectionLines) {
-      s.lineGroup.remove(line);
-      line.geometry.dispose();
-      (line.material as THREE.Material).dispose();
-    }
-    s.connectionLines.clear();
-
     const RELATIONSHIP_COLORS: Record<string, number> = {
       ownership: 0xc9d1d9,
       network: 0x58a6ff,
@@ -390,7 +383,20 @@ export const ClusterScene = forwardRef<ClusterSceneHandle, ClusterSceneProps>(fu
       config: 0xd29922,
     };
 
+    const newEdgeIds = new Set(edges.map(e => e.id));
+
+    for (const [id, line] of s.connectionLines) {
+      if (!newEdgeIds.has(id)) {
+        s.lineGroup.remove(line);
+        line.geometry.dispose();
+        (line.material as THREE.Material).dispose();
+        s.connectionLines.delete(id);
+      }
+    }
+
     for (const edge of edges) {
+      if (s.connectionLines.has(edge.id)) continue;
+
       const sourceGroup = s.resourceMeshes.get(edge.source);
       const targetGroup = s.resourceMeshes.get(edge.target);
       if (!sourceGroup || !targetGroup) continue;

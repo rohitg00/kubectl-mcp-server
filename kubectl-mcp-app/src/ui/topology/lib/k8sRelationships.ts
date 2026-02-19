@@ -43,7 +43,7 @@ export function buildRelationships(resources: Map<string, K8sResource>): GraphEd
   for (const ing of ingresses) {
     if (!ing.rules) continue;
     for (const rule of ing.rules) {
-      for (const path of rule.paths) {
+      for (const path of rule.paths || []) {
         const targetSvc = services.find(s => s.name === path.serviceName && s.namespace === ing.namespace);
         if (targetSvc) {
           edges.push({

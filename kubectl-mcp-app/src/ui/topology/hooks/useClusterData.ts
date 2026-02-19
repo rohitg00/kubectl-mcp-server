@@ -35,8 +35,9 @@ function deriveStatus(status: Record<string, unknown>, objStatus: unknown): stri
 
 function parseResources(data: unknown, kind: string): K8sResource[] {
   if (!data || typeof data !== 'object') return [];
-  const items = (data as Record<string, unknown>)[kind.toLowerCase() + 's'] as unknown[] ||
-                (data as Record<string, unknown>).items as unknown[] || [];
+  const obj = data as Record<string, unknown>;
+  const items = (obj.items as unknown[]) ||
+                (obj[kind.toLowerCase() + 's'] as unknown[]) || [];
   if (!Array.isArray(items)) return [];
   return items.map((item: unknown) => {
     const obj = item as Record<string, unknown>;
@@ -132,54 +133,58 @@ export function useClusterData(namespace: string, selectedKinds: Set<string>, se
     }
   }, []);
 
-  const filteredResources = new Map<string, K8sResource>();
-  for (const [id, r] of resources) {
-    if (selectedKinds.size > 0 && !selectedKinds.has(r.kind)) continue;
-    if (searchQuery && !r.name.toLowerCase().includes(searchQuery.toLowerCase())) continue;
-    filteredResources.set(id, r);
-  }
+  const selectedKindsKey = useMemo(() => [...selectedKinds].sort().join(','), [selectedKinds]);
 
-  const edges = buildRelationships(filteredResources);
-  const graphNodes: GraphNode[] = Array.from(filteredResources.values()).map(r => {
-    const cached = layoutCacheRef.current.get(r.id);
-    return {
-      id: r.id,
-      kind: r.kind,
-      name: r.name,
-      namespace: r.namespace,
-      status: r.status,
-      x: cached?.x ?? 0,
-      y: 0,
-      z: cached?.z ?? 0,
-      vx: 0, vy: 0, vz: 0,
-      resource: r,
-    };
-  });
+  const { graphNodes, edgeObjects } = useMemo(() => {
+    const filtered = new Map<string, K8sResource>();
+    for (const [id, r] of resources) {
+      if (selectedKinds.size > 0 && !selectedKinds.has(r.kind)) continue;
+      if (searchQuery && !r.name.toLowerCase().includes(searchQuery.toLowerCase())) continue;
+      filtered.set(id, r);
+    }
 
-  const edgeObjects: GraphEdge[] = edges.map(e => ({
-    id: e.id,
-    source: e.source,
-    target: e.target,
-    type: e.type,
-    label: e.label,
-  }));
+    const rawEdges = buildRelationships(filtered);
+    const nodes: GraphNode[] = Array.from(filtered.values()).map(r => {
+      const cached = layoutCacheRef.current.get(r.id);
+      return {
+        id: r.id,
+        kind: r.kind,
+        name: r.name,
+        namespace: r.namespace,
+        status: r.status,
+        x: cached?.x ?? 0,
+        y: 0,
+        z: cached?.z ?? 0,
+        vx: 0, vy: 0, vz: 0,
+        resource: r,
+      };
+    });
 
-  const currentNodeIds = new Set(graphNodes.map(n => n.id));
-  const cachedNodeIds = new Set(layoutCacheRef.current.keys());
-  const idsChanged = currentNodeIds.size !== cachedNodeIds.size ||
-    [...currentNodeIds].some(id => !cachedNodeIds.has(id));
+    const edges: GraphEdge[] = rawEdges.map(e => ({
+      id: e.id,
+      source: e.source,
+      target: e.target,
+      type: e.type,
+      label: e.label,
+    }));
 
-  if (idsChanged) {
-    layoutGraph(graphNodes, edgeObjects);
-    layoutCacheRef.current = new Map(graphNodes.map(n => [n.id, { x: n.x, z: n.z }]));
-  }
+    const currentNodeIds = new Set(nodes.map(n => n.id));
+    const cachedNodeIds = new Set(layoutCacheRef.current.keys());
+    const idsChanged = currentNodeIds.size !== cachedNodeIds.size ||
+      [...currentNodeIds].some(id => !cachedNodeIds.has(id));
 
-  const namespaces = [...new Set(Array.from(resources.values()).map(r => r.namespace))].sort();
-  const kinds = [...new Set(Array.from(resources.values()).map(r => r.kind))].sort();
+    if (idsChanged) {
+      layoutGraph(nodes, edges);
+      layoutCacheRef.current = new Map(nodes.map(n => [n.id, { x: n.x, z: n.z }]));
+    }
 
-  const stableEdges = useMemo(() => edgeObjects, [edges.map(e => e.id).join(',')]);
+    return { graphNodes: nodes, edgeObjects: edges };
+  }, [resources, selectedKindsKey, searchQuery]);
 
-  return { nodes: graphNodes, edges: stableEdges, resources, namespaces, kinds, loading, error, refresh: fetchData, describeResource };
+  const namespaces = useMemo(() => [...new Set(Array.from(resources.values()).map(r => r.namespace))].sort(), [resources]);
+  const kinds = useMemo(() => [...new Set(Array.from(resources.values()).map(r => r.kind))].sort(), [resources]);
+
+  return { nodes: graphNodes, edges: edgeObjects, resources, namespaces, kinds, loading, error, refresh: fetchData, describeResource };
 }
 
 function getMockResources(): Map<string, K8sResource> {

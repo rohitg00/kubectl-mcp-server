@@ -3,7 +3,7 @@ import * as THREE from 'three';
 interface ResourceInput {
   name?: string;
   status?: string;
-  type?: string;
+  kind?: string;
   replicas?: number;
   currentUtilization?: number;
   y?: number;
@@ -754,7 +754,7 @@ CREATORS.HorizontalPodAutoscaler = CREATORS.HPA;
 
 export class MeshFactory {
   create(resource: ResourceInput): THREE.Group {
-    const creator = CREATORS[resource.type || ''];
+    const creator = CREATORS[resource.kind || ''];
     if (!creator) {
       return this.createFallback(resource);
     }
@@ -771,7 +771,7 @@ export class MeshFactory {
 
     group.add(createGlowRing(0x8b949e, 0.4));
 
-    const label = createLabelSprite(resource.name || resource.type || '?');
+    const label = createLabelSprite(resource.name || resource.kind || '?');
     label.position.y = 0.8;
     group.add(label);
     return group;

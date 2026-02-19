@@ -48,7 +48,7 @@ export interface ServicePort {
 
 export interface IngressRule {
   host?: string;
-  paths: Array<{ path: string; serviceName: string; servicePort: number }>;
+  paths?: Array<{ path: string; serviceName: string; servicePort: number }>;
 }
 
 export interface GraphNode {
