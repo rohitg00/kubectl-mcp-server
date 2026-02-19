@@ -113,6 +113,17 @@ const UI_CONFIGS: Record<string, UIConfig> = {
     }),
     primaryTool: "get_services",
   },
+  topology: {
+    name: "k8s-3d-topology",
+    title: "3D Cluster Topology",
+    description:
+      "Real-time 3D interactive Kubernetes cluster topology viewer with resource relationships, traffic visualization, and click-to-inspect details",
+    schema: z.object({
+      namespace: z.string().optional().describe("Namespace to view (empty for all namespaces)"),
+      context: z.string().optional().describe("Kubernetes context to use"),
+    }),
+    primaryTool: "get_pods",
+  },
 };
 
 export function createServer(config: KubectlMcpServerConfig = {}): McpServer {
