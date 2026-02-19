@@ -47,6 +47,7 @@ export const ClusterScene = forwardRef<ClusterSceneHandle, ClusterSceneProps>(fu
     lastTime: number;
     hoveredId: string | null;
     dragging: { id: string; startMouse: THREE.Vector2 } | null;
+    mouseDownPos: THREE.Vector2 | null;
     didDrag: boolean;
     ambientLight: THREE.AmbientLight;
     gridGroup: THREE.Group;
@@ -153,6 +154,7 @@ export const ClusterScene = forwardRef<ClusterSceneHandle, ClusterSceneProps>(fu
       lastTime: performance.now(),
       hoveredId: null as string | null,
       dragging: null as { id: string; startMouse: THREE.Vector2 } | null,
+      mouseDownPos: null as THREE.Vector2 | null,
       didDrag: false,
       ambientLight,
       gridGroup,
@@ -175,14 +177,17 @@ export const ClusterScene = forwardRef<ClusterSceneHandle, ClusterSceneProps>(fu
           }
         }
       }
-      const dx = e.clientX - (state.dragging?.startMouse.x ?? e.clientX);
-      const dy = e.clientY - (state.dragging?.startMouse.y ?? e.clientY);
-      if (Math.sqrt(dx * dx + dy * dy) > 4) state.didDrag = true;
+      if (state.mouseDownPos) {
+        const dx = e.clientX - state.mouseDownPos.x;
+        const dy = e.clientY - state.mouseDownPos.y;
+        if (Math.sqrt(dx * dx + dy * dy) > 4) state.didDrag = true;
+      }
     };
 
     const onMouseDown = (e: MouseEvent) => {
       if (e.button !== 0) return;
       state.didDrag = false;
+      state.mouseDownPos = new THREE.Vector2(e.clientX, e.clientY);
       state.raycaster.setFromCamera(state.mouse, state.camera);
       const hits = state.raycaster.intersectObjects(state.pickableObjects, true);
       if (hits.length > 0) {
@@ -197,6 +202,7 @@ export const ClusterScene = forwardRef<ClusterSceneHandle, ClusterSceneProps>(fu
     };
 
     const onMouseUp = (e: MouseEvent) => {
+      state.mouseDownPos = null;
       if (state.dragging) {
         state.controls.enabled = true;
         canvas.style.cursor = 'default';
@@ -262,14 +268,17 @@ export const ClusterScene = forwardRef<ClusterSceneHandle, ClusterSceneProps>(fu
       for (const line of state.connectionLines.values()) {
         line.userData.flowOffset = (line.userData.flowOffset || 0) + (line.userData.flowSpeed || 2) * delta;
         const distances = line.geometry.attributes.lineDistance;
-        if (distances) {
+        const original = line.userData.originalDistances as Float32Array | undefined;
+        if (distances && original) {
           const arr = distances.array as Float32Array;
-          const total = arr[arr.length - 1];
-          const offset = line.userData.flowOffset;
-          for (let i = 0; i < arr.length; i++) {
-            arr[i] = ((arr[i] / total) * total + offset) % (total + 0.45);
+          const total = original[original.length - 1];
+          if (total > 0) {
+            const offset = line.userData.flowOffset;
+            for (let i = 0; i < arr.length; i++) {
+              arr[i] = (original[i] + offset) % (total + 0.45);
+            }
+            (distances as THREE.BufferAttribute).needsUpdate = true;
           }
-          (distances as THREE.BufferAttribute).needsUpdate = true;
         }
       }
 
@@ -422,6 +431,8 @@ export const ClusterScene = forwardRef<ClusterSceneHandle, ClusterSceneProps>(fu
 
       const line = new THREE.Line(geometry, material);
       line.computeLineDistances();
+      const ld = line.geometry.attributes.lineDistance;
+      if (ld) line.userData.originalDistances = new Float32Array(ld.array as Float32Array);
       line.userData.flowOffset = 0;
       line.userData.flowSpeed = 2.0 * (0.5 + Math.random() * 0.5);
       s.lineGroup.add(line);

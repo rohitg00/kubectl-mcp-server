@@ -54,10 +54,23 @@ function createGlowRing(color: number, radius: number): THREE.Mesh {
   const ring = new THREE.Mesh(ringGeo, ringMat);
   ring.rotation.x = -Math.PI / 2;
   ring.position.y = 0.02;
+  ring.userData.isGlow = true;
   return ring;
 }
 
-function createLabelSprite(text: string): THREE.Sprite {
+const LABEL_CACHE_MAX = 128;
+const labelTextureCache = new Map<string, THREE.Texture>();
+
+function getLabelTexture(text: string): THREE.Texture {
+  const cached = labelTextureCache.get(text);
+  if (cached) return cached;
+
+  if (labelTextureCache.size >= LABEL_CACHE_MAX) {
+    const oldest = labelTextureCache.keys().next().value!;
+    labelTextureCache.get(oldest)?.dispose();
+    labelTextureCache.delete(oldest);
+  }
+
   const canvas = document.createElement('canvas');
   const ctx = canvas.getContext('2d')!;
   canvas.width = 512;
@@ -103,6 +116,12 @@ function createLabelSprite(text: string): THREE.Sprite {
 
   const texture = new THREE.CanvasTexture(canvas);
   texture.minFilter = THREE.LinearFilter;
+  labelTextureCache.set(text, texture);
+  return texture;
+}
+
+function createLabelSprite(text: string): THREE.Sprite {
+  const texture = getLabelTexture(text);
   const spriteMat = new THREE.SpriteMaterial({
     map: texture,
     transparent: true,

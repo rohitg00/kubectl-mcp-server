@@ -13,8 +13,13 @@ declare global {
 async function callTool(name: string, args: Record<string, unknown> = {}): Promise<unknown> {
   if (!window.callServerTool) return null;
   const result = await window.callServerTool({ name, arguments: args });
-  const text = result.content[0]?.text;
-  return text ? JSON.parse(text) : null;
+  const text = result?.content?.[0]?.text;
+  if (!text) return null;
+  try {
+    return JSON.parse(text);
+  } catch {
+    return null;
+  }
 }
 
 function deriveStatus(status: Record<string, unknown>, objStatus: unknown): string {
@@ -33,6 +38,12 @@ function deriveStatus(status: Record<string, unknown>, objStatus: unknown): stri
   return 'Unknown';
 }
 
+function parseNumber(value: unknown): number | undefined {
+  if (value === null || value === undefined) return undefined;
+  const n = Number(value);
+  return Number.isNaN(n) ? undefined : n;
+}
+
 function parseResources(data: unknown, kind: string): K8sResource[] {
   if (!data || typeof data !== 'object') return [];
   const obj = data as Record<string, unknown>;
@@ -40,27 +51,27 @@ function parseResources(data: unknown, kind: string): K8sResource[] {
                 (obj[kind.toLowerCase() + 's'] as unknown[]) || [];
   if (!Array.isArray(items)) return [];
   return items.map((item: unknown) => {
-    const obj = item as Record<string, unknown>;
-    const metadata = (obj.metadata || obj) as Record<string, unknown>;
-    const status = (obj.status || obj) as Record<string, unknown>;
-    const spec = (obj.spec || obj) as Record<string, unknown>;
+    const entry = item as Record<string, unknown>;
+    const metadata = (entry.metadata || entry) as Record<string, unknown>;
+    const status = (entry.status || entry) as Record<string, unknown>;
+    const spec = (entry.spec || entry) as Record<string, unknown>;
     return {
       id: `${kind}-${metadata.namespace || 'cluster'}-${metadata.name}`,
       kind,
       name: String(metadata.name || ''),
       namespace: String(metadata.namespace || 'cluster'),
-      status: deriveStatus(status, obj.status),
-      labels: (metadata.labels || obj.labels) as Record<string, string> | undefined,
+      status: deriveStatus(status, entry.status),
+      labels: (metadata.labels || entry.labels) as Record<string, string> | undefined,
       ownerReferences: metadata.ownerReferences as K8sResource['ownerReferences'],
       creationTimestamp: String(metadata.creationTimestamp || ''),
-      nodeName: String(spec.nodeName || status.nodeName || obj.nodeName || ''),
-      replicas: Number(spec.replicas || obj.replicas || 0) || undefined,
-      readyReplicas: Number(status.readyReplicas || obj.readyReplicas || 0) || undefined,
-      selector: (spec.selector?.matchLabels || spec.selector || obj.selector) as Record<string, string> | undefined,
-      ports: (spec.ports || obj.ports) as K8sResource['ports'],
-      clusterIP: String(spec.clusterIP || obj.clusterIP || ''),
-      type: String(spec.type || obj.type || ''),
-      containerStatuses: (status.containerStatuses || obj.containerStatuses) as K8sResource['containerStatuses'],
+      nodeName: String(spec.nodeName || status.nodeName || entry.nodeName || ''),
+      replicas: parseNumber(spec.replicas ?? entry.replicas),
+      readyReplicas: parseNumber(status.readyReplicas ?? entry.readyReplicas),
+      selector: (spec.selector?.matchLabels || spec.selector || entry.selector) as Record<string, string> | undefined,
+      ports: (spec.ports || entry.ports) as K8sResource['ports'],
+      clusterIP: String(spec.clusterIP || entry.clusterIP || ''),
+      type: String(spec.type || entry.type || ''),
+      containerStatuses: (status.containerStatuses || entry.containerStatuses) as K8sResource['containerStatuses'],
       raw: item,
     } as K8sResource;
   });
@@ -92,11 +103,13 @@ export function useClusterData(namespace: string, selectedKinds: Set<string>, se
     const args = { namespace: ns, context };
 
     try {
-      const [podsData, deploymentsData, servicesData, ingressesData] = await Promise.all([
+      const [podsData, deploymentsData, servicesData, ingressesData, replicaSetsData, nodesData] = await Promise.all([
         callTool('get_pods', args),
         callTool('get_deployments', args),
         callTool('get_services', args),
         callTool('get_ingresses', args),
+        callTool('get_replicasets', args).catch(() => null),
+        callTool('get_nodes', {}).catch(() => null),
       ]);
 
       const allResources = new Map<string, K8sResource>();
@@ -104,6 +117,8 @@ export function useClusterData(namespace: string, selectedKinds: Set<string>, se
       for (const r of parseResources(deploymentsData, 'Deployment')) allResources.set(r.id, r);
       for (const r of parseResources(servicesData, 'Service')) allResources.set(r.id, r);
       for (const r of parseResources(ingressesData, 'Ingress')) allResources.set(r.id, r);
+      for (const r of parseResources(replicaSetsData, 'ReplicaSet')) allResources.set(r.id, r);
+      for (const r of parseResources(nodesData, 'Node')) allResources.set(r.id, r);
 
       setResources(allResources);
       setLoading(false);

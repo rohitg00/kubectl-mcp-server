@@ -30,11 +30,25 @@ export interface OwnerReference {
   uid: string;
 }
 
+export interface ContainerStateWaiting {
+  waiting: { reason?: string; message?: string };
+}
+
+export interface ContainerStateRunning {
+  running: { startedAt?: string };
+}
+
+export interface ContainerStateTerminated {
+  terminated: { exitCode: number; reason?: string; message?: string; startedAt?: string; finishedAt?: string };
+}
+
+export type ContainerState = ContainerStateWaiting | ContainerStateRunning | ContainerStateTerminated | string;
+
 export interface ContainerStatus {
   name: string;
   ready: boolean;
   restartCount: number;
-  state: string;
+  state: ContainerState;
   image: string;
 }
 
