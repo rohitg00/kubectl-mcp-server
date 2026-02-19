@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import type { GraphNode, GraphEdge } from '../lib/types';
+import { KIND_COLORS } from '../lib/constants';
 
 interface MinimapProps {
   nodes: GraphNode[];
@@ -9,15 +10,9 @@ interface MinimapProps {
   height?: number;
 }
 
-const KIND_COLORS: Record<string, string> = {
-  Pod: '#326CE5', Deployment: '#f97316', ReplicaSet: '#eab308', StatefulSet: '#a855f7',
-  DaemonSet: '#06b6d4', Service: '#326CE5', Ingress: '#8b5cf6', ConfigMap: '#92400e',
-  Secret: '#991b1b', Node: '#374151',
-};
-
 export function Minimap({ nodes, edges, selectedId, width = 200, height = 150 }: MinimapProps): React.ReactElement {
   const { viewBox, scaledNodes, scaledEdges } = useMemo(() => {
-    if (nodes.length === 0) return { viewBox: '0 0 200 150', scaledNodes: [], scaledEdges: [] };
+    if (nodes.length === 0) return { viewBox: `0 0 ${width} ${height}`, scaledNodes: [], scaledEdges: [] };
 
     let minX = Infinity, maxX = -Infinity, minZ = Infinity, maxZ = -Infinity;
     for (const n of nodes) {

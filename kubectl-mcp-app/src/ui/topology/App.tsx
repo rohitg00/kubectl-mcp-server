@@ -15,6 +15,7 @@ export function TopologyApp(): React.ReactElement {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [describeOutput, setDescribeOutput] = useState<string | null>(null);
   const [describeLoading, setDescribeLoading] = useState(false);
+  const [dismissedError, setDismissedError] = useState(false);
   const sceneRef = useRef<ClusterSceneHandle>(null);
 
   const { nodes, edges, resources, namespaces, kinds, loading, error, refresh, describeResource } = useClusterData(selectedNamespace, selectedKinds, searchQuery);
@@ -43,9 +44,14 @@ export function TopologyApp(): React.ReactElement {
 
   const handleDescribe = useCallback(async (resource: { id: string; kind: string; name: string; namespace: string }) => {
     setDescribeLoading(true);
-    const output = await describeResource(resource as Parameters<typeof describeResource>[0]);
-    setDescribeOutput(output);
-    setDescribeLoading(false);
+    try {
+      const output = await describeResource(resource as Parameters<typeof describeResource>[0]);
+      setDescribeOutput(output);
+    } catch (err) {
+      setDescribeOutput(err instanceof Error ? err.message : 'Failed to describe resource');
+    } finally {
+      setDescribeLoading(false);
+    }
   }, [describeResource]);
 
   return (
@@ -58,7 +64,7 @@ export function TopologyApp(): React.ReactElement {
           <h1>3D Cluster Topology</h1>
         </div>
         <div className="top-bar-right">
-          <button className="btn-icon" onClick={refresh} title="Refresh">{'\u21BB'}</button>
+          <button className="btn-icon" onClick={() => { setDismissedError(false); refresh(); }} title="Refresh">{'\u21BB'}</button>
           <button className="btn-icon" onClick={() => sceneRef.current?.resetCamera()} title="Reset Camera">{'\u2302'}</button>
           <button className="btn-icon" onClick={toggleTheme} title="Toggle Theme">
             {theme === 'dark' ? '\u2600' : '\u263D'}
@@ -79,10 +85,11 @@ export function TopologyApp(): React.ReactElement {
         edgeCount={edges.length}
       />
 
-      {error && (
+      {error && !dismissedError && (
         <div className="error-banner">
           {error}
-          <button onClick={() => refresh()}>{'\u2715'}</button>
+          <button onClick={() => setDismissedError(true)} title="Dismiss">{'\u2715'}</button>
+          <button onClick={() => { setDismissedError(false); refresh(); }} title="Retry">{'\u21BB'}</button>
         </div>
       )}
 

@@ -47,7 +47,7 @@ export function buildRelationships(resources: Map<string, K8sResource>): GraphEd
         const targetSvc = services.find(s => s.name === path.serviceName && s.namespace === ing.namespace);
         if (targetSvc) {
           edges.push({
-            id: `ing-svc-${ing.id}-${targetSvc.id}`,
+            id: `ing-svc-${ing.id}-${targetSvc.id}-${path.path || '/'}:${path.servicePort}`,
             source: ing.id,
             target: targetSvc.id,
             type: 'network',

@@ -228,10 +228,12 @@ export const ClusterScene = forwardRef<ClusterSceneHandle, ClusterSceneProps>(fu
       state.camera.updateProjectionMatrix();
     };
 
+    const onContextMenu = (e: MouseEvent) => e.preventDefault();
+
     canvas.addEventListener('mousemove', onMouseMove);
     canvas.addEventListener('mousedown', onMouseDown);
     canvas.addEventListener('mouseup', onMouseUp);
-    canvas.addEventListener('contextmenu', e => e.preventDefault());
+    canvas.addEventListener('contextmenu', onContextMenu);
     window.addEventListener('resize', onResize);
 
     const animate = () => {
@@ -290,6 +292,7 @@ export const ClusterScene = forwardRef<ClusterSceneHandle, ClusterSceneProps>(fu
       canvas.removeEventListener('mousemove', onMouseMove);
       canvas.removeEventListener('mousedown', onMouseDown);
       canvas.removeEventListener('mouseup', onMouseUp);
+      canvas.removeEventListener('contextmenu', onContextMenu);
       window.removeEventListener('resize', onResize);
       state.controls.dispose();
       for (const group of state.resourceMeshes.values()) {

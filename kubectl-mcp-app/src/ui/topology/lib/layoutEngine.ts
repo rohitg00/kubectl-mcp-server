@@ -39,6 +39,8 @@ export function layoutGraph(nodes: GraphNode[], edges: GraphEdge[]): void {
     nsIndex++;
   }
 
+  const idToNode = new Map<string, GraphNode>(nodes.map(n => [n.id, n]));
+
   for (let iter = 0; iter < ITERATIONS; iter++) {
     const cooling = 1 - iter / ITERATIONS;
 
@@ -48,9 +50,9 @@ export function layoutGraph(nodes: GraphNode[], edges: GraphEdge[]): void {
         const b = nodes[j];
         const dx = a.x - b.x;
         const dz = a.z - b.z;
-        const distSq = dx * dx + dz * dz;
-        const dist = Math.sqrt(distSq) || 0.01;
-        const force = (REPULSION / distSq) * cooling;
+        const guardedDistSq = Math.max(dx * dx + dz * dz, 1e-4);
+        const dist = Math.sqrt(guardedDistSq);
+        const force = (REPULSION / guardedDistSq) * cooling;
         const fx = (dx / dist) * force;
         const fz = (dz / dist) * force;
         a.vx += fx;
@@ -61,8 +63,8 @@ export function layoutGraph(nodes: GraphNode[], edges: GraphEdge[]): void {
     }
 
     for (const edge of edges) {
-      const a = nodes.find(n => n.id === edge.source);
-      const b = nodes.find(n => n.id === edge.target);
+      const a = idToNode.get(edge.source);
+      const b = idToNode.get(edge.target);
       if (!a || !b) continue;
       const dx = b.x - a.x;
       const dz = b.z - a.z;

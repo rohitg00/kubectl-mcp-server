@@ -753,12 +753,6 @@ CREATORS.PersistentVolumeClaim = CREATORS.PVC;
 CREATORS.HorizontalPodAutoscaler = CREATORS.HPA;
 
 export class MeshFactory {
-  private geometryCache: Map<string, THREE.BufferGeometry>;
-
-  constructor() {
-    this.geometryCache = new Map();
-  }
-
   create(resource: ResourceInput): THREE.Group {
     const creator = CREATORS[resource.type || ''];
     if (!creator) {
@@ -805,12 +799,16 @@ export class MeshFactory {
       if (child instanceof THREE.Mesh || child instanceof THREE.LineSegments) {
         if (child.geometry) child.geometry.dispose();
         if (child.material) {
-          const mat = child.material as THREE.Material & { map?: THREE.Texture };
-          if (mat.map) mat.map.dispose();
           if (Array.isArray(child.material)) {
-            (child.material as THREE.Material[]).forEach((m) => m.dispose());
+            for (const m of child.material as THREE.Material[]) {
+              const mat = m as THREE.Material & { map?: THREE.Texture };
+              if (mat.map) mat.map.dispose();
+              mat.dispose();
+            }
           } else {
-            (child.material as THREE.Material).dispose();
+            const mat = child.material as THREE.Material & { map?: THREE.Texture };
+            if (mat.map) mat.map.dispose();
+            mat.dispose();
           }
         }
       }

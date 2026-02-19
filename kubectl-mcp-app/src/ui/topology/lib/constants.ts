@@ -1,0 +1,18 @@
+export const KIND_COLORS: Record<string, string> = {
+  Pod: '#326CE5',
+  Deployment: '#f97316',
+  ReplicaSet: '#eab308',
+  StatefulSet: '#a855f7',
+  DaemonSet: '#06b6d4',
+  Service: '#326CE5',
+  Ingress: '#8b5cf6',
+  ConfigMap: '#92400e',
+  Secret: '#991b1b',
+  PersistentVolumeClaim: '#6b7280',
+  Node: '#374151',
+  Namespace: '#326CE5',
+  HPA: '#14b8a6',
+  NetworkPolicy: '#ef4444',
+  Job: '#22c55e',
+  CronJob: '#8b5cf6',
+};

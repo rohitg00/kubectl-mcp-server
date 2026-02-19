@@ -41,7 +41,7 @@ export interface ContainerStatus {
 export interface ServicePort {
   name?: string;
   port: number;
-  targetPort: number;
+  targetPort: number | string;
   protocol: string;
   nodePort?: number;
 }

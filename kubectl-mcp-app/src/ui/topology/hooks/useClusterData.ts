@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import type { K8sResource, GraphNode, GraphEdge } from '../lib/types';
 import { buildRelationships } from '../lib/k8sRelationships';
 import { layoutGraph } from '../lib/layoutEngine';
@@ -17,6 +17,22 @@ async function callTool(name: string, args: Record<string, unknown> = {}): Promi
   return text ? JSON.parse(text) : null;
 }
 
+function deriveStatus(status: Record<string, unknown>, objStatus: unknown): string {
+  if (typeof status.phase === 'string' && status.phase) return status.phase;
+  if (typeof status.status === 'string' && status.status) return status.status;
+  if (typeof objStatus === 'string' && objStatus) return objStatus;
+  if (status.conditions && Array.isArray(status.conditions)) {
+    for (const cond of status.conditions as Array<Record<string, unknown>>) {
+      if (cond.type === 'Available' && cond.status === 'True') return 'Available';
+      if (cond.type === 'Progressing' && cond.status === 'True') return 'Progressing';
+    }
+    const first = status.conditions[0] as Record<string, unknown> | undefined;
+    if (first?.reason && typeof first.reason === 'string') return first.reason;
+  }
+  if (typeof objStatus === 'object' && objStatus !== null) return 'Active';
+  return 'Unknown';
+}
+
 function parseResources(data: unknown, kind: string): K8sResource[] {
   if (!data || typeof data !== 'object') return [];
   const items = (data as Record<string, unknown>)[kind.toLowerCase() + 's'] as unknown[] ||
@@ -32,7 +48,7 @@ function parseResources(data: unknown, kind: string): K8sResource[] {
       kind,
       name: String(metadata.name || ''),
       namespace: String(metadata.namespace || 'cluster'),
-      status: String(status.phase || status.status || obj.status || 'Unknown'),
+      status: deriveStatus(status, obj.status),
       labels: (metadata.labels || obj.labels) as Record<string, string> | undefined,
       ownerReferences: metadata.ownerReferences as K8sResource['ownerReferences'],
       creationTimestamp: String(metadata.creationTimestamp || ''),
@@ -148,7 +164,12 @@ export function useClusterData(namespace: string, selectedKinds: Set<string>, se
     label: e.label,
   }));
 
-  if (graphNodes.some(n => n.x === 0 && n.z === 0) || graphNodes.length !== layoutCacheRef.current.size) {
+  const currentNodeIds = new Set(graphNodes.map(n => n.id));
+  const cachedNodeIds = new Set(layoutCacheRef.current.keys());
+  const idsChanged = currentNodeIds.size !== cachedNodeIds.size ||
+    [...currentNodeIds].some(id => !cachedNodeIds.has(id));
+
+  if (idsChanged) {
     layoutGraph(graphNodes, edgeObjects);
     layoutCacheRef.current = new Map(graphNodes.map(n => [n.id, { x: n.x, z: n.z }]));
   }
@@ -156,7 +177,9 @@ export function useClusterData(namespace: string, selectedKinds: Set<string>, se
   const namespaces = [...new Set(Array.from(resources.values()).map(r => r.namespace))].sort();
   const kinds = [...new Set(Array.from(resources.values()).map(r => r.kind))].sort();
 
-  return { nodes: graphNodes, edges: edgeObjects, resources, namespaces, kinds, loading, error, refresh: fetchData, describeResource };
+  const stableEdges = useMemo(() => edgeObjects, [edges.map(e => e.id).join(',')]);
+
+  return { nodes: graphNodes, edges: stableEdges, resources, namespaces, kinds, loading, error, refresh: fetchData, describeResource };
 }
 
 function getMockResources(): Map<string, K8sResource> {
