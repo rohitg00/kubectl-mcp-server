@@ -94,8 +94,10 @@ export function useClusterData(namespace: string, selectedKinds: Set<string>, se
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const layoutCacheRef = useRef<Map<string, { x: number; z: number }>>(new Map());
+  const fetchGenRef = useRef(0);
 
   const fetchData = useCallback(async () => {
+    const gen = ++fetchGenRef.current;
     setLoading(true);
     setError(null);
     const context = window.initialArgs?.context || '';
@@ -112,6 +114,8 @@ export function useClusterData(namespace: string, selectedKinds: Set<string>, se
         callTool('get_nodes', {}).catch(() => null),
       ]);
 
+      if (gen !== fetchGenRef.current) return;
+
       const allResources = new Map<string, K8sResource>();
       for (const r of parseResources(podsData, 'Pod')) allResources.set(r.id, r);
       for (const r of parseResources(deploymentsData, 'Deployment')) allResources.set(r.id, r);
@@ -123,6 +127,7 @@ export function useClusterData(namespace: string, selectedKinds: Set<string>, se
       setResources(allResources);
       setLoading(false);
     } catch (err) {
+      if (gen !== fetchGenRef.current) return;
       setError(err instanceof Error ? err.message : 'Failed to fetch cluster data');
       setResources(getMockResources());
       setLoading(false);

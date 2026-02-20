@@ -90,10 +90,12 @@ export interface GraphEdge {
 
 export type RelationshipType = 'ownership' | 'network' | 'storage' | 'config';
 
+/** Used by the planned watch/streaming feature for real-time cluster updates. */
 export interface ClusterState {
   resources: Map<string, K8sResource>;
   nodes: Map<string, GraphNode>;
   edges: Map<string, GraphEdge>;
 }
 
+/** Used by the planned watch/streaming feature for real-time cluster updates. */
 export type WatchEventType = 'ADDED' | 'MODIFIED' | 'DELETED' | 'SNAPSHOT';

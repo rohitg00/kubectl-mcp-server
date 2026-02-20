@@ -63,7 +63,11 @@ const labelTextureCache = new Map<string, THREE.Texture>();
 
 function getLabelTexture(text: string): THREE.Texture {
   const cached = labelTextureCache.get(text);
-  if (cached) return cached;
+  if (cached) {
+    labelTextureCache.delete(text);
+    labelTextureCache.set(text, cached);
+    return cached;
+  }
 
   if (labelTextureCache.size >= LABEL_CACHE_MAX) {
     const oldest = labelTextureCache.keys().next().value!;
@@ -815,7 +819,7 @@ export class MeshFactory {
   dispose(group: THREE.Group | null): void {
     if (!group) return;
     group.traverse((child) => {
-      if (child instanceof THREE.Mesh || child instanceof THREE.LineSegments) {
+      if (child instanceof THREE.Mesh || child instanceof THREE.Line) {
         if (child.geometry) child.geometry.dispose();
         if (child.material) {
           if (Array.isArray(child.material)) {

@@ -56,8 +56,10 @@ export const ClusterScene = forwardRef<ClusterSceneHandle, ClusterSceneProps>(fu
   const onSelectRef = useRef(onSelect);
   const onHoverRef = useRef(onHover);
 
-  onSelectRef.current = onSelect;
-  onHoverRef.current = onHover;
+  useEffect(() => {
+    onSelectRef.current = onSelect;
+    onHoverRef.current = onHover;
+  }, [onSelect, onHover]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -265,7 +267,26 @@ export const ClusterScene = forwardRef<ClusterSceneHandle, ClusterSceneProps>(fu
         }
       }
 
+      const dragId = state.dragging?.id;
       for (const line of state.connectionLines.values()) {
+        if (dragId && (line.userData.sourceId === dragId || line.userData.targetId === dragId)) {
+          const srcGroup = state.resourceMeshes.get(line.userData.sourceId as string);
+          const tgtGroup = state.resourceMeshes.get(line.userData.targetId as string);
+          if (srcGroup && tgtGroup) {
+            const sp = srcGroup.position;
+            const tp = tgtGroup.position;
+            const mid = new THREE.Vector3((sp.x + tp.x) / 2, (sp.y + tp.y) / 2, (sp.z + tp.z) / 2);
+            const d = sp.distanceTo(tp);
+            mid.y += Math.min(d * 0.3, 3);
+            const curve = new THREE.QuadraticBezierCurve3(sp.clone(), mid, tp.clone());
+            const points = curve.getPoints(32);
+            line.geometry.setFromPoints(points);
+            line.computeLineDistances();
+            const ld = line.geometry.attributes.lineDistance;
+            if (ld) line.userData.originalDistances = new Float32Array(ld.array as Float32Array);
+          }
+        }
+
         line.userData.flowOffset = (line.userData.flowOffset || 0) + (line.userData.flowSpeed || 2) * delta;
         const distances = line.geometry.attributes.lineDistance;
         const original = line.userData.originalDistances as Float32Array | undefined;
@@ -435,6 +456,8 @@ export const ClusterScene = forwardRef<ClusterSceneHandle, ClusterSceneProps>(fu
       if (ld) line.userData.originalDistances = new Float32Array(ld.array as Float32Array);
       line.userData.flowOffset = 0;
       line.userData.flowSpeed = 2.0 * (0.5 + Math.random() * 0.5);
+      line.userData.sourceId = edge.source;
+      line.userData.targetId = edge.target;
       s.lineGroup.add(line);
       s.connectionLines.set(edge.id, line);
     }
