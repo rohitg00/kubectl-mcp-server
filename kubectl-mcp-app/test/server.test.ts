@@ -52,7 +52,7 @@ describe("Server", () => {
       expect(server).toBeDefined();
     });
 
-    it("should register all 8 UI tools", () => {
+    it("should register all 9 UI tools plus proxy", () => {
       const server = createServer();
       const mockServer = (McpServer as unknown as ReturnType<typeof vi.fn>).mock
         .results[0].value;
@@ -70,10 +70,11 @@ describe("Server", () => {
       expect(toolNames).toContain("k8s-cost");
       expect(toolNames).toContain("k8s-events");
       expect(toolNames).toContain("k8s-network");
+      expect(toolNames).toContain("k8s-3d-topology");
       expect(toolNames).toContain("k8s-proxy");
     });
 
-    it("should register all 8 UI resources", () => {
+    it("should register all 9 UI resources", () => {
       const server = createServer();
       const mockServer = (McpServer as unknown as ReturnType<typeof vi.fn>).mock
         .results[0].value;
@@ -91,6 +92,7 @@ describe("Server", () => {
       expect(resourceUris).toContain("ui://k8s/cost.html");
       expect(resourceUris).toContain("ui://k8s/events.html");
       expect(resourceUris).toContain("ui://k8s/network.html");
+      expect(resourceUris).toContain("ui://k8s/topology.html");
     });
   });
 
