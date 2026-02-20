@@ -648,6 +648,7 @@ const CREATORS: Record<string, CreatorFn> = {
     });
     const indicator = new THREE.Mesh(indicatorGeom, indicatorMat);
     indicator.position.set(-1.2, 0.38, -0.8);
+    indicator.userData.isGlow = true;
     group.add(indicator);
 
     const label = createLabelSprite(resource.name || 'node');
@@ -775,6 +776,11 @@ const CREATORS: Record<string, CreatorFn> = {
 CREATORS.PersistentVolumeClaim = CREATORS.PVC;
 CREATORS.HorizontalPodAutoscaler = CREATORS.HPA;
 
+export function clearLabelCache(): void {
+  for (const tex of labelTextureCache.values()) tex.dispose();
+  labelTextureCache.clear();
+}
+
 export class MeshFactory {
   create(resource: ResourceInput): THREE.Group {
     const creator = CREATORS[resource.kind || ''];
@@ -836,7 +842,14 @@ export class MeshFactory {
         }
       }
       if (child instanceof THREE.Sprite) {
-        if (child.material.map) child.material.map.dispose();
+        const tex = child.material.map;
+        if (tex) {
+          let isCached = false;
+          for (const cached of labelTextureCache.values()) {
+            if (cached === tex) { isCached = true; break; }
+          }
+          if (!isCached) tex.dispose();
+        }
         child.material.dispose();
       }
     });

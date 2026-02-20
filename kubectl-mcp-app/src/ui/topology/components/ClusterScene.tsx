@@ -1,7 +1,7 @@
 import React, { useRef, useEffect, useImperativeHandle, forwardRef } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-import { MeshFactory } from '../lib/meshFactory';
+import { MeshFactory, clearLabelCache } from '../lib/meshFactory';
 import type { GraphNode, GraphEdge } from '../lib/types';
 
 const BACKGROUND_DARK = 0x0d1117;
@@ -49,9 +49,12 @@ export const ClusterScene = forwardRef<ClusterSceneHandle, ClusterSceneProps>(fu
     dragging: { id: string; startMouse: THREE.Vector2 } | null;
     mouseDownPos: THREE.Vector2 | null;
     didDrag: boolean;
+    draggedPositions: Map<string, { x: number; z: number }>;
     ambientLight: THREE.AmbientLight;
     gridGroup: THREE.Group;
   } | null>(null);
+
+  const prevSelectedRef = useRef<string | null>(null);
 
   const onSelectRef = useRef(onSelect);
   const onHoverRef = useRef(onHover);
@@ -158,6 +161,7 @@ export const ClusterScene = forwardRef<ClusterSceneHandle, ClusterSceneProps>(fu
       dragging: null as { id: string; startMouse: THREE.Vector2 } | null,
       mouseDownPos: null as THREE.Vector2 | null,
       didDrag: false,
+      draggedPositions: new Map<string, { x: number; z: number }>(),
       ambientLight,
       gridGroup,
     };
@@ -206,6 +210,10 @@ export const ClusterScene = forwardRef<ClusterSceneHandle, ClusterSceneProps>(fu
     const onMouseUp = (e: MouseEvent) => {
       state.mouseDownPos = null;
       if (state.dragging) {
+        const group = state.resourceMeshes.get(state.dragging.id);
+        if (group) {
+          state.draggedPositions.set(state.dragging.id, { x: group.position.x, z: group.position.z });
+        }
         state.controls.enabled = true;
         canvas.style.cursor = 'default';
         state.dragging = null;
@@ -275,15 +283,34 @@ export const ClusterScene = forwardRef<ClusterSceneHandle, ClusterSceneProps>(fu
           if (srcGroup && tgtGroup) {
             const sp = srcGroup.position;
             const tp = tgtGroup.position;
-            const mid = new THREE.Vector3((sp.x + tp.x) / 2, (sp.y + tp.y) / 2, (sp.z + tp.z) / 2);
-            const d = sp.distanceTo(tp);
-            mid.y += Math.min(d * 0.3, 3);
-            const curve = new THREE.QuadraticBezierCurve3(sp.clone(), mid, tp.clone());
-            const points = curve.getPoints(32);
-            line.geometry.setFromPoints(points);
-            line.computeLineDistances();
-            const ld = line.geometry.attributes.lineDistance;
-            if (ld) line.userData.originalDistances = new Float32Array(ld.array as Float32Array);
+            const lastSrc = line.userData.lastSrcPos as THREE.Vector3 | undefined;
+            const lastTgt = line.userData.lastTgtPos as THREE.Vector3 | undefined;
+            if (!lastSrc || !lastTgt || !lastSrc.equals(sp) || !lastTgt.equals(tp)) {
+              if (!line.userData.scratchMid) {
+                line.userData.scratchMid = new THREE.Vector3();
+                line.userData.scratchSp = new THREE.Vector3();
+                line.userData.scratchTp = new THREE.Vector3();
+                line.userData.lastSrcPos = new THREE.Vector3();
+                line.userData.lastTgtPos = new THREE.Vector3();
+              }
+              const mid = (line.userData.scratchMid as THREE.Vector3).set(
+                (sp.x + tp.x) / 2, (sp.y + tp.y) / 2, (sp.z + tp.z) / 2
+              );
+              const d = sp.distanceTo(tp);
+              mid.y += Math.min(d * 0.3, 3);
+              const curve = new THREE.QuadraticBezierCurve3(
+                (line.userData.scratchSp as THREE.Vector3).copy(sp),
+                mid,
+                (line.userData.scratchTp as THREE.Vector3).copy(tp)
+              );
+              const points = curve.getPoints(32);
+              line.geometry.setFromPoints(points);
+              line.computeLineDistances();
+              const ld = line.geometry.attributes.lineDistance;
+              if (ld) line.userData.originalDistances = new Float32Array(ld.array as Float32Array);
+              (line.userData.lastSrcPos as THREE.Vector3).copy(sp);
+              (line.userData.lastTgtPos as THREE.Vector3).copy(tp);
+            }
           }
         }
 
@@ -333,6 +360,16 @@ export const ClusterScene = forwardRef<ClusterSceneHandle, ClusterSceneProps>(fu
         line.geometry.dispose();
         (line.material as THREE.Material).dispose();
       }
+      state.gridGroup.traverse((child: THREE.Object3D) => {
+        if ((child as THREE.Mesh).geometry) (child as THREE.Mesh).geometry.dispose();
+        const mat = (child as THREE.Mesh).material;
+        if (mat) {
+          if (Array.isArray(mat)) mat.forEach(m => m.dispose());
+          else (mat as THREE.Material).dispose();
+        }
+      });
+      state.scene.remove(state.gridGroup);
+      clearLabelCache();
       state.renderer.dispose();
     };
   }, []);
@@ -355,8 +392,9 @@ export const ClusterScene = forwardRef<ClusterSceneHandle, ClusterSceneProps>(fu
     for (const node of nodes) {
       if (currentIds.has(node.id)) {
         const group = s.resourceMeshes.get(node.id)!;
-        group.position.x = node.x;
-        group.position.z = node.z;
+        const dragged = s.draggedPositions.get(node.id);
+        group.position.x = dragged?.x ?? node.x;
+        group.position.z = dragged?.z ?? node.z;
         if (node.kind !== 'Pod') group.position.y = node.y;
         s.meshFactory.updateStatus(group, node.status);
       } else {
@@ -389,6 +427,7 @@ export const ClusterScene = forwardRef<ClusterSceneHandle, ClusterSceneProps>(fu
         s.scene.remove(group);
         s.meshFactory.dispose(group);
         s.resourceMeshes.delete(id);
+        s.draggedPositions.delete(id);
       }
     }
 
@@ -466,21 +505,35 @@ export const ClusterScene = forwardRef<ClusterSceneHandle, ClusterSceneProps>(fu
   useEffect(() => {
     const s = sceneRef.current;
     if (!s) return;
-    for (const [id, group] of s.resourceMeshes) {
-      const isSelected = id === selectedId;
+    const prev = prevSelectedRef.current;
+    prevSelectedRef.current = selectedId;
+
+    const restoreGroup = (group: THREE.Group) => {
       group.traverse((child: THREE.Object3D) => {
         if (!(child as THREE.Mesh).isMesh || child.userData.isLabel) return;
         const mat = (child as THREE.Mesh).material as THREE.MeshStandardMaterial;
-        if (!mat) return;
-        if (isSelected) {
-          if (mat.emissive) { mat.emissive.set(SELECT_COLOR); mat.emissiveIntensity = 0.5; }
-        } else {
-          if (child.userData.baseEmissive) {
-            mat.emissive.copy(child.userData.baseEmissive);
-            mat.emissiveIntensity = child.userData.baseEmissiveIntensity || 0.15;
-          }
+        if (mat && child.userData.baseEmissive) {
+          mat.emissive.copy(child.userData.baseEmissive);
+          mat.emissiveIntensity = child.userData.baseEmissiveIntensity || 0.15;
         }
       });
+    };
+
+    const highlightGroup = (group: THREE.Group) => {
+      group.traverse((child: THREE.Object3D) => {
+        if (!(child as THREE.Mesh).isMesh || child.userData.isLabel) return;
+        const mat = (child as THREE.Mesh).material as THREE.MeshStandardMaterial;
+        if (mat?.emissive) { mat.emissive.set(SELECT_COLOR); mat.emissiveIntensity = 0.5; }
+      });
+    };
+
+    if (prev && prev !== selectedId) {
+      const prevGroup = s.resourceMeshes.get(prev);
+      if (prevGroup) restoreGroup(prevGroup);
+    }
+    if (selectedId) {
+      const newGroup = s.resourceMeshes.get(selectedId);
+      if (newGroup) highlightGroup(newGroup);
     }
   }, [selectedId]);
 
