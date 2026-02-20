@@ -17,6 +17,7 @@ const UI_APPS = [
   "cost",
   "events",
   "network",
+  "topology",
 ];
 
 const distDir = join(rootDir, "dist", "ui");

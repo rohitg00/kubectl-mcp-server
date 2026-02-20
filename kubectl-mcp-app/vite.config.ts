@@ -12,6 +12,7 @@ const UI_APPS = [
   "cost",
   "events",
   "network",
+  "topology",
 ] as const;
 
 export default defineConfig(({ mode }) => {
