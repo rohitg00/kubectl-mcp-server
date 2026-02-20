@@ -77,6 +77,59 @@ function parseResources(data: unknown, kind: string): K8sResource[] {
   });
 }
 
+function parseJobResources(data: unknown): K8sResource[] {
+  if (!data || typeof data !== 'object') return [];
+  const obj = data as Record<string, unknown>;
+  const results: K8sResource[] = [];
+  const jobItems = (obj.jobs as unknown[]) || [];
+  if (Array.isArray(jobItems)) {
+    for (const item of jobItems) {
+      const entry = item as Record<string, unknown>;
+      const metadata = (entry.metadata || entry) as Record<string, unknown>;
+      const status = (entry.status || entry) as Record<string, unknown>;
+      const spec = (entry.spec || entry) as Record<string, unknown>;
+      const ownerRefs = metadata.ownerReferences as K8sResource['ownerReferences'];
+      const isCronJob = ownerRefs?.some(ref => ref.kind === 'CronJob');
+      const kind = isCronJob ? 'CronJob' : 'Job';
+      results.push({
+        id: `${kind}-${metadata.namespace || 'cluster'}-${metadata.name}`,
+        kind,
+        name: String(metadata.name || ''),
+        namespace: String(metadata.namespace || 'cluster'),
+        status: deriveStatus(status, entry.status),
+        labels: (metadata.labels || entry.labels) as Record<string, string> | undefined,
+        ownerReferences: ownerRefs,
+        creationTimestamp: String(metadata.creationTimestamp || ''),
+        replicas: parseNumber(spec.parallelism ?? spec.completions),
+        raw: item,
+      } as K8sResource);
+    }
+  }
+  const cronItems = (obj.cronjobs as unknown[]) || [];
+  if (Array.isArray(cronItems)) {
+    for (const item of cronItems) {
+      const entry = item as Record<string, unknown>;
+      const metadata = (entry.metadata || entry) as Record<string, unknown>;
+      const status = (entry.status || entry) as Record<string, unknown>;
+      results.push({
+        id: `CronJob-${metadata.namespace || 'cluster'}-${metadata.name}`,
+        kind: 'CronJob',
+        name: String(metadata.name || ''),
+        namespace: String(metadata.namespace || 'cluster'),
+        status: deriveStatus(status, entry.status),
+        labels: (metadata.labels || entry.labels) as Record<string, string> | undefined,
+        ownerReferences: metadata.ownerReferences as K8sResource['ownerReferences'],
+        creationTimestamp: String(metadata.creationTimestamp || ''),
+        raw: item,
+      } as K8sResource);
+    }
+  }
+  if (results.length === 0) {
+    return parseResources(data, 'Job');
+  }
+  return results;
+}
+
 export interface UseClusterDataResult {
   nodes: GraphNode[];
   edges: GraphEdge[];
@@ -105,13 +158,27 @@ export function useClusterData(namespace: string, selectedKinds: Set<string>, se
     const args = { namespace: ns, context };
 
     try {
-      const [podsData, deploymentsData, servicesData, ingressesData, replicaSetsData, nodesData] = await Promise.all([
+      const [
+        podsData, deploymentsData, servicesData, ingressesData, replicaSetsData, nodesData,
+        statefulSetsData, daemonSetsData, configMapsData, secretsData, pvcsData,
+        hpaData, jobsData, namespacesData, resourceQuotasData, networkPoliciesData,
+      ] = await Promise.all([
         callTool('get_pods', args),
         callTool('get_deployments', args),
         callTool('get_services', args),
         callTool('get_ingresses', args),
         callTool('get_replicasets', args).catch(() => null),
         callTool('get_nodes', {}).catch(() => null),
+        callTool('get_statefulsets', args).catch(() => null),
+        callTool('get_daemonsets', args).catch(() => null),
+        callTool('get_configmaps', args).catch(() => null),
+        callTool('get_secrets', args).catch(() => null),
+        callTool('get_pvcs', args).catch(() => null),
+        callTool('get_hpa', args).catch(() => null),
+        callTool('get_jobs', { ...args, include_cronjobs: true }).catch(() => null),
+        callTool('get_namespaces', { context }).catch(() => null),
+        callTool('get_resource_quotas', args).catch(() => null),
+        callTool('analyze_network_policies', args).catch(() => null),
       ]);
 
       if (gen !== fetchGenRef.current) return;
@@ -123,6 +190,16 @@ export function useClusterData(namespace: string, selectedKinds: Set<string>, se
       for (const r of parseResources(ingressesData, 'Ingress')) allResources.set(r.id, r);
       for (const r of parseResources(replicaSetsData, 'ReplicaSet')) allResources.set(r.id, r);
       for (const r of parseResources(nodesData, 'Node')) allResources.set(r.id, r);
+      for (const r of parseResources(statefulSetsData, 'StatefulSet')) allResources.set(r.id, r);
+      for (const r of parseResources(daemonSetsData, 'DaemonSet')) allResources.set(r.id, r);
+      for (const r of parseResources(configMapsData, 'ConfigMap')) allResources.set(r.id, r);
+      for (const r of parseResources(secretsData, 'Secret')) allResources.set(r.id, r);
+      for (const r of parseResources(pvcsData, 'PersistentVolumeClaim')) allResources.set(r.id, r);
+      for (const r of parseResources(hpaData, 'HorizontalPodAutoscaler')) allResources.set(r.id, r);
+      for (const r of parseJobResources(jobsData)) allResources.set(r.id, r);
+      for (const r of parseResources(namespacesData, 'Namespace')) allResources.set(r.id, r);
+      for (const r of parseResources(resourceQuotasData, 'ResourceQuota')) allResources.set(r.id, r);
+      for (const r of parseResources(networkPoliciesData, 'NetworkPolicy')) allResources.set(r.id, r);
 
       setResources(allResources);
       setLoading(false);
@@ -138,9 +215,9 @@ export function useClusterData(namespace: string, selectedKinds: Set<string>, se
 
   const describeResource = useCallback(async (resource: K8sResource): Promise<string> => {
     try {
-      const result = await callTool('describe_resource', {
+      const result = await callTool('kubectl_describe', {
         resource_type: resource.kind.toLowerCase(),
-        resource_name: resource.name,
+        name: resource.name,
         namespace: resource.namespace,
       });
       if (result && typeof result === 'object') {
@@ -222,6 +299,16 @@ function getMockResources(): Map<string, K8sResource> {
     { id: 'Service-default-api-svc', kind: 'Service', name: 'api-svc', namespace: 'default', status: 'Active', selector: { app: 'api' }, ports: [{ port: 8080, targetPort: 8080, protocol: 'TCP' }], clusterIP: '10.96.0.101', type: 'ClusterIP' },
     { id: 'Service-default-redis', kind: 'Service', name: 'redis', namespace: 'default', status: 'Active', selector: { app: 'redis' }, ports: [{ port: 6379, targetPort: 6379, protocol: 'TCP' }], clusterIP: '10.96.0.102' },
     { id: 'Pod-default-redis-0', kind: 'Pod', name: 'redis-0', namespace: 'default', status: 'Running', labels: { app: 'redis' } },
+    { id: 'StatefulSet-default-redis', kind: 'StatefulSet', name: 'redis', namespace: 'default', status: 'Available', replicas: 3, readyReplicas: 3 },
+    { id: 'DaemonSet-kube-system-fluentd', kind: 'DaemonSet', name: 'fluentd', namespace: 'kube-system', status: 'Running' },
+    { id: 'ConfigMap-default-app-config', kind: 'ConfigMap', name: 'app-config', namespace: 'default', status: 'Active' },
+    { id: 'Secret-default-db-creds', kind: 'Secret', name: 'db-creds', namespace: 'default', status: 'Active' },
+    { id: 'CronJob-default-backup', kind: 'CronJob', name: 'backup', namespace: 'default', status: 'Suspended' },
+    { id: 'Job-default-migration', kind: 'Job', name: 'migration', namespace: 'default', status: 'Completed' },
+    { id: 'HorizontalPodAutoscaler-default-nginx-hpa', kind: 'HorizontalPodAutoscaler', name: 'nginx-hpa', namespace: 'default', status: 'Active', currentUtilization: 65, targetUtilization: 80 },
+    { id: 'NetworkPolicy-default-deny-all', kind: 'NetworkPolicy', name: 'deny-all', namespace: 'default', status: 'Active' },
+    { id: 'Node-cluster-node-1', kind: 'Node', name: 'node-1', namespace: 'cluster', status: 'Running' },
+    { id: 'Node-cluster-node-2', kind: 'Node', name: 'node-2', namespace: 'cluster', status: 'Running' },
   ];
   for (const m of mocks) resources.set(m.id, m);
   return resources;
