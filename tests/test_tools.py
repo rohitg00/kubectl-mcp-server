@@ -121,8 +121,9 @@ EXPECTED_TOOLS = [
     "kind_node_logs_tool", "kind_node_inspect_tool", "kind_node_restart_tool",
     "kind_network_inspect_tool", "kind_port_mappings_tool", "kind_ingress_setup_tool",
     "kind_cluster_status_tool", "kind_images_list_tool", "kind_provider_info_tool",
-    # Custom resource discovery tools (custom_resources.py) - 5 tools
+    # Custom resource discovery tools (custom_resources.py) - 6 tools
     "discover_crds", "search_crds", "list_custom_resources", "get_custom_resource", "describe_crd",
+    "detect_crds",
 ]
 
 EXPECTED_TOOL_COUNT = len(EXPECTED_TOOLS)

@@ -1060,3 +1060,38 @@ def register_custom_resource_tools(server, non_destructive: bool):
                 }
             logger.error(f"Error describing CRD: {e}")
             return {"success": False, "error": error_msg}
+
+    @server.tool(
+        annotations=ToolAnnotations(
+            title="Detect CRD API Availability",
+            readOnlyHint=True,
+        ),
+    )
+    def detect_crds(
+        context: str = ""
+    ) -> Dict[str, Any]:
+        """Detect if the CRD API is available in the cluster.
+
+        Lightweight check that verifies the apiextensions.k8s.io API group
+        is accessible. Use before calling discover_crds or search_crds.
+
+        Args:
+            context: Kubernetes context (uses current if not specified)
+        """
+        try:
+            api = get_apiextensions_client(context)
+            crd_list = api.list_custom_resource_definition(limit=1)
+            count = len(crd_list.items)
+            return {
+                "installed": True,
+                "available": True,
+                "message": "CRD API (apiextensions.k8s.io) is accessible",
+                "hasCRDs": count > 0,
+            }
+        except Exception as e:
+            logger.error(f"Error detecting CRD API: {e}")
+            return {
+                "installed": False,
+                "available": False,
+                "error": str(e),
+            }

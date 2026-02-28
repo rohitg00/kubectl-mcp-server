@@ -549,10 +549,54 @@ class TestDescribeCRD:
         assert "hint" in data
 
 
+class TestDetectCRDs:
+
+    @pytest.mark.unit
+    @patch("kubectl_mcp_tool.tools.custom_resources.get_apiextensions_client")
+    def test_detect_available(self, mock_get_client):
+        mock_api = MagicMock()
+        mock_get_client.return_value = mock_api
+        mock_api.list_custom_resource_definition.return_value = MagicMock(
+            items=[MagicMock()]
+        )
+
+        from fastmcp import FastMCP
+        from kubectl_mcp_tool.tools.custom_resources import register_custom_resource_tools
+        server = FastMCP(name="test")
+        register_custom_resource_tools(server, False)
+
+        result = asyncio.run(
+            server.call_tool("detect_crds", {"context": ""})
+        )
+        import json
+        data = json.loads(result.content[0].text)
+        assert data["installed"] is True
+        assert data["available"] is True
+        assert data["hasCRDs"] is True
+
+    @pytest.mark.unit
+    @patch("kubectl_mcp_tool.tools.custom_resources.get_apiextensions_client")
+    def test_detect_unavailable(self, mock_get_client):
+        mock_get_client.side_effect = Exception("connection refused")
+
+        from fastmcp import FastMCP
+        from kubectl_mcp_tool.tools.custom_resources import register_custom_resource_tools
+        server = FastMCP(name="test")
+        register_custom_resource_tools(server, False)
+
+        result = asyncio.run(
+            server.call_tool("detect_crds", {"context": ""})
+        )
+        import json
+        data = json.loads(result.content[0].text)
+        assert data["installed"] is False
+        assert data["available"] is False
+
+
 class TestToolRegistration:
 
     @pytest.mark.unit
-    def test_five_tools_registered(self):
+    def test_six_tools_registered(self):
         from fastmcp import FastMCP
         from kubectl_mcp_tool.tools.custom_resources import register_custom_resource_tools
 
@@ -567,10 +611,11 @@ class TestToolRegistration:
             "list_custom_resources",
             "get_custom_resource",
             "describe_crd",
+            "detect_crds",
         ]
         for name in expected:
             assert name in tool_names, f"Tool '{name}' not registered"
-        assert len(tool_names) == 5
+        assert len(tool_names) == 6
 
     @pytest.mark.unit
     def test_import_from_init(self):
