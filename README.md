@@ -28,6 +28,10 @@ Talk to your clusters like you talk to a DevOps expert. Debug crashed pods, opti
 
 ---
 
+## Hosted deployment
+
+A hosted deployment is available on [Fronteir AI](https://fronteir.ai/mcp/rohitg00-kubectl-mcp-server).
+
 ## Installation
 
 ### Quick Start with npx (Recommended - Zero Install)
