@@ -18,8 +18,7 @@ logger = logging.getLogger("mcp-server")
 
 def register_deployment_tools(server: "FastMCP", non_destructive: bool):
     """Register deployment and workload management tools."""
-    from fastmcp import Context
-    from kubectl_mcp_tool.elicit import confirm_destructive
+    from kubectl_mcp_tool.elicit import check_write_allowed
 
     @server.tool(
         annotations=ToolAnnotations(
@@ -81,7 +80,6 @@ def register_deployment_tools(server: "FastMCP", non_destructive: bool):
         replicas: int,
         namespace: Optional[str] = "default",
         context: str = "",
-        ctx: Context = None
     ) -> Dict[str, Any]:
         """Create a new deployment.
 
@@ -92,7 +90,7 @@ def register_deployment_tools(server: "FastMCP", non_destructive: bool):
             namespace: Namespace to create deployment in (default: "default")
             context: Kubernetes context to use (uses current context if not specified)
         """
-        blocked = await confirm_destructive(ctx, "Create deployment", name, namespace)
+        blocked = await check_write_allowed()
         if blocked:
             return blocked
         try:
@@ -145,7 +143,6 @@ def register_deployment_tools(server: "FastMCP", non_destructive: bool):
         replicas: int,
         namespace: Optional[str] = "default",
         context: str = "",
-        ctx: Context = None
     ) -> Dict[str, Any]:
         """Scale a deployment to a specified number of replicas.
 
@@ -155,7 +152,7 @@ def register_deployment_tools(server: "FastMCP", non_destructive: bool):
             namespace: Namespace of the deployment (default: "default")
             context: Kubernetes context to use (uses current context if not specified)
         """
-        blocked = await confirm_destructive(ctx, "Scale deployment", f"{name} to {replicas}", namespace)
+        blocked = await check_write_allowed()
         if blocked:
             return blocked
         try:
@@ -187,7 +184,6 @@ def register_deployment_tools(server: "FastMCP", non_destructive: bool):
         name: str,
         namespace: str = "default",
         context: str = "",
-        ctx: Context = None
     ) -> Dict[str, Any]:
         """Restart a deployment by triggering a rolling update.
 
@@ -196,7 +192,7 @@ def register_deployment_tools(server: "FastMCP", non_destructive: bool):
             namespace: Namespace of the deployment (default: "default")
             context: Kubernetes context to use (uses current context if not specified)
         """
-        blocked = await confirm_destructive(ctx, "Restart deployment", name, namespace)
+        blocked = await check_write_allowed()
         if blocked:
             return blocked
         try:

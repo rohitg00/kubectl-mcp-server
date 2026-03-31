@@ -28,7 +28,7 @@ def register_pod_tools(
         non_destructive: If True, block destructive operations
     """
     from fastmcp import Context
-    from kubectl_mcp_tool.elicit import confirm_destructive
+    from kubectl_mcp_tool.elicit import confirm_destructive, check_write_allowed
 
     @server.tool(
         annotations=ToolAnnotations(
@@ -325,7 +325,6 @@ def register_pod_tools(
         labels: Optional[Dict[str, str]] = None,
         restart_policy: str = "Never",
         context: str = "",
-        ctx: Context = None
     ) -> Dict[str, Any]:
         """Run a container image as a pod (kubectl run equivalent).
 
@@ -348,7 +347,7 @@ def register_pod_tools(
             - Run busybox with command: run_pod(image="busybox", command=["sh", "-c"], args=["echo hello"])
             - Run with env vars: run_pod(image="alpine", env={"MY_VAR": "value"})
         """
-        blocked = await confirm_destructive(ctx, "Run pod", image, namespace)
+        blocked = await check_write_allowed()
         if blocked:
             return blocked
 

@@ -724,7 +724,7 @@ def backup_detect(context: str = "") -> Dict[str, Any]:
 def register_backup_tools(mcp: FastMCP, non_destructive: bool = False):
     """Register backup tools with the MCP server."""
     from fastmcp import Context
-    from kubectl_mcp_tool.elicit import confirm_destructive
+    from kubectl_mcp_tool.elicit import confirm_destructive, check_write_allowed
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
     def list_backups(
@@ -753,10 +753,9 @@ def register_backup_tools(mcp: FastMCP, non_destructive: bool = False):
         ttl: str = "720h",
         snapshot_volumes: bool = True,
         context: str = "",
-        ctx: Context = None
     ) -> str:
         """Create a new Velero backup."""
-        blocked = await confirm_destructive(ctx, "Create backup", name or "auto-named", namespace)
+        blocked = await check_write_allowed()
         if blocked:
             return json.dumps(blocked)
         inc_ns = [n.strip() for n in included_namespaces.split(",") if n.strip()] if included_namespaces else None
@@ -838,10 +837,9 @@ def register_backup_tools(mcp: FastMCP, non_destructive: bool = False):
         excluded_namespaces: str = "",
         ttl: str = "720h",
         context: str = "",
-        ctx: Context = None
     ) -> str:
         """Create a backup schedule."""
-        blocked = await confirm_destructive(ctx, "Create backup schedule", name, namespace)
+        blocked = await check_write_allowed()
         if blocked:
             return json.dumps(blocked)
         inc_ns = [n.strip() for n in included_namespaces.split(",") if n.strip()] if included_namespaces else None

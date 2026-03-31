@@ -237,6 +237,8 @@ class MCPServer:
             set_safety_mode(SafetyMode.READ_ONLY)
         elif config_mode == 'disable-destructive' or config_mode == 'disable_destructive':
             set_safety_mode(SafetyMode.DISABLE_DESTRUCTIVE)
+        elif config_mode == 'confirm' or config_mode == 'confirm-destructive' or config_mode == 'confirm_destructive':
+            set_safety_mode(SafetyMode.CONFIRM)
         else:
             set_safety_mode(SafetyMode.NORMAL)
 

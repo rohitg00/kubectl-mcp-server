@@ -68,7 +68,7 @@ def register_helm_tools(
         check_helm_fn: Function to check if Helm is available
     """
     from fastmcp import Context
-    from kubectl_mcp_tool.elicit import confirm_destructive
+    from kubectl_mcp_tool.elicit import confirm_destructive, check_write_allowed
 
     @server.tool(
         annotations=ToolAnnotations(
@@ -86,7 +86,6 @@ def register_helm_tools(
         repo: Optional[str] = None,
         values: Optional[dict] = None,
         context: str = "",
-        ctx: Context = None
     ) -> Dict[str, Any]:
         """Install a Helm chart.
 
@@ -98,7 +97,7 @@ def register_helm_tools(
             values: Values to override
             context: Kubernetes context to use (optional, uses current context if not specified)
         """
-        blocked = await confirm_destructive(ctx, "Install Helm chart", f"{chart} as {name}", namespace)
+        blocked = await check_write_allowed()
         if blocked:
             return blocked
         if not check_helm_fn():
