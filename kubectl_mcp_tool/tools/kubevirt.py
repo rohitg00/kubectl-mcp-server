@@ -637,6 +637,8 @@ def _kubevirt_detect(context: str = "") -> Dict[str, Any]:
 
 def register_kubevirt_tools(mcp: FastMCP, non_destructive: bool = False):
     """Register KubeVirt tools with the MCP server."""
+    from fastmcp import Context
+    from kubectl_mcp_tool.elicit import confirm_destructive
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
     def kubevirt_vms_list(
@@ -666,70 +668,82 @@ def register_kubevirt_tools(mcp: FastMCP, non_destructive: bool = False):
         return json.dumps(_kubevirt_vmis_list(namespace, context, label_selector), indent=2)
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=True, idempotentHint=False, openWorldHint=True))
-    def kubevirt_vm_start(
+    async def kubevirt_vm_start(
         name: str,
         namespace: str,
-        context: str = ""
+        context: str = "",
+        ctx: Context = None
     ) -> str:
         """Start a VirtualMachine."""
-        if non_destructive:
-            return json.dumps({"success": False, "error": "Operation blocked: non-destructive mode"})
+        blocked = await confirm_destructive(ctx, "Start VM", name, namespace)
+        if blocked:
+            return json.dumps(blocked)
         return json.dumps(_kubevirt_vm_start(name, namespace, context), indent=2)
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=True, idempotentHint=False, openWorldHint=True))
-    def kubevirt_vm_stop(
+    async def kubevirt_vm_stop(
         name: str,
         namespace: str,
         force: bool = False,
-        context: str = ""
+        context: str = "",
+        ctx: Context = None
     ) -> str:
         """Stop a VirtualMachine."""
-        if non_destructive:
-            return json.dumps({"success": False, "error": "Operation blocked: non-destructive mode"})
+        blocked = await confirm_destructive(ctx, "Stop VM", name, namespace)
+        if blocked:
+            return json.dumps(blocked)
         return json.dumps(_kubevirt_vm_stop(name, namespace, force, context), indent=2)
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=True, idempotentHint=False, openWorldHint=True))
-    def kubevirt_vm_restart(
+    async def kubevirt_vm_restart(
         name: str,
         namespace: str,
-        context: str = ""
+        context: str = "",
+        ctx: Context = None
     ) -> str:
         """Restart a VirtualMachine."""
-        if non_destructive:
-            return json.dumps({"success": False, "error": "Operation blocked: non-destructive mode"})
+        blocked = await confirm_destructive(ctx, "Restart VM", name, namespace)
+        if blocked:
+            return json.dumps(blocked)
         return json.dumps(_kubevirt_vm_restart(name, namespace, context), indent=2)
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=True, idempotentHint=False, openWorldHint=True))
-    def kubevirt_vm_pause(
+    async def kubevirt_vm_pause(
         name: str,
         namespace: str,
-        context: str = ""
+        context: str = "",
+        ctx: Context = None
     ) -> str:
         """Pause a VirtualMachine."""
-        if non_destructive:
-            return json.dumps({"success": False, "error": "Operation blocked: non-destructive mode"})
+        blocked = await confirm_destructive(ctx, "Pause VM", name, namespace)
+        if blocked:
+            return json.dumps(blocked)
         return json.dumps(_kubevirt_vm_pause(name, namespace, context), indent=2)
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=True, idempotentHint=False, openWorldHint=True))
-    def kubevirt_vm_unpause(
+    async def kubevirt_vm_unpause(
         name: str,
         namespace: str,
-        context: str = ""
+        context: str = "",
+        ctx: Context = None
     ) -> str:
         """Unpause a VirtualMachine."""
-        if non_destructive:
-            return json.dumps({"success": False, "error": "Operation blocked: non-destructive mode"})
+        blocked = await confirm_destructive(ctx, "Unpause VM", name, namespace)
+        if blocked:
+            return json.dumps(blocked)
         return json.dumps(_kubevirt_vm_unpause(name, namespace, context), indent=2)
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=True, idempotentHint=False, openWorldHint=True))
-    def kubevirt_vm_migrate(
+    async def kubevirt_vm_migrate(
         name: str,
         namespace: str,
-        context: str = ""
+        context: str = "",
+        ctx: Context = None
     ) -> str:
         """Trigger live migration of a VirtualMachine."""
-        if non_destructive:
-            return json.dumps({"success": False, "error": "Operation blocked: non-destructive mode"})
+        blocked = await confirm_destructive(ctx, "Migrate VM", name, namespace)
+        if blocked:
+            return json.dumps(blocked)
         return json.dumps(_kubevirt_vm_migrate(name, namespace, context), indent=2)
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))

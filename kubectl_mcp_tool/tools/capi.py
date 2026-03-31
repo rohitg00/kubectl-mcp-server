@@ -579,6 +579,8 @@ def capi_detect(context: str = "") -> Dict[str, Any]:
 
 def register_capi_tools(mcp: FastMCP, non_destructive: bool = False):
     """Register Cluster API tools with the MCP server."""
+    from fastmcp import Context
+    from kubectl_mcp_tool.elicit import confirm_destructive
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
     def capi_list_clusters(
@@ -628,15 +630,17 @@ def register_capi_tools(mcp: FastMCP, non_destructive: bool = False):
         return json.dumps(capi_machinedeployments_list(namespace, cluster_name, context, label_selector), indent=2)
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=True, idempotentHint=False, openWorldHint=True))
-    def capi_scale_machinedeployment(
+    async def capi_scale_machinedeployment(
         name: str,
         namespace: str,
         replicas: int,
-        context: str = ""
+        context: str = "",
+        ctx: Context = None
     ) -> str:
         """Scale a CAPI MachineDeployment."""
-        if non_destructive:
-            return json.dumps({"success": False, "error": "Operation blocked: non-destructive mode"})
+        blocked = await confirm_destructive(ctx, "Scale MachineDeployment", f"{name} to {replicas}", namespace)
+        if blocked:
+            return json.dumps(blocked)
         return json.dumps(capi_machinedeployment_scale(name, namespace, replicas, context), indent=2)
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))

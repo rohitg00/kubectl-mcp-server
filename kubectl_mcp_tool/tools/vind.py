@@ -597,6 +597,8 @@ _vind_platform_start_impl = vind_platform_start
 
 def register_vind_tools(mcp: "FastMCP", non_destructive: bool = False):
     """Register vind (vCluster in Docker) tools with the MCP server."""
+    from fastmcp import Context
+    from kubectl_mcp_tool.elicit import confirm_destructive
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
     def vind_detect() -> str:
@@ -634,14 +636,15 @@ def register_vind_tools(mcp: "FastMCP", non_destructive: bool = False):
         return json.dumps(_vind_logs_impl(name, namespace, follow=False, tail=tail), indent=2)
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=False, idempotentHint=False, openWorldHint=True))
-    def vind_create_cluster(
+    async def vind_create_cluster(
         name: str,
         namespace: str = "",
         kubernetes_version: str = "",
         values_file: str = "",
         set_values: str = "",
         connect: bool = True,
-        upgrade: bool = False
+        upgrade: bool = False,
+        ctx: Context = None
     ) -> str:
         """Create a new vCluster instance.
 
@@ -654,8 +657,9 @@ def register_vind_tools(mcp: "FastMCP", non_destructive: bool = False):
             connect: Update kubeconfig after creation
             upgrade: Upgrade existing vCluster instead of failing
         """
-        if non_destructive:
-            return json.dumps({"success": False, "error": "Operation blocked: non-destructive mode"})
+        blocked = await confirm_destructive(ctx, "Create vCluster", name, namespace or "default")
+        if blocked:
+            return json.dumps(blocked)
 
         values_list = [v.strip() for v in set_values.split(",") if v.strip()] if set_values else None
         return json.dumps(
@@ -664,62 +668,72 @@ def register_vind_tools(mcp: "FastMCP", non_destructive: bool = False):
         )
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=True, idempotentHint=True, openWorldHint=True))
-    def vind_delete_cluster(
+    async def vind_delete_cluster(
         name: str,
         namespace: str = "",
         delete_namespace: bool = False,
-        force: bool = False
+        force: bool = False,
+        ctx: Context = None
     ) -> str:
         """Delete a vCluster instance."""
-        if non_destructive:
-            return json.dumps({"success": False, "error": "Operation blocked: non-destructive mode"})
+        blocked = await confirm_destructive(ctx, "Delete vCluster", name, namespace or "default")
+        if blocked:
+            return json.dumps(blocked)
         return json.dumps(_vind_delete_cluster_impl(name, namespace, delete_namespace, force), indent=2)
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=True, idempotentHint=False, openWorldHint=True))
-    def vind_pause(
+    async def vind_pause(
         name: str,
-        namespace: str = ""
+        namespace: str = "",
+        ctx: Context = None
     ) -> str:
         """Pause/sleep a vCluster instance to save resources."""
-        if non_destructive:
-            return json.dumps({"success": False, "error": "Operation blocked: non-destructive mode"})
+        blocked = await confirm_destructive(ctx, "Pause vCluster", name, namespace or "default")
+        if blocked:
+            return json.dumps(blocked)
         return json.dumps(_vind_pause_impl(name, namespace), indent=2)
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=True, idempotentHint=False, openWorldHint=True))
-    def vind_resume(
+    async def vind_resume(
         name: str,
-        namespace: str = ""
+        namespace: str = "",
+        ctx: Context = None
     ) -> str:
         """Resume/wake a sleeping vCluster instance."""
-        if non_destructive:
-            return json.dumps({"success": False, "error": "Operation blocked: non-destructive mode"})
+        blocked = await confirm_destructive(ctx, "Resume vCluster", name, namespace or "default")
+        if blocked:
+            return json.dumps(blocked)
         return json.dumps(_vind_resume_impl(name, namespace), indent=2)
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=False, idempotentHint=False, openWorldHint=True))
-    def vind_connect(
+    async def vind_connect(
         name: str,
         namespace: str = "",
-        kube_config: str = ""
+        kube_config: str = "",
+        ctx: Context = None
     ) -> str:
         """Connect kubectl to a vCluster instance."""
-        if non_destructive:
-            return json.dumps({"success": False, "error": "Operation blocked: non-destructive mode"})
+        blocked = await confirm_destructive(ctx, "Connect to vCluster", name, namespace or "default")
+        if blocked:
+            return json.dumps(blocked)
         return json.dumps(_vind_connect_impl(name, namespace, True, kube_config), indent=2)
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=True, idempotentHint=True, openWorldHint=True))
-    def vind_disconnect() -> str:
+    async def vind_disconnect(ctx: Context = None) -> str:
         """Disconnect from a vCluster instance."""
-        if non_destructive:
-            return json.dumps({"success": False, "error": "Operation blocked: non-destructive mode"})
+        blocked = await confirm_destructive(ctx, "Disconnect from vCluster", "current")
+        if blocked:
+            return json.dumps(blocked)
         return json.dumps(_vind_disconnect_impl("", ""), indent=2)
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=True, idempotentHint=False, openWorldHint=True))
-    def vind_upgrade(
+    async def vind_upgrade(
         name: str,
         namespace: str = "",
         kubernetes_version: str = "",
         values_file: str = "",
-        set_values: str = ""
+        set_values: str = "",
+        ctx: Context = None
     ) -> str:
         """Upgrade a vCluster instance.
 
@@ -730,8 +744,9 @@ def register_vind_tools(mcp: "FastMCP", non_destructive: bool = False):
             values_file: Path to values.yaml file
             set_values: Comma-separated Helm-style value overrides
         """
-        if non_destructive:
-            return json.dumps({"success": False, "error": "Operation blocked: non-destructive mode"})
+        blocked = await confirm_destructive(ctx, "Upgrade vCluster", name, namespace or "default")
+        if blocked:
+            return json.dumps(blocked)
 
         values_list = [v.strip() for v in set_values.split(",") if v.strip()] if set_values else None
         return json.dumps(_vind_upgrade_impl(name, namespace, kubernetes_version, values_file, values_list), indent=2)
@@ -745,11 +760,13 @@ def register_vind_tools(mcp: "FastMCP", non_destructive: bool = False):
         return json.dumps(_vind_describe_impl(name, namespace), indent=2)
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=True, idempotentHint=False, openWorldHint=True))
-    def vind_platform_start(
+    async def vind_platform_start(
         host: str = "",
-        port: int = 0
+        port: int = 0,
+        ctx: Context = None
     ) -> str:
         """Start the vCluster Platform UI."""
-        if non_destructive:
-            return json.dumps({"success": False, "error": "Operation blocked: non-destructive mode"})
+        blocked = await confirm_destructive(ctx, "Start vCluster Platform", host or "localhost")
+        if blocked:
+            return json.dumps(blocked)
         return json.dumps(_vind_platform_start_impl(host, port), indent=2)

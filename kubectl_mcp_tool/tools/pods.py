@@ -27,6 +27,8 @@ def register_pod_tools(
         server: FastMCP server instance
         non_destructive: If True, block destructive operations
     """
+    from fastmcp import Context
+    from kubectl_mcp_tool.elicit import confirm_destructive
 
     @server.tool(
         annotations=ToolAnnotations(
@@ -202,12 +204,13 @@ def register_pod_tools(
             openWorldHint=True,
         ),
     )
-    def exec_in_pod(
+    async def exec_in_pod(
         pod_name: str,
         command: str,
         namespace: Optional[str] = "default",
         container: Optional[str] = None,
-        context: str = ""
+        context: str = "",
+        ctx: Context = None
     ) -> Dict[str, Any]:
         """Execute a command inside a pod.
 
@@ -218,8 +221,9 @@ def register_pod_tools(
             container: Container name (for multi-container pods)
             context: Kubernetes context to use (uses current context if not specified)
         """
-        if non_destructive:
-            return {"success": False, "error": "Blocked: non-destructive mode"}
+        blocked = await confirm_destructive(ctx, "Exec in pod", pod_name, namespace)
+        if blocked:
+            return blocked
         try:
             cmd = ["kubectl"] + _get_kubectl_context_args(context) + [
                 "exec", pod_name, "-n", namespace
@@ -251,10 +255,11 @@ def register_pod_tools(
             openWorldHint=True,
         ),
     )
-    def cleanup_pods(
+    async def cleanup_pods(
         namespace: Optional[str] = None,
         states: Optional[List[str]] = None,
-        context: str = ""
+        context: str = "",
+        ctx: Context = None
     ) -> Dict[str, Any]:
         """Clean up pods in problematic states (Evicted, Error, Completed, etc.).
 
@@ -263,8 +268,9 @@ def register_pod_tools(
             states: List of states to clean up (default: Evicted, Error, Completed, ContainerStatusUnknown)
             context: Kubernetes context to use (uses current context if not specified)
         """
-        if non_destructive:
-            return {"success": False, "error": "Blocked: non-destructive mode"}
+        blocked = await confirm_destructive(ctx, "Cleanup pods", namespace or "all namespaces", namespace or "default")
+        if blocked:
+            return blocked
         try:
             if states is None:
                 states = ["Evicted", "Error", "Completed", "ContainerStatusUnknown"]
@@ -309,7 +315,7 @@ def register_pod_tools(
             openWorldHint=True,
         ),
     )
-    def run_pod(
+    async def run_pod(
         image: str,
         name: Optional[str] = None,
         namespace: str = "default",
@@ -318,7 +324,8 @@ def register_pod_tools(
         env: Optional[Dict[str, str]] = None,
         labels: Optional[Dict[str, str]] = None,
         restart_policy: str = "Never",
-        context: str = ""
+        context: str = "",
+        ctx: Context = None
     ) -> Dict[str, Any]:
         """Run a container image as a pod (kubectl run equivalent).
 
@@ -341,8 +348,9 @@ def register_pod_tools(
             - Run busybox with command: run_pod(image="busybox", command=["sh", "-c"], args=["echo hello"])
             - Run with env vars: run_pod(image="alpine", env={"MY_VAR": "value"})
         """
-        if non_destructive:
-            return {"success": False, "error": "Blocked: non-destructive mode"}
+        blocked = await confirm_destructive(ctx, "Run pod", image, namespace)
+        if blocked:
+            return blocked
 
         try:
             from kubernetes import client as k8s_client

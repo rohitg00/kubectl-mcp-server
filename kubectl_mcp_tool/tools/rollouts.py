@@ -630,6 +630,8 @@ def rollouts_detect(context: str = "") -> Dict[str, Any]:
 
 def register_rollouts_tools(mcp: FastMCP, non_destructive: bool = False):
     """Register progressive delivery tools with the MCP server."""
+    from fastmcp import Context
+    from kubectl_mcp_tool.elicit import confirm_destructive
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
     def get_rollouts_list(
@@ -659,48 +661,56 @@ def register_rollouts_tools(mcp: FastMCP, non_destructive: bool = False):
         return json.dumps(rollout_status(name, namespace, context), indent=2)
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=True, idempotentHint=False, openWorldHint=True))
-    def promote_rollout(
+    async def promote_rollout(
         name: str,
         namespace: str,
         full: bool = False,
-        context: str = ""
+        context: str = "",
+        ctx: Context = None
     ) -> str:
         """Promote a paused Argo Rollout to the next step or full."""
-        if non_destructive:
-            return json.dumps({"success": False, "error": "Operation blocked: non-destructive mode"})
+        blocked = await confirm_destructive(ctx, "Promote rollout", name, namespace)
+        if blocked:
+            return json.dumps(blocked)
         return json.dumps(rollout_promote(name, namespace, full, context), indent=2)
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=True, idempotentHint=False, openWorldHint=True))
-    def abort_rollout(
+    async def abort_rollout(
         name: str,
         namespace: str,
-        context: str = ""
+        context: str = "",
+        ctx: Context = None
     ) -> str:
         """Abort an Argo Rollout."""
-        if non_destructive:
-            return json.dumps({"success": False, "error": "Operation blocked: non-destructive mode"})
+        blocked = await confirm_destructive(ctx, "Abort rollout", name, namespace)
+        if blocked:
+            return json.dumps(blocked)
         return json.dumps(rollout_abort(name, namespace, context), indent=2)
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=True, idempotentHint=False, openWorldHint=True))
-    def retry_rollout(
+    async def retry_rollout(
         name: str,
         namespace: str,
-        context: str = ""
+        context: str = "",
+        ctx: Context = None
     ) -> str:
         """Retry an aborted Argo Rollout."""
-        if non_destructive:
-            return json.dumps({"success": False, "error": "Operation blocked: non-destructive mode"})
+        blocked = await confirm_destructive(ctx, "Retry rollout", name, namespace)
+        if blocked:
+            return json.dumps(blocked)
         return json.dumps(rollout_retry(name, namespace, context), indent=2)
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=True, idempotentHint=False, openWorldHint=True))
-    def restart_rollout(
+    async def restart_rollout(
         name: str,
         namespace: str,
-        context: str = ""
+        context: str = "",
+        ctx: Context = None
     ) -> str:
         """Restart an Argo Rollout."""
-        if non_destructive:
-            return json.dumps({"success": False, "error": "Operation blocked: non-destructive mode"})
+        blocked = await confirm_destructive(ctx, "Restart rollout", name, namespace)
+        if blocked:
+            return json.dumps(blocked)
         return json.dumps(rollout_restart(name, namespace, context), indent=2)
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))

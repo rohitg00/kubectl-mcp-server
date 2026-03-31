@@ -37,6 +37,7 @@ Options:
   --host <host>            Host for network transports (default: 0.0.0.0)
   --port <port>            Port for network transports (default: 8000)
   --disable-destructive    Block destructive operations (alias: --non-destructive)
+  --confirm-destructive    Require user confirmation for destructive operations
   --read-only              Block all write operations
   --config <path>          Path to TOML configuration file
   --stateless              Don't cache API clients, reload config each request

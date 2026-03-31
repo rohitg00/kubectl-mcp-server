@@ -444,6 +444,8 @@ def _gitops_detect_engine(context: str = "") -> Dict[str, Any]:
 
 def register_gitops_tools(mcp: FastMCP, non_destructive: bool = False):
     """Register GitOps tools with the MCP server."""
+    from fastmcp import Context
+    from kubectl_mcp_tool.elicit import confirm_destructive
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
     def gitops_apps_list(
@@ -466,15 +468,17 @@ def register_gitops_tools(mcp: FastMCP, non_destructive: bool = False):
         return json.dumps(_gitops_app_get(name, namespace, kind, context), indent=2)
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=True, idempotentHint=True, openWorldHint=True))
-    def gitops_app_sync(
+    async def gitops_app_sync(
         name: str,
         namespace: str,
         kind: str,
-        context: str = ""
+        context: str = "",
+        ctx: Context = None
     ) -> str:
         """Trigger sync/reconciliation for a GitOps application."""
-        if non_destructive:
-            return json.dumps({"success": False, "error": "Operation blocked: non-destructive mode"})
+        blocked = await confirm_destructive(ctx, "Sync GitOps app", name, namespace)
+        if blocked:
+            return json.dumps(blocked)
         return json.dumps(_gitops_app_sync(name, namespace, kind, context), indent=2)
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))

@@ -1381,6 +1381,8 @@ _kind_provider_info_impl = kind_provider_info
 
 def register_kind_tools(mcp: "FastMCP", non_destructive: bool = False):
     """Register kind (Kubernetes IN Docker) tools with the MCP server."""
+    from fastmcp import Context
+    from kubectl_mcp_tool.elicit import confirm_destructive
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
     def kind_detect() -> str:
@@ -1451,12 +1453,13 @@ def register_kind_tools(mcp: "FastMCP", non_destructive: bool = False):
         return json.dumps(_kind_node_labels_impl(name), indent=2)
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=False, idempotentHint=False, openWorldHint=True))
-    def kind_create_cluster(
+    async def kind_create_cluster(
         name: str = "kind",
         image: str = "",
         config: str = "",
         wait: str = "5m",
-        retain: bool = False
+        retain: bool = False,
+        ctx: Context = None
     ) -> str:
         """Create a new kind cluster.
 
@@ -1467,32 +1470,36 @@ def register_kind_tools(mcp: "FastMCP", non_destructive: bool = False):
             wait: Wait timeout for control plane (default: 5m)
             retain: Retain nodes on creation failure for debugging
         """
-        if non_destructive:
-            return json.dumps({"success": False, "error": "Operation blocked: non-destructive mode"})
+        blocked = await confirm_destructive(ctx, "Create kind cluster", name)
+        if blocked:
+            return json.dumps(blocked)
         return json.dumps(_kind_create_cluster_impl(name, image, config, wait, retain), indent=2)
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=True, idempotentHint=True, openWorldHint=True))
-    def kind_delete_cluster(name: str = "kind") -> str:
+    async def kind_delete_cluster(name: str = "kind", ctx: Context = None) -> str:
         """Delete a kind cluster.
 
         Args:
             name: Name of the cluster to delete
         """
-        if non_destructive:
-            return json.dumps({"success": False, "error": "Operation blocked: non-destructive mode"})
+        blocked = await confirm_destructive(ctx, "Delete kind cluster", name)
+        if blocked:
+            return json.dumps(blocked)
         return json.dumps(_kind_delete_cluster_impl(name), indent=2)
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=True, idempotentHint=True, openWorldHint=True))
-    def kind_delete_all_clusters() -> str:
+    async def kind_delete_all_clusters(ctx: Context = None) -> str:
         """Delete all kind clusters."""
-        if non_destructive:
-            return json.dumps({"success": False, "error": "Operation blocked: non-destructive mode"})
+        blocked = await confirm_destructive(ctx, "Delete all kind clusters", "all")
+        if blocked:
+            return json.dumps(blocked)
         return json.dumps(_kind_delete_all_clusters_impl(), indent=2)
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=False, idempotentHint=False, openWorldHint=True))
-    def kind_load_image(
+    async def kind_load_image(
         images: str,
-        name: str = "kind"
+        name: str = "kind",
+        ctx: Context = None
     ) -> str:
         """Load Docker images into kind cluster nodes.
 
@@ -1503,15 +1510,17 @@ def register_kind_tools(mcp: "FastMCP", non_destructive: bool = False):
             images: Comma-separated list of Docker image names to load
             name: Name of the kind cluster
         """
-        if non_destructive:
-            return json.dumps({"success": False, "error": "Operation blocked: non-destructive mode"})
+        blocked = await confirm_destructive(ctx, "Load images into kind cluster", name)
+        if blocked:
+            return json.dumps(blocked)
         image_list = [img.strip() for img in images.split(",") if img.strip()]
         return json.dumps(_kind_load_image_impl(image_list, name), indent=2)
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=False, idempotentHint=False, openWorldHint=True))
-    def kind_load_image_archive(
+    async def kind_load_image_archive(
         archive: str,
-        name: str = "kind"
+        name: str = "kind",
+        ctx: Context = None
     ) -> str:
         """Load Docker images from tar archive into kind cluster.
 
@@ -1519,15 +1528,17 @@ def register_kind_tools(mcp: "FastMCP", non_destructive: bool = False):
             archive: Path to image archive (tar file)
             name: Name of the kind cluster
         """
-        if non_destructive:
-            return json.dumps({"success": False, "error": "Operation blocked: non-destructive mode"})
+        blocked = await confirm_destructive(ctx, "Load image archive into kind cluster", name)
+        if blocked:
+            return json.dumps(blocked)
         return json.dumps(_kind_load_image_archive_impl(archive, name), indent=2)
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=False, idempotentHint=False, openWorldHint=True))
-    def kind_build_node_image(
+    async def kind_build_node_image(
         image: str = "",
         base_image: str = "",
-        kube_root: str = ""
+        kube_root: str = "",
+        ctx: Context = None
     ) -> str:
         """Build a kind node image from Kubernetes source.
 
@@ -1538,12 +1549,13 @@ def register_kind_tools(mcp: "FastMCP", non_destructive: bool = False):
             base_image: Base image to use
             kube_root: Path to Kubernetes source root
         """
-        if non_destructive:
-            return json.dumps({"success": False, "error": "Operation blocked: non-destructive mode"})
+        blocked = await confirm_destructive(ctx, "Build kind node image", image or "kindest/node:latest")
+        if blocked:
+            return json.dumps(blocked)
         return json.dumps(_kind_build_node_image_impl(image, base_image, kube_root), indent=2)
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=False, idempotentHint=False, openWorldHint=True))
-    def kind_set_kubeconfig(name: str = "kind") -> str:
+    async def kind_set_kubeconfig(name: str = "kind", ctx: Context = None) -> str:
         """Export kubeconfig and set as current context.
 
         This updates your KUBECONFIG to add the kind cluster context.
@@ -1551,8 +1563,9 @@ def register_kind_tools(mcp: "FastMCP", non_destructive: bool = False):
         Args:
             name: Name of the kind cluster
         """
-        if non_destructive:
-            return json.dumps({"success": False, "error": "Operation blocked: non-destructive mode"})
+        blocked = await confirm_destructive(ctx, "Set kubeconfig for kind cluster", name)
+        if blocked:
+            return json.dumps(blocked)
         result = _run_kind(["export", "kubeconfig", "--name", name], timeout=30)
         if result["success"]:
             return json.dumps({
@@ -1607,9 +1620,10 @@ def register_kind_tools(mcp: "FastMCP", non_destructive: bool = False):
         return json.dumps(_kind_available_images_impl(), indent=2)
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=False, idempotentHint=False, openWorldHint=True))
-    def kind_registry_create(
+    async def kind_registry_create(
         name: str = "kind-registry",
-        port: int = 5001
+        port: int = 5001,
+        ctx: Context = None
     ) -> str:
         """Create local Docker registry for kind clusters.
 
@@ -1617,14 +1631,16 @@ def register_kind_tools(mcp: "FastMCP", non_destructive: bool = False):
             name: Name for the registry container
             port: Host port to expose registry on
         """
-        if non_destructive:
-            return json.dumps({"success": False, "error": "Operation blocked: non-destructive mode"})
+        blocked = await confirm_destructive(ctx, "Create kind registry", name)
+        if blocked:
+            return json.dumps(blocked)
         return json.dumps(_kind_registry_create_impl(name, port), indent=2)
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=False, idempotentHint=False, openWorldHint=True))
-    def kind_registry_connect(
+    async def kind_registry_connect(
         cluster_name: str = "kind",
-        registry_name: str = "kind-registry"
+        registry_name: str = "kind-registry",
+        ctx: Context = None
     ) -> str:
         """Connect kind cluster to local registry.
 
@@ -1632,8 +1648,9 @@ def register_kind_tools(mcp: "FastMCP", non_destructive: bool = False):
             cluster_name: Name of the kind cluster
             registry_name: Name of the registry container
         """
-        if non_destructive:
-            return json.dumps({"success": False, "error": "Operation blocked: non-destructive mode"})
+        blocked = await confirm_destructive(ctx, "Connect kind cluster to registry", cluster_name)
+        if blocked:
+            return json.dumps(blocked)
         return json.dumps(_kind_registry_connect_impl(cluster_name, registry_name), indent=2)
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
@@ -1646,10 +1663,11 @@ def register_kind_tools(mcp: "FastMCP", non_destructive: bool = False):
         return json.dumps(_kind_registry_status_impl(name), indent=2)
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=True, idempotentHint=False, openWorldHint=True))
-    def kind_node_exec(
+    async def kind_node_exec(
         node: str,
         command: str,
-        cluster: str = "kind"
+        cluster: str = "kind",
+        ctx: Context = None
     ) -> str:
         """Execute command on kind node container.
 
@@ -1660,8 +1678,9 @@ def register_kind_tools(mcp: "FastMCP", non_destructive: bool = False):
             command: Command to execute
             cluster: Cluster name (for validation)
         """
-        if non_destructive:
-            return json.dumps({"success": False, "error": "Operation blocked: non-destructive mode"})
+        blocked = await confirm_destructive(ctx, "Exec on kind node", node)
+        if blocked:
+            return json.dumps(blocked)
         return json.dumps(_kind_node_exec_impl(node, command, cluster), indent=2)
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
@@ -1684,14 +1703,15 @@ def register_kind_tools(mcp: "FastMCP", non_destructive: bool = False):
         return json.dumps(_kind_node_inspect_impl(node), indent=2)
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=True, idempotentHint=False, openWorldHint=True))
-    def kind_node_restart(node: str) -> str:
+    async def kind_node_restart(node: str, ctx: Context = None) -> str:
         """Restart kind node container.
 
         Args:
             node: Node name to restart
         """
-        if non_destructive:
-            return json.dumps({"success": False, "error": "Operation blocked: non-destructive mode"})
+        blocked = await confirm_destructive(ctx, "Restart kind node", node)
+        if blocked:
+            return json.dumps(blocked)
         return json.dumps(_kind_node_restart_impl(node), indent=2)
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
@@ -1713,9 +1733,10 @@ def register_kind_tools(mcp: "FastMCP", non_destructive: bool = False):
         return json.dumps(_kind_port_mappings_impl(cluster), indent=2)
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=False, idempotentHint=False, openWorldHint=True))
-    def kind_ingress_setup(
+    async def kind_ingress_setup(
         cluster: str = "kind",
-        ingress_type: str = "nginx"
+        ingress_type: str = "nginx",
+        ctx: Context = None
     ) -> str:
         """Setup ingress controller on kind cluster.
 
@@ -1723,8 +1744,9 @@ def register_kind_tools(mcp: "FastMCP", non_destructive: bool = False):
             cluster: Cluster name
             ingress_type: Type of ingress (nginx or contour)
         """
-        if non_destructive:
-            return json.dumps({"success": False, "error": "Operation blocked: non-destructive mode"})
+        blocked = await confirm_destructive(ctx, "Setup ingress on kind cluster", cluster)
+        if blocked:
+            return json.dumps(blocked)
         return json.dumps(_kind_ingress_setup_impl(cluster, ingress_type), indent=2)
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
