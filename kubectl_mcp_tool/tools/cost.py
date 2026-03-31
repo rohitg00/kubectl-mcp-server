@@ -7,6 +7,8 @@ from typing import Any, Dict, List, Optional
 from mcp.types import ToolAnnotations
 
 from ..k8s_config import get_k8s_client, get_apps_client, _get_kubectl_context_args
+from kubectl_mcp_tool.schemas import GetCostAnalysisResponse
+from kubectl_mcp_tool.structured import structured_response
 
 logger = logging.getLogger("mcp-server")
 
@@ -289,6 +291,7 @@ def register_cost_tools(server: "FastMCP", non_destructive: bool):
             return {"success": False, "error": str(e)}
 
     @server.tool(
+        output_schema=GetCostAnalysisResponse.model_json_schema(),
         annotations=ToolAnnotations(
             title="Get Cost Analysis",
             readOnlyHint=True,
@@ -360,13 +363,13 @@ def register_cost_tools(server: "FastMCP", non_destructive: bool):
 
             ns_summary.sort(key=lambda x: x["totalCpuMillicores"], reverse=True)
 
-            return {
+            return structured_response({
                 "success": True,
                 "context": context or "current",
                 "note": "Cost estimates based on resource requests. Integrate with cloud billing for actual costs.",
                 "byNamespace": ns_summary,
                 "topWorkloads": sorted(workload_costs, key=lambda x: x["cpuMillicores"], reverse=True)[:20]
-            }
+            }, GetCostAnalysisResponse)
         except Exception as e:
             logger.error(f"Error analyzing costs: {e}")
             return {"success": False, "error": str(e)}

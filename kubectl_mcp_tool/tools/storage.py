@@ -4,6 +4,8 @@ from typing import Any, Dict, List, Optional
 from mcp.types import ToolAnnotations
 
 from ..k8s_config import get_k8s_client, get_storage_client
+from kubectl_mcp_tool.schemas import GetStorageClassesResponse, GetPVCsResponse
+from kubectl_mcp_tool.structured import structured_response
 
 logger = logging.getLogger("mcp-server")
 
@@ -73,6 +75,7 @@ def register_storage_tools(server, non_destructive: bool):
             return {"success": False, "error": str(e)}
 
     @server.tool(
+        output_schema=GetPVCsResponse.model_json_schema(),
         annotations=ToolAnnotations(
             title="Get Persistent Volume Claims",
             readOnlyHint=True,
@@ -99,7 +102,7 @@ def register_storage_tools(server, non_destructive: bool):
             else:
                 pvcs = v1.list_persistent_volume_claim_for_all_namespaces()
 
-            return {
+            return structured_response({
                 "success": True,
                 "context": context or "current",
                 "pvcs": [
@@ -114,12 +117,13 @@ def register_storage_tools(server, non_destructive: bool):
                     }
                     for pvc in pvcs.items
                 ]
-            }
+            }, GetPVCsResponse)
         except Exception as e:
             logger.error(f"Error getting PVCs: {e}")
             return {"success": False, "error": str(e)}
 
     @server.tool(
+        output_schema=GetStorageClassesResponse.model_json_schema(),
         annotations=ToolAnnotations(
             title="Get Storage Classes",
             readOnlyHint=True,
@@ -139,7 +143,7 @@ def register_storage_tools(server, non_destructive: bool):
 
             scs = storage.list_storage_class()
 
-            return {
+            return structured_response({
                 "success": True,
                 "context": context or "current",
                 "storageClasses": [
@@ -155,7 +159,7 @@ def register_storage_tools(server, non_destructive: bool):
                     }
                     for sc in scs.items
                 ]
-            }
+            }, GetStorageClassesResponse)
         except Exception as e:
             logger.error(f"Error getting Storage Classes: {e}")
             return {"success": False, "error": str(e)}

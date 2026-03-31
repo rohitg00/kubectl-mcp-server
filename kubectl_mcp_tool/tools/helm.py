@@ -9,6 +9,8 @@ import yaml
 from mcp.types import ToolAnnotations
 
 from kubectl_mcp_tool.k8s_config import _get_kubectl_context_args
+from kubectl_mcp_tool.schemas import HelmListResponse, HelmStatusResponse
+from kubectl_mcp_tool.structured import structured_response
 
 logger = logging.getLogger("mcp-server")
 
@@ -267,6 +269,7 @@ def register_helm_tools(
             return {"success": False, "error": f"Unexpected error: {str(e)}"}
 
     @server.tool(
+        output_schema=HelmListResponse.model_json_schema(),
         annotations=ToolAnnotations(
             title="List Helm Releases",
             readOnlyHint=True,
@@ -331,12 +334,12 @@ def register_helm_tools(
 
             if result.returncode == 0:
                 releases = json.loads(result.stdout) if result.stdout.strip() else []
-                return {
+                return structured_response({
                     "success": True,
                     "context": context or "current",
                     "releases": releases,
                     "count": len(releases)
-                }
+                }, HelmListResponse)
             else:
                 return {"success": False, "error": result.stderr.strip()}
         except Exception as e:
@@ -344,6 +347,7 @@ def register_helm_tools(
             return {"success": False, "error": str(e)}
 
     @server.tool(
+        output_schema=HelmStatusResponse.model_json_schema(),
         annotations=ToolAnnotations(
             title="Helm Release Status",
             readOnlyHint=True,
@@ -388,7 +392,7 @@ def register_helm_tools(
 
             if result.returncode == 0:
                 status = json.loads(result.stdout) if result.stdout.strip() else {}
-                return {"success": True, "context": context or "current", "status": status}
+                return structured_response({"success": True, "context": context or "current", "status": status}, HelmStatusResponse)
             else:
                 return {"success": False, "error": result.stderr.strip()}
         except Exception as e:

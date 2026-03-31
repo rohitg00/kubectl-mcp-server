@@ -5,6 +5,8 @@ from typing import Any, Dict, List, Optional
 from mcp.types import ToolAnnotations
 
 from ..k8s_config import get_k8s_client, get_networking_client, _get_kubectl_context_args
+from kubectl_mcp_tool.schemas import GetIngressResponse
+from kubectl_mcp_tool.structured import structured_response
 
 logger = logging.getLogger("mcp-server")
 
@@ -15,6 +17,7 @@ def register_networking_tools(server: "FastMCP", non_destructive: bool):
     from kubectl_mcp_tool.elicit import confirm_destructive
 
     @server.tool(
+        output_schema=GetIngressResponse.model_json_schema(),
         annotations=ToolAnnotations(
             title="Get Ingress Resources",
             readOnlyHint=True,
@@ -41,7 +44,7 @@ def register_networking_tools(server: "FastMCP", non_destructive: bool):
             else:
                 ingresses = networking.list_ingress_for_all_namespaces()
 
-            return {
+            return structured_response({
                 "success": True,
                 "context": context or "current",
                 "ingresses": [
@@ -73,7 +76,7 @@ def register_networking_tools(server: "FastMCP", non_destructive: bool):
                     }
                     for ing in ingresses.items
                 ]
-            }
+            }, GetIngressResponse)
         except Exception as e:
             logger.error(f"Error getting Ingresses: {e}")
             return {"success": False, "error": str(e)}

@@ -8,6 +8,8 @@ from ..k8s_config import (
     get_rbac_client,
     get_networking_client,
 )
+from kubectl_mcp_tool.schemas import AnalyzeNetworkPoliciesResponse, GetRBACRolesResponse
+from kubectl_mcp_tool.structured import structured_response
 
 logger = logging.getLogger("mcp-server")
 
@@ -16,6 +18,7 @@ def register_security_tools(server, non_destructive: bool):
     """Register RBAC and security-related tools."""
 
     @server.tool(
+        output_schema=GetRBACRolesResponse.model_json_schema(),
         annotations=ToolAnnotations(
             title="Get RBAC Roles",
             readOnlyHint=True,
@@ -42,7 +45,7 @@ def register_security_tools(server, non_destructive: bool):
             else:
                 roles = rbac.list_role_for_all_namespaces()
 
-            return {
+            return structured_response({
                 "success": True,
                 "context": context or "current",
                 "roles": [
@@ -60,7 +63,7 @@ def register_security_tools(server, non_destructive: bool):
                     }
                     for role in roles.items
                 ]
-            }
+            }, GetRBACRolesResponse)
         except Exception as e:
             logger.error(f"Error getting RBAC roles: {e}")
             return {"success": False, "error": str(e)}
@@ -174,6 +177,7 @@ def register_security_tools(server, non_destructive: bool):
             return {"success": False, "error": str(e)}
 
     @server.tool(
+        output_schema=AnalyzeNetworkPoliciesResponse.model_json_schema(),
         annotations=ToolAnnotations(
             title="Analyze Network Policies",
             readOnlyHint=True,
@@ -213,12 +217,12 @@ def register_security_tools(server, non_destructive: bool):
                 and ns.metadata.name not in ["kube-system", "kube-public", "kube-node-lease"]
             ]
 
-            return {
+            return structured_response({
                 "success": True,
                 "context": context or "current",
                 "totalPolicies": len(policies.items),
-                "protectedNamespaces": list(protected_namespaces),
-                "unprotectedNamespaces": unprotected,
+                "protectedNamespaces": sorted(protected_namespaces),
+                "unprotectedNamespaces": sorted(unprotected),
                 "policies": [
                     {
                         "name": p.metadata.name,
@@ -228,7 +232,7 @@ def register_security_tools(server, non_destructive: bool):
                     }
                     for p in policies.items
                 ]
-            }
+            }, AnalyzeNetworkPoliciesResponse)
         except Exception as e:
             logger.error(f"Error analyzing network policies: {e}")
             return {"success": False, "error": str(e)}
