@@ -367,20 +367,20 @@ class TestVindToolsRegistration:
         tool_names = {t.name for t in tools}
 
         vind_tools = [
-            "vind_detect_tool",
-            "vind_list_clusters_tool",
-            "vind_status_tool",
-            "vind_get_kubeconfig_tool",
-            "vind_logs_tool",
-            "vind_create_cluster_tool",
-            "vind_delete_cluster_tool",
-            "vind_pause_tool",
-            "vind_resume_tool",
-            "vind_connect_tool",
-            "vind_disconnect_tool",
-            "vind_upgrade_tool",
-            "vind_describe_tool",
-            "vind_platform_start_tool",
+            "vind_detect",
+            "vind_list_clusters",
+            "vind_status",
+            "vind_get_kubeconfig",
+            "vind_logs",
+            "vind_create_cluster",
+            "vind_delete_cluster",
+            "vind_pause",
+            "vind_resume",
+            "vind_connect",
+            "vind_disconnect",
+            "vind_upgrade",
+            "vind_describe",
+            "vind_platform_start",
         ]
         for tool in vind_tools:
             assert tool in tool_names, f"vind tool '{tool}' not registered"
@@ -444,7 +444,7 @@ class TestVindNonDestructiveBlocking:
         mcp = FastMCP(name="test")
         register_vind_tools(mcp, non_destructive=True)
 
-        tool = await mcp.get_tool("vind_create_cluster_tool")
+        tool = await mcp.get_tool("vind_create_cluster")
         result = tool.fn(name="test")
         result_dict = json.loads(result)
         assert result_dict["success"] is False
@@ -464,7 +464,7 @@ class TestVindNonDestructiveBlocking:
         mcp = FastMCP(name="test")
         register_vind_tools(mcp, non_destructive=True)
 
-        tool = await mcp.get_tool("vind_delete_cluster_tool")
+        tool = await mcp.get_tool("vind_delete_cluster")
         result = tool.fn(name="test")
         result_dict = json.loads(result)
         assert result_dict["success"] is False
@@ -484,7 +484,7 @@ class TestVindNonDestructiveBlocking:
         mcp = FastMCP(name="test")
         register_vind_tools(mcp, non_destructive=True)
 
-        tool = await mcp.get_tool("vind_pause_tool")
+        tool = await mcp.get_tool("vind_pause")
         result = tool.fn(name="test")
         result_dict = json.loads(result)
         assert result_dict["success"] is False
@@ -504,7 +504,7 @@ class TestVindNonDestructiveBlocking:
         mcp = FastMCP(name="test")
         register_vind_tools(mcp, non_destructive=True)
 
-        tool = await mcp.get_tool("vind_detect_tool")
+        tool = await mcp.get_tool("vind_detect")
         with patch("subprocess.run") as mock_run:
             mock_run.side_effect = FileNotFoundError()
             result = tool.fn()

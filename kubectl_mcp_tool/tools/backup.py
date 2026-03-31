@@ -725,7 +725,7 @@ def register_backup_tools(mcp: FastMCP, non_destructive: bool = False):
     """Register backup tools with the MCP server."""
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
-    def backup_list_tool(
+    def list_backups(
         namespace: str = "velero",
         context: str = "",
         label_selector: str = ""
@@ -734,7 +734,7 @@ def register_backup_tools(mcp: FastMCP, non_destructive: bool = False):
         return json.dumps(backup_list(namespace, context, label_selector), indent=2)
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
-    def backup_get_tool(
+    def get_backup(
         name: str,
         namespace: str = "velero",
         context: str = ""
@@ -743,7 +743,7 @@ def register_backup_tools(mcp: FastMCP, non_destructive: bool = False):
         return json.dumps(backup_get(name, namespace, context), indent=2)
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=False, idempotentHint=False, openWorldHint=True))
-    def backup_create_tool(
+    def create_backup(
         name: str = "",
         namespace: str = "velero",
         included_namespaces: str = "",
@@ -760,7 +760,7 @@ def register_backup_tools(mcp: FastMCP, non_destructive: bool = False):
         return json.dumps(backup_create(name, namespace, inc_ns, exc_ns, None, None, "", "", ttl, snapshot_volumes, context), indent=2)
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=True, idempotentHint=True, openWorldHint=True))
-    def backup_delete_tool(
+    def delete_backup(
         name: str,
         namespace: str = "velero",
         context: str = ""
@@ -771,7 +771,7 @@ def register_backup_tools(mcp: FastMCP, non_destructive: bool = False):
         return json.dumps(backup_delete(name, namespace, context), indent=2)
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
-    def restore_list_tool(
+    def list_restores(
         namespace: str = "velero",
         context: str = "",
         label_selector: str = ""
@@ -780,7 +780,7 @@ def register_backup_tools(mcp: FastMCP, non_destructive: bool = False):
         return json.dumps(restore_list(namespace, context, label_selector), indent=2)
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=True, idempotentHint=False, openWorldHint=True))
-    def restore_create_tool(
+    def create_restore(
         backup_name: str,
         name: str = "",
         namespace: str = "velero",
@@ -797,7 +797,7 @@ def register_backup_tools(mcp: FastMCP, non_destructive: bool = False):
         return json.dumps(restore_create(backup_name, name, namespace, inc_ns, exc_ns, None, None, None, restore_pvs, context), indent=2)
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
-    def restore_get_tool(
+    def get_restore(
         name: str,
         namespace: str = "velero",
         context: str = ""
@@ -806,7 +806,7 @@ def register_backup_tools(mcp: FastMCP, non_destructive: bool = False):
         return json.dumps(restore_get(name, namespace, context), indent=2)
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
-    def backup_locations_list_tool(
+    def list_backup_locations(
         namespace: str = "velero",
         context: str = ""
     ) -> str:
@@ -814,7 +814,7 @@ def register_backup_tools(mcp: FastMCP, non_destructive: bool = False):
         return json.dumps(backup_locations_list(namespace, context), indent=2)
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
-    def backup_schedules_list_tool(
+    def list_backup_schedules(
         namespace: str = "velero",
         context: str = ""
     ) -> str:
@@ -822,7 +822,7 @@ def register_backup_tools(mcp: FastMCP, non_destructive: bool = False):
         return json.dumps(backup_schedules_list(namespace, context), indent=2)
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=False, idempotentHint=False, openWorldHint=True))
-    def backup_schedule_create_tool(
+    def create_backup_schedule(
         name: str,
         schedule: str,
         namespace: str = "velero",
@@ -839,6 +839,6 @@ def register_backup_tools(mcp: FastMCP, non_destructive: bool = False):
         return json.dumps(backup_schedule_create(name, schedule, namespace, inc_ns, exc_ns, ttl, "", context), indent=2)
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
-    def backup_detect_tool(context: str = "") -> str:
+    def detect_backup(context: str = "") -> str:
         """Detect if Velero is installed and its components."""
         return json.dumps(backup_detect(context), indent=2)

@@ -140,9 +140,9 @@ class TestGitOpsTools:
         tool_names = {t.name for t in tools}
 
         gitops_tools = [
-            "gitops_apps_list_tool", "gitops_app_get_tool", "gitops_app_sync_tool",
-            "gitops_app_status_tool", "gitops_sources_list_tool", "gitops_source_get_tool",
-            "gitops_detect_engine_tool"
+            "gitops_apps_list", "gitops_app_get", "gitops_app_sync",
+            "gitops_app_status", "gitops_sources_list", "gitops_source_get",
+            "gitops_detect_engine"
         ]
         for tool in gitops_tools:
             assert tool in tool_names, f"GitOps tool '{tool}' not registered"
@@ -183,9 +183,9 @@ class TestCertManagerTools:
         tool_names = {t.name for t in tools}
 
         certs_tools = [
-            "certs_list_tool", "certs_get_tool", "certs_issuers_list_tool", "certs_issuer_get_tool",
-            "certs_renew_tool", "certs_status_explain_tool", "certs_challenges_list_tool",
-            "certs_requests_list_tool", "certs_detect_tool"
+            "list_certs", "get_cert", "list_cert_issuers", "get_cert_issuer",
+            "renew_cert", "explain_cert_status", "list_cert_challenges",
+            "list_cert_requests", "detect_certs"
         ]
         for tool in certs_tools:
             assert tool in tool_names, f"Cert-Manager tool '{tool}' not registered"
@@ -216,8 +216,8 @@ class TestPolicyTools:
         tool_names = {t.name for t in tools}
 
         policy_tools = [
-            "policy_list_tool", "policy_get_tool", "policy_violations_list_tool",
-            "policy_explain_denial_tool", "policy_audit_tool", "policy_detect_tool"
+            "get_policy_list", "get_policy", "get_policy_violations",
+            "explain_policy_denial", "audit_policies", "detect_policy_engines"
         ]
         for tool in policy_tools:
             assert tool in tool_names, f"Policy tool '{tool}' not registered"
@@ -248,10 +248,10 @@ class TestBackupTools:
         tool_names = {t.name for t in tools}
 
         backup_tools = [
-            "backup_list_tool", "backup_get_tool", "backup_create_tool", "backup_delete_tool",
-            "restore_list_tool", "restore_create_tool", "restore_get_tool",
-            "backup_locations_list_tool", "backup_schedules_list_tool",
-            "backup_schedule_create_tool", "backup_detect_tool"
+            "list_backups", "get_backup", "create_backup", "delete_backup",
+            "list_restores", "create_restore", "get_restore",
+            "list_backup_locations", "list_backup_schedules",
+            "create_backup_schedule", "detect_backup"
         ]
         for tool in backup_tools:
             assert tool in tool_names, f"Backup tool '{tool}' not registered"
@@ -284,7 +284,10 @@ class TestEcosystemToolsIntegration:
 
         tools = asyncio.run(get_tools())
 
-        ecosystem_prefixes = ["gitops_", "certs_", "policy_", "backup_", "restore_"]
+        ecosystem_prefixes = ["gitops_", "list_cert", "get_cert", "renew_cert", "explain_cert", "detect_cert",
+                              "get_policy", "explain_policy", "audit_polic", "detect_policy",
+                              "list_backup", "get_backup", "create_backup", "delete_backup", "detect_backup",
+                              "list_restore", "create_restore", "get_restore"]
         ecosystem_tools = [t for t in tools if any(t.name.startswith(p) for p in ecosystem_prefixes)]
 
         tools_without_description = [
@@ -309,18 +312,18 @@ class TestEcosystemToolsIntegration:
 
         # Filter ecosystem tools, but exclude backup_resource which is in operations.py
         ecosystem_tool_names = [
-            "gitops_apps_list_tool", "gitops_app_get_tool", "gitops_app_sync_tool",
-            "gitops_app_status_tool", "gitops_sources_list_tool", "gitops_source_get_tool",
-            "gitops_detect_engine_tool",
-            "certs_list_tool", "certs_get_tool", "certs_issuers_list_tool", "certs_issuer_get_tool",
-            "certs_renew_tool", "certs_status_explain_tool", "certs_challenges_list_tool",
-            "certs_requests_list_tool", "certs_detect_tool",
-            "policy_list_tool", "policy_get_tool", "policy_violations_list_tool",
-            "policy_explain_denial_tool", "policy_audit_tool", "policy_detect_tool",
-            "backup_list_tool", "backup_get_tool", "backup_create_tool", "backup_delete_tool",
-            "restore_list_tool", "restore_create_tool", "restore_get_tool",
-            "backup_locations_list_tool", "backup_schedules_list_tool",
-            "backup_schedule_create_tool", "backup_detect_tool"
+            "gitops_apps_list", "gitops_app_get", "gitops_app_sync",
+            "gitops_app_status", "gitops_sources_list", "gitops_source_get",
+            "gitops_detect_engine",
+            "list_certs", "get_cert", "list_cert_issuers", "get_cert_issuer",
+            "renew_cert", "explain_cert_status", "list_cert_challenges",
+            "list_cert_requests", "detect_certs",
+            "get_policy_list", "get_policy", "get_policy_violations",
+            "explain_policy_denial", "audit_policies", "detect_policy_engines",
+            "list_backups", "get_backup", "create_backup", "delete_backup",
+            "list_restores", "create_restore", "get_restore",
+            "list_backup_locations", "list_backup_schedules",
+            "create_backup_schedule", "detect_backup"
         ]
         tool_names = {t.name for t in tools}
         ecosystem_tools = [name for name in ecosystem_tool_names if name in tool_names]

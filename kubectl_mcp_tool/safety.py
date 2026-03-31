@@ -52,8 +52,8 @@ WRITE_OPERATIONS: Set[str] = {
     "rollout_promote_tool", "rollout_abort_tool", "rollout_retry_tool",
     "rollout_restart_tool",
     # KubeVirt operations
-    "kubevirt_vm_start_tool", "kubevirt_vm_stop_tool", "kubevirt_vm_restart_tool",
-    "kubevirt_vm_pause_tool", "kubevirt_vm_unpause_tool", "kubevirt_vm_migrate_tool",
+    "kubevirt_vm_start", "kubevirt_vm_stop", "kubevirt_vm_restart",
+    "kubevirt_vm_pause", "kubevirt_vm_unpause", "kubevirt_vm_migrate",
     # CAPI operations
     "capi_machinedeployment_scale_tool",
 }
@@ -69,7 +69,7 @@ DESTRUCTIVE_OPERATIONS: Set[str] = {
     # Rollout abort
     "rollout_abort_tool",
     # VM stop
-    "kubevirt_vm_stop_tool",
+    "kubevirt_vm_stop",
 }
 
 

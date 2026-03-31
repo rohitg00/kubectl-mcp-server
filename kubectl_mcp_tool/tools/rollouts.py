@@ -632,7 +632,7 @@ def register_rollouts_tools(mcp: FastMCP, non_destructive: bool = False):
     """Register progressive delivery tools with the MCP server."""
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
-    def rollouts_list_tool(
+    def get_rollouts_list(
         namespace: str = "",
         context: str = "",
         label_selector: str = ""
@@ -641,7 +641,7 @@ def register_rollouts_tools(mcp: FastMCP, non_destructive: bool = False):
         return json.dumps(rollouts_list(namespace, context, label_selector), indent=2)
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
-    def rollout_get_tool(
+    def get_rollout(
         name: str,
         namespace: str,
         context: str = ""
@@ -650,7 +650,7 @@ def register_rollouts_tools(mcp: FastMCP, non_destructive: bool = False):
         return json.dumps(rollout_get(name, namespace, context), indent=2)
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
-    def rollout_status_tool(
+    def get_rollout_status(
         name: str,
         namespace: str,
         context: str = ""
@@ -659,7 +659,7 @@ def register_rollouts_tools(mcp: FastMCP, non_destructive: bool = False):
         return json.dumps(rollout_status(name, namespace, context), indent=2)
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=True, idempotentHint=False, openWorldHint=True))
-    def rollout_promote_tool(
+    def promote_rollout(
         name: str,
         namespace: str,
         full: bool = False,
@@ -671,7 +671,7 @@ def register_rollouts_tools(mcp: FastMCP, non_destructive: bool = False):
         return json.dumps(rollout_promote(name, namespace, full, context), indent=2)
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=True, idempotentHint=False, openWorldHint=True))
-    def rollout_abort_tool(
+    def abort_rollout(
         name: str,
         namespace: str,
         context: str = ""
@@ -682,7 +682,7 @@ def register_rollouts_tools(mcp: FastMCP, non_destructive: bool = False):
         return json.dumps(rollout_abort(name, namespace, context), indent=2)
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=True, idempotentHint=False, openWorldHint=True))
-    def rollout_retry_tool(
+    def retry_rollout(
         name: str,
         namespace: str,
         context: str = ""
@@ -693,7 +693,7 @@ def register_rollouts_tools(mcp: FastMCP, non_destructive: bool = False):
         return json.dumps(rollout_retry(name, namespace, context), indent=2)
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=True, idempotentHint=False, openWorldHint=True))
-    def rollout_restart_tool(
+    def restart_rollout(
         name: str,
         namespace: str,
         context: str = ""
@@ -704,7 +704,7 @@ def register_rollouts_tools(mcp: FastMCP, non_destructive: bool = False):
         return json.dumps(rollout_restart(name, namespace, context), indent=2)
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
-    def analysis_runs_list_tool(
+    def get_analysis_runs(
         namespace: str = "",
         context: str = "",
         label_selector: str = ""
@@ -713,7 +713,7 @@ def register_rollouts_tools(mcp: FastMCP, non_destructive: bool = False):
         return json.dumps(analysis_runs_list(namespace, context, label_selector), indent=2)
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
-    def flagger_canaries_list_tool(
+    def get_flagger_canaries(
         namespace: str = "",
         context: str = "",
         label_selector: str = ""
@@ -722,7 +722,7 @@ def register_rollouts_tools(mcp: FastMCP, non_destructive: bool = False):
         return json.dumps(flagger_canaries_list(namespace, context, label_selector), indent=2)
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
-    def flagger_canary_get_tool(
+    def get_flagger_canary(
         name: str,
         namespace: str,
         context: str = ""
@@ -731,6 +731,6 @@ def register_rollouts_tools(mcp: FastMCP, non_destructive: bool = False):
         return json.dumps(flagger_canary_get(name, namespace, context), indent=2)
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
-    def rollouts_detect_tool(context: str = "") -> str:
+    def detect_rollouts(context: str = "") -> str:
         """Detect which progressive delivery tools are installed."""
         return json.dumps(rollouts_detect(context), indent=2)

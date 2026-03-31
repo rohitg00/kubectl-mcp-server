@@ -46,7 +46,7 @@ def _get_kiali_config() -> Dict[str, str]:
     }
 
 
-def istio_virtualservices_list(
+def _istio_virtualservices_list(
     namespace: str = "",
     context: str = "",
     label_selector: str = ""
@@ -94,7 +94,7 @@ def istio_virtualservices_list(
     }
 
 
-def istio_virtualservice_get(
+def _istio_virtualservice_get(
     name: str,
     namespace: str,
     context: str = ""
@@ -129,7 +129,7 @@ def istio_virtualservice_get(
     return {"success": False, "error": result.get("error", "Unknown error")}
 
 
-def istio_destinationrules_list(
+def _istio_destinationrules_list(
     namespace: str = "",
     context: str = "",
     label_selector: str = ""
@@ -176,7 +176,7 @@ def istio_destinationrules_list(
     }
 
 
-def istio_gateways_list(
+def _istio_gateways_list(
     namespace: str = "",
     context: str = "",
     label_selector: str = ""
@@ -232,7 +232,7 @@ def istio_gateways_list(
     }
 
 
-def istio_peerauthentications_list(
+def _istio_peerauthentications_list(
     namespace: str = "",
     context: str = "",
     label_selector: str = ""
@@ -275,7 +275,7 @@ def istio_peerauthentications_list(
     }
 
 
-def istio_authorizationpolicies_list(
+def _istio_authorizationpolicies_list(
     namespace: str = "",
     context: str = "",
     label_selector: str = ""
@@ -318,7 +318,7 @@ def istio_authorizationpolicies_list(
     }
 
 
-def istio_proxy_status(context: str = "") -> Dict[str, Any]:
+def _istio_proxy_status(context: str = "") -> Dict[str, Any]:
     """Get Istio proxy (Envoy) synchronization status.
 
     Args:
@@ -374,7 +374,7 @@ def istio_proxy_status(context: str = "") -> Dict[str, Any]:
         return {"success": False, "error": str(e)}
 
 
-def istio_analyze(
+def _istio_analyze(
     namespace: str = "",
     context: str = ""
 ) -> Dict[str, Any]:
@@ -444,7 +444,7 @@ def istio_analyze(
         return {"success": False, "error": str(e)}
 
 
-def istio_sidecar_status(
+def _istio_sidecar_status(
     namespace: str = "",
     context: str = ""
 ) -> Dict[str, Any]:
@@ -501,7 +501,7 @@ def istio_sidecar_status(
     }
 
 
-def istio_detect(context: str = "") -> Dict[str, Any]:
+def _istio_detect(context: str = "") -> Dict[str, Any]:
     """Detect if Istio is installed and its components.
 
     Args:
@@ -532,81 +532,81 @@ def register_istio_tools(mcp: FastMCP, non_destructive: bool = False):
     """Register Istio/Kiali tools with the MCP server."""
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
-    def istio_virtualservices_list_tool(
+    def istio_virtualservices_list(
         namespace: str = "",
         context: str = "",
         label_selector: str = ""
     ) -> str:
         """List Istio VirtualServices."""
-        return json.dumps(istio_virtualservices_list(namespace, context, label_selector), indent=2)
+        return json.dumps(_istio_virtualservices_list(namespace, context, label_selector), indent=2)
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
-    def istio_virtualservice_get_tool(
+    def istio_virtualservice_get(
         name: str,
         namespace: str,
         context: str = ""
     ) -> str:
         """Get detailed information about a VirtualService."""
-        return json.dumps(istio_virtualservice_get(name, namespace, context), indent=2)
+        return json.dumps(_istio_virtualservice_get(name, namespace, context), indent=2)
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
-    def istio_destinationrules_list_tool(
+    def istio_destinationrules_list(
         namespace: str = "",
         context: str = "",
         label_selector: str = ""
     ) -> str:
         """List Istio DestinationRules."""
-        return json.dumps(istio_destinationrules_list(namespace, context, label_selector), indent=2)
+        return json.dumps(_istio_destinationrules_list(namespace, context, label_selector), indent=2)
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
-    def istio_gateways_list_tool(
+    def istio_gateways_list(
         namespace: str = "",
         context: str = "",
         label_selector: str = ""
     ) -> str:
         """List Istio Gateways."""
-        return json.dumps(istio_gateways_list(namespace, context, label_selector), indent=2)
+        return json.dumps(_istio_gateways_list(namespace, context, label_selector), indent=2)
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
-    def istio_peerauthentications_list_tool(
+    def istio_peerauthentications_list(
         namespace: str = "",
         context: str = "",
         label_selector: str = ""
     ) -> str:
         """List Istio PeerAuthentication policies."""
-        return json.dumps(istio_peerauthentications_list(namespace, context, label_selector), indent=2)
+        return json.dumps(_istio_peerauthentications_list(namespace, context, label_selector), indent=2)
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
-    def istio_authorizationpolicies_list_tool(
+    def istio_authorizationpolicies_list(
         namespace: str = "",
         context: str = "",
         label_selector: str = ""
     ) -> str:
         """List Istio AuthorizationPolicies."""
-        return json.dumps(istio_authorizationpolicies_list(namespace, context, label_selector), indent=2)
+        return json.dumps(_istio_authorizationpolicies_list(namespace, context, label_selector), indent=2)
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
-    def istio_proxy_status_tool(context: str = "") -> str:
+    def istio_proxy_status(context: str = "") -> str:
         """Get Istio proxy synchronization status."""
-        return json.dumps(istio_proxy_status(context), indent=2)
+        return json.dumps(_istio_proxy_status(context), indent=2)
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
-    def istio_analyze_tool(
+    def istio_analyze(
         namespace: str = "",
         context: str = ""
     ) -> str:
         """Analyze Istio configuration for potential issues."""
-        return json.dumps(istio_analyze(namespace, context), indent=2)
+        return json.dumps(_istio_analyze(namespace, context), indent=2)
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
-    def istio_sidecar_status_tool(
+    def istio_sidecar_status(
         namespace: str = "",
         context: str = ""
     ) -> str:
         """Get sidecar injection status for pods."""
-        return json.dumps(istio_sidecar_status(namespace, context), indent=2)
+        return json.dumps(_istio_sidecar_status(namespace, context), indent=2)
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
-    def istio_detect_tool(context: str = "") -> str:
+    def istio_detect(context: str = "") -> str:
         """Detect if Istio is installed and its components."""
-        return json.dumps(istio_detect(context), indent=2)
+        return json.dumps(_istio_detect(context), indent=2)
