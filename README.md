@@ -583,7 +583,8 @@ kubectl-mcp-server --transport streamable-http --port 8000
 - `--transport`: Choose from `stdio`, `sse`, `http`, `streamable-http` (default: `stdio`)
 - `--host`: Bind address (default: `0.0.0.0`)
 - `--port`: Port for network transports (default: `8000`)
-- `--non-destructive`: Enable read-only mode (blocks delete, apply, create operations)
+- `--disable-destructive` (or `--non-destructive`): Block destructive operations (allow create/update, block delete)
+- `--read-only`: Block all write operations
 
 ### Environment Variables
 

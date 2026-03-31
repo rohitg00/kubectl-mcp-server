@@ -732,6 +732,7 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--disable-destructive",
+        "--non-destructive",
         action="store_true",
         help="Disable destructive operations (allow create/update, block delete).",
     )
