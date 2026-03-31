@@ -723,6 +723,8 @@ def backup_detect(context: str = "") -> Dict[str, Any]:
 
 def register_backup_tools(mcp: FastMCP, non_destructive: bool = False):
     """Register backup tools with the MCP server."""
+    from fastmcp import Context
+    from kubectl_mcp_tool.elicit import confirm_destructive, check_write_allowed
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
     def list_backups(
@@ -743,31 +745,34 @@ def register_backup_tools(mcp: FastMCP, non_destructive: bool = False):
         return json.dumps(backup_get(name, namespace, context), indent=2)
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=False, idempotentHint=False, openWorldHint=True))
-    def create_backup(
+    async def create_backup(
         name: str = "",
         namespace: str = "velero",
         included_namespaces: str = "",
         excluded_namespaces: str = "",
         ttl: str = "720h",
         snapshot_volumes: bool = True,
-        context: str = ""
+        context: str = "",
     ) -> str:
         """Create a new Velero backup."""
-        if non_destructive:
-            return json.dumps({"success": False, "error": "Operation blocked: non-destructive mode"})
+        blocked = await check_write_allowed()
+        if blocked:
+            return json.dumps(blocked)
         inc_ns = [n.strip() for n in included_namespaces.split(",") if n.strip()] if included_namespaces else None
         exc_ns = [n.strip() for n in excluded_namespaces.split(",") if n.strip()] if excluded_namespaces else None
         return json.dumps(backup_create(name, namespace, inc_ns, exc_ns, None, None, "", "", ttl, snapshot_volumes, context), indent=2)
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=True, idempotentHint=True, openWorldHint=True))
-    def delete_backup(
+    async def delete_backup(
         name: str,
         namespace: str = "velero",
-        context: str = ""
+        context: str = "",
+        ctx: Context = None
     ) -> str:
         """Delete a Velero backup."""
-        if non_destructive:
-            return json.dumps({"success": False, "error": "Operation blocked: non-destructive mode"})
+        blocked = await confirm_destructive(ctx, "Delete backup", name, namespace)
+        if blocked:
+            return json.dumps(blocked)
         return json.dumps(backup_delete(name, namespace, context), indent=2)
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
@@ -780,18 +785,20 @@ def register_backup_tools(mcp: FastMCP, non_destructive: bool = False):
         return json.dumps(restore_list(namespace, context, label_selector), indent=2)
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=True, idempotentHint=False, openWorldHint=True))
-    def create_restore(
+    async def create_restore(
         backup_name: str,
         name: str = "",
         namespace: str = "velero",
         included_namespaces: str = "",
         excluded_namespaces: str = "",
         restore_pvs: bool = True,
-        context: str = ""
+        context: str = "",
+        ctx: Context = None
     ) -> str:
         """Create a restore from a backup."""
-        if non_destructive:
-            return json.dumps({"success": False, "error": "Operation blocked: non-destructive mode"})
+        blocked = await confirm_destructive(ctx, "Restore from backup", backup_name, namespace)
+        if blocked:
+            return json.dumps(blocked)
         inc_ns = [n.strip() for n in included_namespaces.split(",") if n.strip()] if included_namespaces else None
         exc_ns = [n.strip() for n in excluded_namespaces.split(",") if n.strip()] if excluded_namespaces else None
         return json.dumps(restore_create(backup_name, name, namespace, inc_ns, exc_ns, None, None, None, restore_pvs, context), indent=2)
@@ -822,18 +829,19 @@ def register_backup_tools(mcp: FastMCP, non_destructive: bool = False):
         return json.dumps(backup_schedules_list(namespace, context), indent=2)
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=False, idempotentHint=False, openWorldHint=True))
-    def create_backup_schedule(
+    async def create_backup_schedule(
         name: str,
         schedule: str,
         namespace: str = "velero",
         included_namespaces: str = "",
         excluded_namespaces: str = "",
         ttl: str = "720h",
-        context: str = ""
+        context: str = "",
     ) -> str:
         """Create a backup schedule."""
-        if non_destructive:
-            return json.dumps({"success": False, "error": "Operation blocked: non-destructive mode"})
+        blocked = await check_write_allowed()
+        if blocked:
+            return json.dumps(blocked)
         inc_ns = [n.strip() for n in included_namespaces.split(",") if n.strip()] if included_namespaces else None
         exc_ns = [n.strip() for n in excluded_namespaces.split(",") if n.strip()] if excluded_namespaces else None
         return json.dumps(backup_schedule_create(name, schedule, namespace, inc_ns, exc_ns, ttl, "", context), indent=2)

@@ -609,6 +609,8 @@ def certs_detect(context: str = "") -> Dict[str, Any]:
 
 def register_certs_tools(mcp: FastMCP, non_destructive: bool = False):
     """Register cert-manager tools with the MCP server."""
+    from fastmcp import Context
+    from kubectl_mcp_tool.elicit import confirm_destructive
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
     def list_certs(
@@ -648,14 +650,16 @@ def register_certs_tools(mcp: FastMCP, non_destructive: bool = False):
         return json.dumps(certs_issuer_get(name, namespace, kind, context), indent=2)
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=True, idempotentHint=False, openWorldHint=True))
-    def renew_cert(
+    async def renew_cert(
         name: str,
         namespace: str,
-        context: str = ""
+        context: str = "",
+        ctx: Context = None
     ) -> str:
         """Trigger certificate renewal."""
-        if non_destructive:
-            return json.dumps({"success": False, "error": "Operation blocked: non-destructive mode"})
+        blocked = await confirm_destructive(ctx, "Renew certificate", name, namespace)
+        if blocked:
+            return json.dumps(blocked)
         return json.dumps(certs_renew(name, namespace, context), indent=2)
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))

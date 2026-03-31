@@ -11,6 +11,8 @@ logger = logging.getLogger("mcp-server")
 
 def register_networking_tools(server: "FastMCP", non_destructive: bool):
     """Register networking-related tools."""
+    from fastmcp import Context
+    from kubectl_mcp_tool.elicit import confirm_destructive
 
     @server.tool(
         annotations=ToolAnnotations(
@@ -349,12 +351,13 @@ def register_networking_tools(server: "FastMCP", non_destructive: bool):
             openWorldHint=True,
         ),
     )
-    def port_forward(
+    async def port_forward(
         pod_name: str,
         local_port: int,
         pod_port: int,
         namespace: Optional[str] = "default",
-        context: str = ""
+        context: str = "",
+        ctx: Context = None
     ) -> Dict[str, Any]:
         """Start port forwarding to a pod (note: this starts a background process).
 
@@ -365,11 +368,9 @@ def register_networking_tools(server: "FastMCP", non_destructive: bool):
             namespace: Namespace of the pod
             context: Kubernetes context to use (uses current context if not specified)
         """
-        if non_destructive:
-            return {
-                "success": False,
-                "error": "port_forward is not allowed in non-destructive mode"
-            }
+        blocked = await confirm_destructive(ctx, "Port forward", f"{pod_name}:{pod_port}", namespace)
+        if blocked:
+            return blocked
         try:
             cmd = ["kubectl"] + _get_kubectl_context_args(context) + [
                 "port-forward", pod_name,

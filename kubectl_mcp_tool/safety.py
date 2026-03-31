@@ -14,6 +14,7 @@ logger = logging.getLogger("mcp-server")
 class SafetyMode(Enum):
     """Safety mode levels for the MCP server."""
     NORMAL = "normal"
+    CONFIRM = "confirm"
     READ_ONLY = "read_only"
     DISABLE_DESTRUCTIVE = "disable_destructive"
 
@@ -92,11 +93,13 @@ def get_mode_info() -> Dict[str, Any]:
         "mode": mode.value,
         "description": {
             SafetyMode.NORMAL: "All operations allowed",
+            SafetyMode.CONFIRM: "Confirm destructive operations via elicitation, block if unsupported",
             SafetyMode.READ_ONLY: "Only read operations allowed (no create/update/delete)",
             SafetyMode.DISABLE_DESTRUCTIVE: "Create/update allowed, delete operations blocked",
         }[mode],
         "blocked_operations": {
             SafetyMode.NORMAL: [],
+            SafetyMode.CONFIRM: sorted(DESTRUCTIVE_OPERATIONS),
             SafetyMode.READ_ONLY: sorted(WRITE_OPERATIONS | DESTRUCTIVE_OPERATIONS),
             SafetyMode.DISABLE_DESTRUCTIVE: sorted(DESTRUCTIVE_OPERATIONS),
         }[mode]

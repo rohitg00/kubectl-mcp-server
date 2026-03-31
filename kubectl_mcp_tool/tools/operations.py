@@ -14,12 +14,8 @@ logger = logging.getLogger("mcp-server")
 
 def register_operations_tools(server: "FastMCP", non_destructive: bool):
     """Register kubectl operations tools (apply, describe, patch, etc.)."""
-
-    def check_destructive():
-        """Check if operation is blocked in non-destructive mode."""
-        if non_destructive:
-            return {"success": False, "error": "Operation blocked: non-destructive mode enabled"}
-        return None
+    from fastmcp import Context
+    from kubectl_mcp_tool.elicit import confirm_destructive
 
     @server.tool(
         annotations=ToolAnnotations(
@@ -30,7 +26,7 @@ def register_operations_tools(server: "FastMCP", non_destructive: bool):
             openWorldHint=True,
         ),
     )
-    def kubectl_apply(manifest: str, namespace: Optional[str] = "default", context: str = "") -> Dict[str, Any]:
+    async def kubectl_apply(manifest: str, namespace: Optional[str] = "default", context: str = "", ctx: Context = None) -> Dict[str, Any]:
         """Apply a YAML manifest to the cluster.
 
         Args:
@@ -38,7 +34,7 @@ def register_operations_tools(server: "FastMCP", non_destructive: bool):
             namespace: Target namespace
             context: Kubernetes context to use (optional, uses current context if not specified)
         """
-        blocked = check_destructive()
+        blocked = await confirm_destructive(ctx, "Apply manifest", f"in {namespace}", namespace)
         if blocked:
             return blocked
         temp_path = None
@@ -178,7 +174,7 @@ def register_operations_tools(server: "FastMCP", non_destructive: bool):
             openWorldHint=True,
         ),
     )
-    def kubectl_patch(resource_type: str, name: str, patch: str, patch_type: str = "strategic", namespace: Optional[str] = "default", context: str = "") -> Dict[str, Any]:
+    async def kubectl_patch(resource_type: str, name: str, patch: str, patch_type: str = "strategic", namespace: Optional[str] = "default", context: str = "", ctx: Context = None) -> Dict[str, Any]:
         """Patch a Kubernetes resource.
 
         Args:
@@ -189,7 +185,7 @@ def register_operations_tools(server: "FastMCP", non_destructive: bool):
             namespace: Target namespace
             context: Kubernetes context to use (optional, uses current context if not specified)
         """
-        blocked = check_destructive()
+        blocked = await confirm_destructive(ctx, "Patch resource", f"{resource_type}/{name}", namespace)
         if blocked:
             return blocked
         try:
@@ -224,7 +220,7 @@ def register_operations_tools(server: "FastMCP", non_destructive: bool):
             openWorldHint=True,
         ),
     )
-    def kubectl_rollout(action: str, resource_type: str, name: str, namespace: Optional[str] = "default", context: str = "") -> Dict[str, Any]:
+    async def kubectl_rollout(action: str, resource_type: str, name: str, namespace: Optional[str] = "default", context: str = "", ctx: Context = None) -> Dict[str, Any]:
         """Manage rollouts (restart, status, history, undo, pause, resume).
 
         Args:
@@ -239,9 +235,8 @@ def register_operations_tools(server: "FastMCP", non_destructive: bool):
             if action not in allowed_actions:
                 return {"success": False, "error": f"Invalid action. Allowed: {', '.join(allowed_actions)}"}
 
-            # Destructive actions need check
             if action in ["restart", "undo", "pause", "resume"]:
-                blocked = check_destructive()
+                blocked = await confirm_destructive(ctx, f"Rollout {action}", f"{resource_type}/{name}", namespace)
                 if blocked:
                     return blocked
 
@@ -265,7 +260,7 @@ def register_operations_tools(server: "FastMCP", non_destructive: bool):
             openWorldHint=True,
         ),
     )
-    def kubectl_create(resource_type: str, name: str, namespace: Optional[str] = "default", image: Optional[str] = None, context: str = "") -> Dict[str, Any]:
+    async def kubectl_create(resource_type: str, name: str, namespace: Optional[str] = "default", image: Optional[str] = None, context: str = "", ctx: Context = None) -> Dict[str, Any]:
         """Create a Kubernetes resource.
 
         Args:
@@ -275,7 +270,7 @@ def register_operations_tools(server: "FastMCP", non_destructive: bool):
             image: Container image (for deployment/pod)
             context: Kubernetes context to use (optional, uses current context if not specified)
         """
-        blocked = check_destructive()
+        blocked = await confirm_destructive(ctx, "Create resource", f"{resource_type}/{name}", namespace)
         if blocked:
             return blocked
         try:
@@ -300,7 +295,7 @@ def register_operations_tools(server: "FastMCP", non_destructive: bool):
             openWorldHint=True,
         ),
     )
-    def delete_resource(resource_type: str, name: str, namespace: Optional[str] = "default", context: str = "") -> Dict[str, Any]:
+    async def delete_resource(resource_type: str, name: str, namespace: Optional[str] = "default", context: str = "", ctx: Context = None) -> Dict[str, Any]:
         """Delete a Kubernetes resource.
 
         Args:
@@ -309,7 +304,7 @@ def register_operations_tools(server: "FastMCP", non_destructive: bool):
             namespace: Target namespace
             context: Kubernetes context to use (optional, uses current context if not specified)
         """
-        blocked = check_destructive()
+        blocked = await confirm_destructive(ctx, "Delete resource", f"{resource_type}/{name}", namespace)
         if blocked:
             return blocked
         try:
@@ -332,7 +327,7 @@ def register_operations_tools(server: "FastMCP", non_destructive: bool):
             openWorldHint=True,
         ),
     )
-    def kubectl_cp(source: str, destination: str, namespace: str = "default", container: Optional[str] = None, context: str = "") -> Dict[str, Any]:
+    async def kubectl_cp(source: str, destination: str, namespace: str = "default", container: Optional[str] = None, context: str = "", ctx: Context = None) -> Dict[str, Any]:
         """Copy files between local filesystem and pods.
 
         Use pod:path format for pod paths, e.g.:
@@ -346,7 +341,7 @@ def register_operations_tools(server: "FastMCP", non_destructive: bool):
             container: Container name (optional)
             context: Kubernetes context to use (optional, uses current context if not specified)
         """
-        blocked = check_destructive()
+        blocked = await confirm_destructive(ctx, "Copy files", f"{source} -> {destination}", namespace)
         if blocked:
             return blocked
         try:
@@ -414,13 +409,14 @@ def register_operations_tools(server: "FastMCP", non_destructive: bool):
             openWorldHint=True,
         ),
     )
-    def label_resource(
+    async def label_resource(
         resource_type: str,
         name: str,
         labels: Dict[str, str],
         namespace: Optional[str] = None,
         overwrite: bool = False,
-        context: str = ""
+        context: str = "",
+        ctx: Context = None
     ) -> Dict[str, Any]:
         """Add or update labels on a resource.
 
@@ -432,7 +428,7 @@ def register_operations_tools(server: "FastMCP", non_destructive: bool):
             overwrite: Overwrite existing labels
             context: Kubernetes context to use (optional, uses current context if not specified)
         """
-        blocked = check_destructive()
+        blocked = await confirm_destructive(ctx, "Label resource", f"{resource_type}/{name}", namespace or "default")
         if blocked:
             return blocked
         try:
@@ -474,13 +470,14 @@ def register_operations_tools(server: "FastMCP", non_destructive: bool):
             openWorldHint=True,
         ),
     )
-    def annotate_resource(
+    async def annotate_resource(
         resource_type: str,
         name: str,
         annotations: Dict[str, str],
         namespace: Optional[str] = None,
         overwrite: bool = False,
-        context: str = ""
+        context: str = "",
+        ctx: Context = None
     ) -> Dict[str, Any]:
         """Add or update annotations on a resource.
 
@@ -492,7 +489,7 @@ def register_operations_tools(server: "FastMCP", non_destructive: bool):
             overwrite: Overwrite existing annotations
             context: Kubernetes context to use (optional, uses current context if not specified)
         """
-        blocked = check_destructive()
+        blocked = await confirm_destructive(ctx, "Annotate resource", f"{resource_type}/{name}", namespace or "default")
         if blocked:
             return blocked
         try:
@@ -534,13 +531,14 @@ def register_operations_tools(server: "FastMCP", non_destructive: bool):
             openWorldHint=True,
         ),
     )
-    def taint_node(
+    async def taint_node(
         node_name: str,
         key: str,
         value: Optional[str] = None,
         effect: str = "NoSchedule",
         remove: bool = False,
-        context: str = ""
+        context: str = "",
+        ctx: Context = None
     ) -> Dict[str, Any]:
         """Add or remove taints on a node.
 
@@ -552,7 +550,7 @@ def register_operations_tools(server: "FastMCP", non_destructive: bool):
             remove: Remove the taint instead of adding
             context: Kubernetes context to use (optional, uses current context if not specified)
         """
-        blocked = check_destructive()
+        blocked = await confirm_destructive(ctx, "Taint node", node_name)
         if blocked:
             return blocked
         try:
@@ -661,7 +659,7 @@ def register_operations_tools(server: "FastMCP", non_destructive: bool):
             openWorldHint=True,
         ),
     )
-    def node_management(action: str, node_name: str, force: bool = False, context: str = "") -> Dict[str, Any]:
+    async def node_management(action: str, node_name: str, force: bool = False, context: str = "", ctx: Context = None) -> Dict[str, Any]:
         """Manage nodes: cordon, uncordon, or drain.
 
         Args:
@@ -670,7 +668,7 @@ def register_operations_tools(server: "FastMCP", non_destructive: bool):
             force: Force drain (for drain action)
             context: Kubernetes context to use (optional, uses current context if not specified)
         """
-        blocked = check_destructive()
+        blocked = await confirm_destructive(ctx, f"Node {action}", node_name)
         if blocked:
             return blocked
         try:

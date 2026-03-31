@@ -18,6 +18,7 @@ logger = logging.getLogger("mcp-server")
 
 def register_deployment_tools(server: "FastMCP", non_destructive: bool):
     """Register deployment and workload management tools."""
+    from kubectl_mcp_tool.elicit import check_write_allowed
 
     @server.tool(
         annotations=ToolAnnotations(
@@ -73,12 +74,12 @@ def register_deployment_tools(server: "FastMCP", non_destructive: bool):
             openWorldHint=True,
         ),
     )
-    def create_deployment(
+    async def create_deployment(
         name: str,
         image: str,
         replicas: int,
         namespace: Optional[str] = "default",
-        context: str = ""
+        context: str = "",
     ) -> Dict[str, Any]:
         """Create a new deployment.
 
@@ -89,8 +90,9 @@ def register_deployment_tools(server: "FastMCP", non_destructive: bool):
             namespace: Namespace to create deployment in (default: "default")
             context: Kubernetes context to use (uses current context if not specified)
         """
-        if non_destructive:
-            return {"success": False, "error": "Blocked: non-destructive mode"}
+        blocked = await check_write_allowed()
+        if blocked:
+            return blocked
         try:
             from kubernetes import client
 
@@ -136,11 +138,11 @@ def register_deployment_tools(server: "FastMCP", non_destructive: bool):
             openWorldHint=True,
         ),
     )
-    def scale_deployment(
+    async def scale_deployment(
         name: str,
         replicas: int,
         namespace: Optional[str] = "default",
-        context: str = ""
+        context: str = "",
     ) -> Dict[str, Any]:
         """Scale a deployment to a specified number of replicas.
 
@@ -150,8 +152,9 @@ def register_deployment_tools(server: "FastMCP", non_destructive: bool):
             namespace: Namespace of the deployment (default: "default")
             context: Kubernetes context to use (uses current context if not specified)
         """
-        if non_destructive:
-            return {"success": False, "error": "Blocked: non-destructive mode"}
+        blocked = await check_write_allowed()
+        if blocked:
+            return blocked
         try:
             cmd = ["kubectl", "scale", "deployment", name, f"--replicas={replicas}", "-n", namespace]
             cmd.extend(_get_kubectl_context_args(context))
@@ -177,10 +180,10 @@ def register_deployment_tools(server: "FastMCP", non_destructive: bool):
             openWorldHint=True,
         ),
     )
-    def restart_deployment(
+    async def restart_deployment(
         name: str,
         namespace: str = "default",
-        context: str = ""
+        context: str = "",
     ) -> Dict[str, Any]:
         """Restart a deployment by triggering a rolling update.
 
@@ -189,8 +192,9 @@ def register_deployment_tools(server: "FastMCP", non_destructive: bool):
             namespace: Namespace of the deployment (default: "default")
             context: Kubernetes context to use (uses current context if not specified)
         """
-        if non_destructive:
-            return {"success": False, "error": "Blocked: non-destructive mode"}
+        blocked = await check_write_allowed()
+        if blocked:
+            return blocked
         try:
             cmd = ["kubectl", "rollout", "restart", "deployment", name, "-n", namespace]
             cmd.extend(_get_kubectl_context_args(context))

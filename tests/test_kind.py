@@ -491,80 +491,100 @@ class TestKindNonDestructiveBlocking:
     async def test_create_blocked_in_non_destructive(self, mock_all_kubernetes_apis):
         """Test that kind_create_cluster_tool is blocked in non-destructive mode."""
         from kubectl_mcp_tool.tools.kind import register_kind_tools
+        from kubectl_mcp_tool.safety import set_safety_mode, SafetyMode
 
         try:
             from fastmcp import FastMCP
         except ImportError:
             from mcp.server.fastmcp import FastMCP
 
-        mcp = FastMCP(name="test")
-        register_kind_tools(mcp, non_destructive=True)
+        set_safety_mode(SafetyMode.READ_ONLY)
+        try:
+            mcp = FastMCP(name="test")
+            register_kind_tools(mcp, non_destructive=True)
 
-        tool = await mcp.get_tool("kind_create_cluster")
-        result = tool.fn(name="test")
-        result_dict = json.loads(result)
-        assert result_dict["success"] is False
-        assert "non-destructive" in result_dict["error"].lower()
+            tool = await mcp.get_tool("kind_create_cluster")
+            result = await tool.fn(name="test")
+            result_dict = json.loads(result)
+            assert result_dict["success"] is False
+            assert "blocked" in result_dict["error"].lower()
+        finally:
+            set_safety_mode(SafetyMode.NORMAL)
 
     @pytest.mark.unit
     @pytest.mark.asyncio
     async def test_delete_blocked_in_non_destructive(self, mock_all_kubernetes_apis):
         """Test that kind_delete_cluster_tool is blocked in non-destructive mode."""
         from kubectl_mcp_tool.tools.kind import register_kind_tools
+        from kubectl_mcp_tool.safety import set_safety_mode, SafetyMode
 
         try:
             from fastmcp import FastMCP
         except ImportError:
             from mcp.server.fastmcp import FastMCP
 
-        mcp = FastMCP(name="test")
-        register_kind_tools(mcp, non_destructive=True)
+        set_safety_mode(SafetyMode.READ_ONLY)
+        try:
+            mcp = FastMCP(name="test")
+            register_kind_tools(mcp, non_destructive=True)
 
-        tool = await mcp.get_tool("kind_delete_cluster")
-        result = tool.fn(name="test")
-        result_dict = json.loads(result)
-        assert result_dict["success"] is False
-        assert "non-destructive" in result_dict["error"].lower()
+            tool = await mcp.get_tool("kind_delete_cluster")
+            result = await tool.fn(name="test")
+            result_dict = json.loads(result)
+            assert result_dict["success"] is False
+            assert "blocked" in result_dict["error"].lower()
+        finally:
+            set_safety_mode(SafetyMode.NORMAL)
 
     @pytest.mark.unit
     @pytest.mark.asyncio
     async def test_delete_all_blocked_in_non_destructive(self, mock_all_kubernetes_apis):
         """Test that kind_delete_all_clusters_tool is blocked in non-destructive mode."""
         from kubectl_mcp_tool.tools.kind import register_kind_tools
+        from kubectl_mcp_tool.safety import set_safety_mode, SafetyMode
 
         try:
             from fastmcp import FastMCP
         except ImportError:
             from mcp.server.fastmcp import FastMCP
 
-        mcp = FastMCP(name="test")
-        register_kind_tools(mcp, non_destructive=True)
+        set_safety_mode(SafetyMode.READ_ONLY)
+        try:
+            mcp = FastMCP(name="test")
+            register_kind_tools(mcp, non_destructive=True)
 
-        tool = await mcp.get_tool("kind_delete_all_clusters")
-        result = tool.fn()
-        result_dict = json.loads(result)
-        assert result_dict["success"] is False
-        assert "non-destructive" in result_dict["error"].lower()
+            tool = await mcp.get_tool("kind_delete_all_clusters")
+            result = await tool.fn()
+            result_dict = json.loads(result)
+            assert result_dict["success"] is False
+            assert "blocked" in result_dict["error"].lower()
+        finally:
+            set_safety_mode(SafetyMode.NORMAL)
 
     @pytest.mark.unit
     @pytest.mark.asyncio
     async def test_load_image_blocked_in_non_destructive(self, mock_all_kubernetes_apis):
         """Test that kind_load_image_tool is blocked in non-destructive mode."""
         from kubectl_mcp_tool.tools.kind import register_kind_tools
+        from kubectl_mcp_tool.safety import set_safety_mode, SafetyMode
 
         try:
             from fastmcp import FastMCP
         except ImportError:
             from mcp.server.fastmcp import FastMCP
 
-        mcp = FastMCP(name="test")
-        register_kind_tools(mcp, non_destructive=True)
+        set_safety_mode(SafetyMode.READ_ONLY)
+        try:
+            mcp = FastMCP(name="test")
+            register_kind_tools(mcp, non_destructive=True)
 
-        tool = await mcp.get_tool("kind_load_image")
-        result = tool.fn(images="myapp:latest", name="test")
-        result_dict = json.loads(result)
-        assert result_dict["success"] is False
-        assert "non-destructive" in result_dict["error"].lower()
+            tool = await mcp.get_tool("kind_load_image")
+            result = await tool.fn(images="myapp:latest", name="test")
+            result_dict = json.loads(result)
+            assert result_dict["success"] is False
+            assert "blocked" in result_dict["error"].lower()
+        finally:
+            set_safety_mode(SafetyMode.NORMAL)
 
     @pytest.mark.unit
     @pytest.mark.asyncio
@@ -1110,80 +1130,100 @@ class TestNewKindNonDestructiveBlocking:
     async def test_registry_create_blocked_in_non_destructive(self, mock_all_kubernetes_apis):
         """Test that kind_registry_create_tool is blocked in non-destructive mode."""
         from kubectl_mcp_tool.tools.kind import register_kind_tools
+        from kubectl_mcp_tool.safety import set_safety_mode, SafetyMode
 
         try:
             from fastmcp import FastMCP
         except ImportError:
             from mcp.server.fastmcp import FastMCP
 
-        mcp = FastMCP(name="test")
-        register_kind_tools(mcp, non_destructive=True)
+        set_safety_mode(SafetyMode.READ_ONLY)
+        try:
+            mcp = FastMCP(name="test")
+            register_kind_tools(mcp, non_destructive=True)
 
-        tool = await mcp.get_tool("kind_registry_create")
-        result = tool.fn()
-        result_dict = json.loads(result)
-        assert result_dict["success"] is False
-        assert "non-destructive" in result_dict["error"].lower()
+            tool = await mcp.get_tool("kind_registry_create")
+            result = await tool.fn()
+            result_dict = json.loads(result)
+            assert result_dict["success"] is False
+            assert "blocked" in result_dict["error"].lower()
+        finally:
+            set_safety_mode(SafetyMode.NORMAL)
 
     @pytest.mark.unit
     @pytest.mark.asyncio
     async def test_node_exec_blocked_in_non_destructive(self, mock_all_kubernetes_apis):
         """Test that kind_node_exec_tool is blocked in non-destructive mode."""
         from kubectl_mcp_tool.tools.kind import register_kind_tools
+        from kubectl_mcp_tool.safety import set_safety_mode, SafetyMode
 
         try:
             from fastmcp import FastMCP
         except ImportError:
             from mcp.server.fastmcp import FastMCP
 
-        mcp = FastMCP(name="test")
-        register_kind_tools(mcp, non_destructive=True)
+        set_safety_mode(SafetyMode.READ_ONLY)
+        try:
+            mcp = FastMCP(name="test")
+            register_kind_tools(mcp, non_destructive=True)
 
-        tool = await mcp.get_tool("kind_node_exec")
-        result = tool.fn(node="test", command="ls")
-        result_dict = json.loads(result)
-        assert result_dict["success"] is False
-        assert "non-destructive" in result_dict["error"].lower()
+            tool = await mcp.get_tool("kind_node_exec")
+            result = await tool.fn(node="test", command="ls")
+            result_dict = json.loads(result)
+            assert result_dict["success"] is False
+            assert "blocked" in result_dict["error"].lower()
+        finally:
+            set_safety_mode(SafetyMode.NORMAL)
 
     @pytest.mark.unit
     @pytest.mark.asyncio
     async def test_node_restart_blocked_in_non_destructive(self, mock_all_kubernetes_apis):
         """Test that kind_node_restart_tool is blocked in non-destructive mode."""
         from kubectl_mcp_tool.tools.kind import register_kind_tools
+        from kubectl_mcp_tool.safety import set_safety_mode, SafetyMode
 
         try:
             from fastmcp import FastMCP
         except ImportError:
             from mcp.server.fastmcp import FastMCP
 
-        mcp = FastMCP(name="test")
-        register_kind_tools(mcp, non_destructive=True)
+        set_safety_mode(SafetyMode.READ_ONLY)
+        try:
+            mcp = FastMCP(name="test")
+            register_kind_tools(mcp, non_destructive=True)
 
-        tool = await mcp.get_tool("kind_node_restart")
-        result = tool.fn(node="test")
-        result_dict = json.loads(result)
-        assert result_dict["success"] is False
-        assert "non-destructive" in result_dict["error"].lower()
+            tool = await mcp.get_tool("kind_node_restart")
+            result = await tool.fn(node="test")
+            result_dict = json.loads(result)
+            assert result_dict["success"] is False
+            assert "blocked" in result_dict["error"].lower()
+        finally:
+            set_safety_mode(SafetyMode.NORMAL)
 
     @pytest.mark.unit
     @pytest.mark.asyncio
     async def test_ingress_setup_blocked_in_non_destructive(self, mock_all_kubernetes_apis):
         """Test that kind_ingress_setup_tool is blocked in non-destructive mode."""
         from kubectl_mcp_tool.tools.kind import register_kind_tools
+        from kubectl_mcp_tool.safety import set_safety_mode, SafetyMode
 
         try:
             from fastmcp import FastMCP
         except ImportError:
             from mcp.server.fastmcp import FastMCP
 
-        mcp = FastMCP(name="test")
-        register_kind_tools(mcp, non_destructive=True)
+        set_safety_mode(SafetyMode.READ_ONLY)
+        try:
+            mcp = FastMCP(name="test")
+            register_kind_tools(mcp, non_destructive=True)
 
-        tool = await mcp.get_tool("kind_ingress_setup")
-        result = tool.fn()
-        result_dict = json.loads(result)
-        assert result_dict["success"] is False
-        assert "non-destructive" in result_dict["error"].lower()
+            tool = await mcp.get_tool("kind_ingress_setup")
+            result = await tool.fn()
+            result_dict = json.loads(result)
+            assert result_dict["success"] is False
+            assert "blocked" in result_dict["error"].lower()
+        finally:
+            set_safety_mode(SafetyMode.NORMAL)
 
     @pytest.mark.unit
     @pytest.mark.asyncio

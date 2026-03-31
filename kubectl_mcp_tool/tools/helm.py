@@ -67,6 +67,8 @@ def register_helm_tools(
         non_destructive: If True, block destructive operations
         check_helm_fn: Function to check if Helm is available
     """
+    from fastmcp import Context
+    from kubectl_mcp_tool.elicit import confirm_destructive, check_write_allowed
 
     @server.tool(
         annotations=ToolAnnotations(
@@ -77,13 +79,13 @@ def register_helm_tools(
             openWorldHint=True,
         ),
     )
-    def install_helm_chart(
+    async def install_helm_chart(
         name: str,
         chart: str,
         namespace: str,
         repo: Optional[str] = None,
         values: Optional[dict] = None,
-        context: str = ""
+        context: str = "",
     ) -> Dict[str, Any]:
         """Install a Helm chart.
 
@@ -95,8 +97,9 @@ def register_helm_tools(
             values: Values to override
             context: Kubernetes context to use (optional, uses current context if not specified)
         """
-        if non_destructive:
-            return {"success": False, "error": "Blocked: non-destructive mode"}
+        blocked = await check_write_allowed()
+        if blocked:
+            return blocked
         if not check_helm_fn():
             return {"success": False, "error": "Helm is not available on this system"}
 
@@ -158,13 +161,14 @@ def register_helm_tools(
             openWorldHint=True,
         ),
     )
-    def upgrade_helm_chart(
+    async def upgrade_helm_chart(
         name: str,
         chart: str,
         namespace: str,
         repo: Optional[str] = None,
         values: Optional[dict] = None,
-        context: str = ""
+        context: str = "",
+        ctx: Context = None
     ) -> Dict[str, Any]:
         """Upgrade a Helm release.
 
@@ -176,8 +180,9 @@ def register_helm_tools(
             values: Values to override
             context: Kubernetes context to use (optional, uses current context if not specified)
         """
-        if non_destructive:
-            return {"success": False, "error": "Blocked: non-destructive mode"}
+        blocked = await confirm_destructive(ctx, "Upgrade Helm release", name, namespace)
+        if blocked:
+            return blocked
         if not check_helm_fn():
             return {"success": False, "error": "Helm is not available on this system"}
 
@@ -227,7 +232,7 @@ def register_helm_tools(
             openWorldHint=True,
         ),
     )
-    def uninstall_helm_chart(name: str, namespace: str, context: str = "") -> Dict[str, Any]:
+    async def uninstall_helm_chart(name: str, namespace: str, context: str = "", ctx: Context = None) -> Dict[str, Any]:
         """Uninstall a Helm release.
 
         Args:
@@ -235,8 +240,9 @@ def register_helm_tools(
             namespace: Target namespace
             context: Kubernetes context to use (optional, uses current context if not specified)
         """
-        if non_destructive:
-            return {"success": False, "error": "Blocked: non-destructive mode"}
+        blocked = await confirm_destructive(ctx, "Uninstall Helm release", name, namespace)
+        if blocked:
+            return blocked
         if not check_helm_fn():
             return {"success": False, "error": "Helm is not available on this system"}
 
@@ -1153,7 +1159,7 @@ def register_helm_tools(
             openWorldHint=True,
         ),
     )
-    def helm_rollback(
+    async def helm_rollback(
         release_name: str,
         revision: int,
         namespace: str = "default",
@@ -1162,7 +1168,8 @@ def register_helm_tools(
         cleanup_on_fail: bool = False,
         wait: bool = False,
         timeout: str = "5m0s",
-        context: str = ""
+        context: str = "",
+        ctx: Context = None
     ) -> Dict[str, Any]:
         """Rollback a Helm release to a previous revision.
 
@@ -1177,8 +1184,9 @@ def register_helm_tools(
             timeout: Timeout for waiting
             context: Kubernetes context to use (optional, uses current context if not specified)
         """
-        if non_destructive:
-            return {"success": False, "error": "Blocked: non-destructive mode"}
+        blocked = await confirm_destructive(ctx, "Rollback Helm release", f"{release_name} to rev {revision}", namespace)
+        if blocked:
+            return blocked
         if not check_helm_fn():
             return {"success": False, "error": "Helm is not available on this system"}
 
@@ -1713,13 +1721,14 @@ def register_helm_tools(
             openWorldHint=True,
         ),
     )
-    def helm_template_apply(
+    async def helm_template_apply(
         chart: str,
         name: str,
         namespace: str = "default",
         repo: Optional[str] = None,
         values: Optional[str] = None,
-        context: str = ""
+        context: str = "",
+        ctx: Context = None
     ) -> Dict[str, Any]:
         """Render and apply Helm chart (bypasses Tiller/auth issues).
 
@@ -1731,8 +1740,9 @@ def register_helm_tools(
             values: Set values on command line
             context: Kubernetes context to use (optional, uses current context if not specified)
         """
-        if non_destructive:
-            return {"success": False, "error": "Operation blocked: non-destructive mode enabled"}
+        blocked = await confirm_destructive(ctx, "Template and apply Helm chart", f"{chart} as {name}", namespace)
+        if blocked:
+            return blocked
         try:
             cmd = ["helm"] + _get_helm_context_args(context) + ["template", name, chart, "-n", namespace]
             if repo:

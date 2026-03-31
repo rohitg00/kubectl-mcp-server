@@ -28,10 +28,11 @@ def main():
     parser.add_argument("--host", type=str, default="0.0.0.0")
     parser.add_argument("--non-destructive", "--disable-destructive", action="store_true", help="Block destructive operations")
     parser.add_argument("--read-only", action="store_true", help="Enable read-only mode (block all write operations)")
+    parser.add_argument("--confirm-destructive", action="store_true", help="Require confirmation for destructive operations")
     parser.add_argument("--config", type=str, default=None, help="Path to TOML configuration file")
     args = parser.parse_args()
 
-    server = MCPServer(name="kubernetes", read_only=args.read_only, disable_destructive=args.non_destructive, config_file=args.config)
+    server = MCPServer(name="kubernetes", read_only=args.read_only, disable_destructive=args.non_destructive, confirm_destructive=args.confirm_destructive, config_file=args.config)
 
     try:
         if args.transport == "stdio":

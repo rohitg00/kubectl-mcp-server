@@ -146,6 +146,7 @@ class MCPServer:
         name: str,
         read_only: bool = False,
         disable_destructive: bool = False,
+        confirm_destructive: bool = False,
         config_file: Optional[str] = None,
     ):
         """Initialize the MCP server.
@@ -171,12 +172,13 @@ class MCPServer:
         # Persist CLI safety overrides for reloads
         self._cli_read_only = read_only
         self._cli_disable_destructive = disable_destructive
+        self._cli_confirm_destructive = confirm_destructive
 
         # Load configuration from file and environment
         self.config = self._load_configuration(config_file)
 
         # Apply safety mode from config or parameters
-        self._apply_safety_mode(self._cli_read_only, self._cli_disable_destructive)
+        self._apply_safety_mode(self._cli_read_only, self._cli_disable_destructive, self._cli_confirm_destructive)
 
         # For backward compatibility, expose non_destructive
         self.non_destructive = get_safety_mode() != SafetyMode.NORMAL
@@ -218,23 +220,25 @@ class MCPServer:
             logger.warning(f"Failed to load config file: {e}. Using defaults.")
             return load_config(skip_env=False)
 
-    def _apply_safety_mode(self, read_only: bool, disable_destructive: bool) -> None:
+    def _apply_safety_mode(self, read_only: bool, disable_destructive: bool, confirm_destructive: bool = False) -> None:
         """Apply safety mode from config or CLI parameters.
 
         CLI parameters take precedence over config file settings.
         """
-        # Check config first
         config_mode = getattr(self.config.safety, 'mode', 'normal') if hasattr(self.config, 'safety') else 'normal'
 
-        # CLI parameters override config
         if read_only:
             set_safety_mode(SafetyMode.READ_ONLY)
         elif disable_destructive:
             set_safety_mode(SafetyMode.DISABLE_DESTRUCTIVE)
+        elif confirm_destructive:
+            set_safety_mode(SafetyMode.CONFIRM)
         elif config_mode == 'read-only' or config_mode == 'read_only':
             set_safety_mode(SafetyMode.READ_ONLY)
         elif config_mode == 'disable-destructive' or config_mode == 'disable_destructive':
             set_safety_mode(SafetyMode.DISABLE_DESTRUCTIVE)
+        elif config_mode == 'confirm' or config_mode == 'confirm-destructive' or config_mode == 'confirm_destructive':
+            set_safety_mode(SafetyMode.CONFIRM)
         else:
             set_safety_mode(SafetyMode.NORMAL)
 
@@ -259,8 +263,7 @@ class MCPServer:
         logger.info("Configuration reloaded")
         self.config = new_config
 
-        # Re-apply safety mode from new config, honoring CLI precedence
-        self._apply_safety_mode(self._cli_read_only, self._cli_disable_destructive)
+        self._apply_safety_mode(self._cli_read_only, self._cli_disable_destructive, self._cli_confirm_destructive)
 
         # Refresh non_destructive flag
         self.non_destructive = get_safety_mode() != SafetyMode.NORMAL
@@ -737,6 +740,11 @@ if __name__ == "__main__":
         help="Disable destructive operations (allow create/update, block delete).",
     )
     parser.add_argument(
+        "--confirm-destructive",
+        action="store_true",
+        help="Require user confirmation for destructive operations via elicitation. Block if client doesn't support it.",
+    )
+    parser.add_argument(
         "--stateless",
         action="store_true",
         help="Enable stateless mode (don't cache API clients, reload config each request). Useful for serverless environments.",
@@ -771,6 +779,7 @@ if __name__ == "__main__":
         name=server_name,
         read_only=args.read_only,
         disable_destructive=args.disable_destructive,
+        confirm_destructive=args.confirm_destructive,
         config_file=args.config,
     )
 
