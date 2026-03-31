@@ -221,8 +221,8 @@ def register_security_tools(server, non_destructive: bool):
                 "success": True,
                 "context": context or "current",
                 "totalPolicies": len(policies.items),
-                "protectedNamespaces": list(protected_namespaces),
-                "unprotectedNamespaces": unprotected,
+                "protectedNamespaces": sorted(protected_namespaces),
+                "unprotectedNamespaces": sorted(unprotected),
                 "policies": [
                     {
                         "name": p.metadata.name,
