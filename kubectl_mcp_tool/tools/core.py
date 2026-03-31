@@ -20,6 +20,9 @@ def register_core_tools(server: "FastMCP", non_destructive: bool):
         annotations=ToolAnnotations(
             title="Get Namespaces",
             readOnlyHint=True,
+            destructiveHint=False,
+            idempotentHint=True,
+            openWorldHint=True,
         ),
     )
     def get_namespaces(context: str = "") -> Dict[str, Any]:
@@ -44,6 +47,9 @@ def register_core_tools(server: "FastMCP", non_destructive: bool):
         annotations=ToolAnnotations(
             title="Get Services",
             readOnlyHint=True,
+            destructiveHint=False,
+            idempotentHint=True,
+            openWorldHint=True,
         ),
     )
     def get_services(
@@ -82,6 +88,9 @@ def register_core_tools(server: "FastMCP", non_destructive: bool):
         annotations=ToolAnnotations(
             title="Get Nodes",
             readOnlyHint=True,
+            destructiveHint=False,
+            idempotentHint=True,
+            openWorldHint=True,
         ),
     )
     def get_nodes(context: str = "") -> Dict[str, Any]:
@@ -122,6 +131,9 @@ def register_core_tools(server: "FastMCP", non_destructive: bool):
         annotations=ToolAnnotations(
             title="Get ConfigMaps",
             readOnlyHint=True,
+            destructiveHint=False,
+            idempotentHint=True,
+            openWorldHint=True,
         ),
     )
     def get_configmaps(
@@ -159,6 +171,9 @@ def register_core_tools(server: "FastMCP", non_destructive: bool):
         annotations=ToolAnnotations(
             title="Get Secrets",
             readOnlyHint=True,
+            destructiveHint=False,
+            idempotentHint=True,
+            openWorldHint=True,
         ),
     )
     def get_secrets(
@@ -196,6 +211,9 @@ def register_core_tools(server: "FastMCP", non_destructive: bool):
         annotations=ToolAnnotations(
             title="Get Events",
             readOnlyHint=True,
+            destructiveHint=False,
+            idempotentHint=True,
+            openWorldHint=True,
         ),
     )
     def get_events(
@@ -236,6 +254,9 @@ def register_core_tools(server: "FastMCP", non_destructive: bool):
         annotations=ToolAnnotations(
             title="Get Resource Usage",
             readOnlyHint=True,
+            destructiveHint=False,
+            idempotentHint=True,
+            openWorldHint=True,
         ),
     )
     def get_resource_usage(
@@ -297,6 +318,9 @@ def register_core_tools(server: "FastMCP", non_destructive: bool):
         annotations=ToolAnnotations(
             title="Get Service Accounts",
             readOnlyHint=True,
+            destructiveHint=False,
+            idempotentHint=True,
+            openWorldHint=True,
         ),
     )
     def get_service_accounts(
@@ -339,6 +363,9 @@ def register_core_tools(server: "FastMCP", non_destructive: bool):
         annotations=ToolAnnotations(
             title="Get Custom Resource Definitions",
             readOnlyHint=True,
+            destructiveHint=False,
+            idempotentHint=True,
+            openWorldHint=True,
         ),
     )
     def get_crds(
@@ -386,6 +413,9 @@ def register_core_tools(server: "FastMCP", non_destructive: bool):
         annotations=ToolAnnotations(
             title="Get Resource Quotas",
             readOnlyHint=True,
+            destructiveHint=False,
+            idempotentHint=True,
+            openWorldHint=True,
         ),
     )
     def get_resource_quotas(
@@ -427,6 +457,9 @@ def register_core_tools(server: "FastMCP", non_destructive: bool):
         annotations=ToolAnnotations(
             title="Get Limit Ranges",
             readOnlyHint=True,
+            destructiveHint=False,
+            idempotentHint=True,
+            openWorldHint=True,
         ),
     )
     def get_limit_ranges(
@@ -476,6 +509,9 @@ def register_core_tools(server: "FastMCP", non_destructive: bool):
         annotations=ToolAnnotations(
             title="Get Priority Classes",
             readOnlyHint=True,
+            destructiveHint=False,
+            idempotentHint=True,
+            openWorldHint=True,
         ),
     )
     def get_priority_classes(context: str = "") -> Dict[str, Any]:

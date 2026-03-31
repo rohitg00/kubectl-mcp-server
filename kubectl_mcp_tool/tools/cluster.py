@@ -61,6 +61,9 @@ def register_cluster_tools(server: "FastMCP", non_destructive: bool):
         annotations=ToolAnnotations(
             title="List Contexts",
             readOnlyHint=True,
+            destructiveHint=False,
+            idempotentHint=True,
+            openWorldHint=True,
         ),
     )
     def list_contexts_tool() -> Dict[str, Any]:
@@ -86,6 +89,9 @@ def register_cluster_tools(server: "FastMCP", non_destructive: bool):
         annotations=ToolAnnotations(
             title="Get Current Context",
             readOnlyHint=True,
+            destructiveHint=False,
+            idempotentHint=True,
+            openWorldHint=True,
         ),
     )
     def get_current_context() -> Dict[str, Any]:
@@ -103,6 +109,9 @@ def register_cluster_tools(server: "FastMCP", non_destructive: bool):
         annotations=ToolAnnotations(
             title="Get Context Details",
             readOnlyHint=True,
+            destructiveHint=False,
+            idempotentHint=True,
+            openWorldHint=True,
         ),
     )
     def get_context_details(context_name: str) -> Dict[str, Any]:
@@ -130,6 +139,9 @@ def register_cluster_tools(server: "FastMCP", non_destructive: bool):
         annotations=ToolAnnotations(
             title="View Kubeconfig",
             readOnlyHint=True,
+            destructiveHint=False,
+            idempotentHint=True,
+            openWorldHint=True,
         ),
     )
     def kubeconfig_view(minify: bool = True) -> Dict[str, Any]:
@@ -173,7 +185,10 @@ def register_cluster_tools(server: "FastMCP", non_destructive: bool):
     @server.tool(
         annotations=ToolAnnotations(
             title="Switch Context",
+            readOnlyHint=False,
             destructiveHint=True,
+            idempotentHint=True,
+            openWorldHint=True,
         ),
     )
     def switch_context(context_name: str) -> Dict[str, Any]:
@@ -201,7 +216,10 @@ def register_cluster_tools(server: "FastMCP", non_destructive: bool):
     @server.tool(
         annotations=ToolAnnotations(
             title="Set Namespace for Context",
+            readOnlyHint=False,
             destructiveHint=True,
+            idempotentHint=True,
+            openWorldHint=True,
         ),
     )
     def set_namespace_for_context(
@@ -234,6 +252,9 @@ def register_cluster_tools(server: "FastMCP", non_destructive: bool):
         annotations=ToolAnnotations(
             title="Get Cluster Info",
             readOnlyHint=True,
+            destructiveHint=False,
+            idempotentHint=True,
+            openWorldHint=True,
         ),
     )
     def get_cluster_info(context: str = "") -> Dict[str, Any]:
@@ -263,6 +284,9 @@ def register_cluster_tools(server: "FastMCP", non_destructive: bool):
         annotations=ToolAnnotations(
             title="Get Cluster Version Info",
             readOnlyHint=True,
+            destructiveHint=False,
+            idempotentHint=True,
+            openWorldHint=True,
         ),
     )
     def get_cluster_version(context: str = "") -> Dict[str, Any]:
@@ -296,6 +320,9 @@ def register_cluster_tools(server: "FastMCP", non_destructive: bool):
         annotations=ToolAnnotations(
             title="Health Check",
             readOnlyHint=True,
+            destructiveHint=False,
+            idempotentHint=True,
+            openWorldHint=True,
         ),
     )
     def health_check(context: str = "") -> Dict[str, Any]:
@@ -326,6 +353,9 @@ def register_cluster_tools(server: "FastMCP", non_destructive: bool):
         annotations=ToolAnnotations(
             title="Kubectl Explain",
             readOnlyHint=True,
+            destructiveHint=False,
+            idempotentHint=True,
+            openWorldHint=True,
         ),
     )
     def kubectl_explain(
@@ -357,6 +387,9 @@ def register_cluster_tools(server: "FastMCP", non_destructive: bool):
         annotations=ToolAnnotations(
             title="Get API Resources",
             readOnlyHint=True,
+            destructiveHint=False,
+            idempotentHint=True,
+            openWorldHint=True,
         ),
     )
     def get_api_resources(context: str = "") -> Dict[str, Any]:
@@ -384,6 +417,9 @@ def register_cluster_tools(server: "FastMCP", non_destructive: bool):
         annotations=ToolAnnotations(
             title="Get API Versions",
             readOnlyHint=True,
+            destructiveHint=False,
+            idempotentHint=True,
+            openWorldHint=True,
         ),
     )
     def get_api_versions(context: str = "") -> Dict[str, Any]:
@@ -415,6 +451,9 @@ def register_cluster_tools(server: "FastMCP", non_destructive: bool):
         annotations=ToolAnnotations(
             title="Get Admission Webhooks",
             readOnlyHint=True,
+            destructiveHint=False,
+            idempotentHint=True,
+            openWorldHint=True,
         ),
     )
     def get_admission_webhooks(context: str = "") -> Dict[str, Any]:
@@ -471,6 +510,9 @@ def register_cluster_tools(server: "FastMCP", non_destructive: bool):
         annotations=ToolAnnotations(
             title="Check CRD Exists",
             readOnlyHint=True,
+            destructiveHint=False,
+            idempotentHint=True,
+            openWorldHint=True,
         ),
     )
     def check_crd_exists(
@@ -506,6 +548,9 @@ def register_cluster_tools(server: "FastMCP", non_destructive: bool):
         annotations=ToolAnnotations(
             title="List CRDs",
             readOnlyHint=True,
+            destructiveHint=False,
+            idempotentHint=True,
+            openWorldHint=True,
         ),
     )
     def list_crds(context: str = "") -> Dict[str, Any]:
@@ -549,6 +594,9 @@ def register_cluster_tools(server: "FastMCP", non_destructive: bool):
         annotations=ToolAnnotations(
             title="Get Nodes Summary",
             readOnlyHint=True,
+            destructiveHint=False,
+            idempotentHint=True,
+            openWorldHint=True,
         ),
     )
     def get_nodes_summary(context: str = "") -> Dict[str, Any]:
@@ -610,6 +658,9 @@ def register_cluster_tools(server: "FastMCP", non_destructive: bool):
         annotations=ToolAnnotations(
             title="Get Server Config Status",
             readOnlyHint=True,
+            destructiveHint=False,
+            idempotentHint=True,
+            openWorldHint=True,
         ),
     )
     def get_server_config_status() -> Dict[str, Any]:
@@ -646,7 +697,10 @@ def register_cluster_tools(server: "FastMCP", non_destructive: bool):
     @server.tool(
         annotations=ToolAnnotations(
             title="Enable Kubeconfig Watching",
+            readOnlyHint=False,
             destructiveHint=True,
+            idempotentHint=True,
+            openWorldHint=True,
         ),
     )
     def enable_kubeconfig_watching(
@@ -689,7 +743,10 @@ def register_cluster_tools(server: "FastMCP", non_destructive: bool):
     @server.tool(
         annotations=ToolAnnotations(
             title="Disable Kubeconfig Watching",
+            readOnlyHint=False,
             destructiveHint=True,
+            idempotentHint=True,
+            openWorldHint=True,
         ),
     )
     def disable_kubeconfig_watching() -> Dict[str, Any]:
@@ -710,7 +767,10 @@ def register_cluster_tools(server: "FastMCP", non_destructive: bool):
     @server.tool(
         annotations=ToolAnnotations(
             title="Set Stateless Mode",
+            readOnlyHint=False,
             destructiveHint=True,
+            idempotentHint=True,
+            openWorldHint=True,
         ),
     )
     def set_server_stateless_mode(
@@ -745,6 +805,9 @@ def register_cluster_tools(server: "FastMCP", non_destructive: bool):
         annotations=ToolAnnotations(
             title="Get Node Logs",
             readOnlyHint=True,
+            destructiveHint=False,
+            idempotentHint=True,
+            openWorldHint=True,
         ),
     )
     def node_logs_tool(
@@ -831,6 +894,9 @@ def register_cluster_tools(server: "FastMCP", non_destructive: bool):
         annotations=ToolAnnotations(
             title="Get Node Stats Summary",
             readOnlyHint=True,
+            destructiveHint=False,
+            idempotentHint=True,
+            openWorldHint=True,
         ),
     )
     def node_stats_summary_tool(
@@ -939,6 +1005,9 @@ def register_cluster_tools(server: "FastMCP", non_destructive: bool):
         annotations=ToolAnnotations(
             title="Get Node Top",
             readOnlyHint=True,
+            destructiveHint=False,
+            idempotentHint=True,
+            openWorldHint=True,
         ),
     )
     def node_top_tool(

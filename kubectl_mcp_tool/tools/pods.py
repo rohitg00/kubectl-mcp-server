@@ -32,6 +32,9 @@ def register_pod_tools(
         annotations=ToolAnnotations(
             title="Get Pods",
             readOnlyHint=True,
+            destructiveHint=False,
+            idempotentHint=True,
+            openWorldHint=True,
         ),
     )
     def get_pods(
@@ -73,6 +76,9 @@ def register_pod_tools(
         annotations=ToolAnnotations(
             title="Get Logs",
             readOnlyHint=True,
+            destructiveHint=False,
+            idempotentHint=True,
+            openWorldHint=True,
         ),
     )
     def get_logs(
@@ -114,6 +120,9 @@ def register_pod_tools(
         annotations=ToolAnnotations(
             title="Get Pod Events",
             readOnlyHint=True,
+            destructiveHint=False,
+            idempotentHint=True,
+            openWorldHint=True,
         ),
     )
     def get_pod_events(
@@ -153,6 +162,9 @@ def register_pod_tools(
         annotations=ToolAnnotations(
             title="Check Pod Health",
             readOnlyHint=True,
+            destructiveHint=False,
+            idempotentHint=True,
+            openWorldHint=True,
         ),
     )
     def check_pod_health(
@@ -184,7 +196,10 @@ def register_pod_tools(
     @server.tool(
         annotations=ToolAnnotations(
             title="Exec in Pod",
+            readOnlyHint=False,
             destructiveHint=True,
+            idempotentHint=False,
+            openWorldHint=True,
         ),
     )
     def exec_in_pod(
@@ -230,7 +245,10 @@ def register_pod_tools(
     @server.tool(
         annotations=ToolAnnotations(
             title="Cleanup Pods",
+            readOnlyHint=False,
             destructiveHint=True,
+            idempotentHint=True,
+            openWorldHint=True,
         ),
     )
     def cleanup_pods(
@@ -285,7 +303,10 @@ def register_pod_tools(
     @server.tool(
         annotations=ToolAnnotations(
             title="Run Pod",
-            destructiveHint=True,
+            readOnlyHint=False,
+            destructiveHint=False,
+            idempotentHint=False,
+            openWorldHint=True,
         ),
     )
     def run_pod(
@@ -379,6 +400,9 @@ def register_pod_tools(
         annotations=ToolAnnotations(
             title="Get Pod Conditions Detailed",
             readOnlyHint=True,
+            destructiveHint=False,
+            idempotentHint=True,
+            openWorldHint=True,
         ),
     )
     def get_pod_conditions(
@@ -459,6 +483,9 @@ def register_pod_tools(
         annotations=ToolAnnotations(
             title="Get Container Logs Previous",
             readOnlyHint=True,
+            destructiveHint=False,
+            idempotentHint=True,
+            openWorldHint=True,
         ),
     )
     def get_previous_logs(
@@ -509,6 +536,9 @@ def register_pod_tools(
         annotations=ToolAnnotations(
             title="Diagnose Pod Crash",
             readOnlyHint=True,
+            destructiveHint=False,
+            idempotentHint=True,
+            openWorldHint=True,
         ),
     )
     def diagnose_pod_crash(
@@ -631,6 +661,9 @@ def register_pod_tools(
         annotations=ToolAnnotations(
             title="Detect Pending Pods",
             readOnlyHint=True,
+            destructiveHint=False,
+            idempotentHint=True,
+            openWorldHint=True,
         ),
     )
     def detect_pending_pods(
@@ -718,6 +751,9 @@ def register_pod_tools(
         annotations=ToolAnnotations(
             title="Get Evicted Pods",
             readOnlyHint=True,
+            destructiveHint=False,
+            idempotentHint=True,
+            openWorldHint=True,
         ),
     )
     def get_evicted_pods(

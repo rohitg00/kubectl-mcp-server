@@ -23,6 +23,9 @@ def register_deployment_tools(server: "FastMCP", non_destructive: bool):
         annotations=ToolAnnotations(
             title="Get Deployments",
             readOnlyHint=True,
+            destructiveHint=False,
+            idempotentHint=True,
+            openWorldHint=True,
         ),
     )
     def get_deployments(
@@ -64,7 +67,10 @@ def register_deployment_tools(server: "FastMCP", non_destructive: bool):
     @server.tool(
         annotations=ToolAnnotations(
             title="Create Deployment",
-            destructiveHint=True,
+            readOnlyHint=False,
+            destructiveHint=False,
+            idempotentHint=False,
+            openWorldHint=True,
         ),
     )
     def create_deployment(
@@ -124,7 +130,10 @@ def register_deployment_tools(server: "FastMCP", non_destructive: bool):
     @server.tool(
         annotations=ToolAnnotations(
             title="Scale Deployment",
-            destructiveHint=True,
+            readOnlyHint=False,
+            destructiveHint=False,
+            idempotentHint=False,
+            openWorldHint=True,
         ),
     )
     def scale_deployment(
@@ -162,7 +171,10 @@ def register_deployment_tools(server: "FastMCP", non_destructive: bool):
     @server.tool(
         annotations=ToolAnnotations(
             title="Restart Deployment",
-            destructiveHint=True,
+            readOnlyHint=False,
+            destructiveHint=False,
+            idempotentHint=False,
+            openWorldHint=True,
         ),
     )
     def restart_deployment(
@@ -199,6 +211,9 @@ def register_deployment_tools(server: "FastMCP", non_destructive: bool):
         annotations=ToolAnnotations(
             title="Get ReplicaSets",
             readOnlyHint=True,
+            destructiveHint=False,
+            idempotentHint=True,
+            openWorldHint=True,
         ),
     )
     def get_replicasets(
@@ -245,6 +260,9 @@ def register_deployment_tools(server: "FastMCP", non_destructive: bool):
         annotations=ToolAnnotations(
             title="Get StatefulSets",
             readOnlyHint=True,
+            destructiveHint=False,
+            idempotentHint=True,
+            openWorldHint=True,
         ),
     )
     def get_statefulsets(
@@ -289,6 +307,9 @@ def register_deployment_tools(server: "FastMCP", non_destructive: bool):
         annotations=ToolAnnotations(
             title="Get DaemonSets",
             readOnlyHint=True,
+            destructiveHint=False,
+            idempotentHint=True,
+            openWorldHint=True,
         ),
     )
     def get_daemonsets(
@@ -333,6 +354,9 @@ def register_deployment_tools(server: "FastMCP", non_destructive: bool):
         annotations=ToolAnnotations(
             title="Get Jobs and CronJobs",
             readOnlyHint=True,
+            destructiveHint=False,
+            idempotentHint=True,
+            openWorldHint=True,
         ),
     )
     def get_jobs(
@@ -400,6 +424,9 @@ def register_deployment_tools(server: "FastMCP", non_destructive: bool):
         annotations=ToolAnnotations(
             title="Get HorizontalPodAutoscalers",
             readOnlyHint=True,
+            destructiveHint=False,
+            idempotentHint=True,
+            openWorldHint=True,
         ),
     )
     def get_hpa(
@@ -450,6 +477,9 @@ def register_deployment_tools(server: "FastMCP", non_destructive: bool):
         annotations=ToolAnnotations(
             title="Get PodDisruptionBudgets",
             readOnlyHint=True,
+            destructiveHint=False,
+            idempotentHint=True,
+            openWorldHint=True,
         ),
     )
     def get_pdb(
