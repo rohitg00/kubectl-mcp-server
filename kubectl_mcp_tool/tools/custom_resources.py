@@ -581,6 +581,9 @@ def register_custom_resource_tools(server, non_destructive: bool):
         annotations=ToolAnnotations(
             title="Discover Cluster CRDs",
             readOnlyHint=True,
+            destructiveHint=False,
+            idempotentHint=True,
+            openWorldHint=True,
         ),
     )
     def discover_crds(
@@ -684,6 +687,9 @@ def register_custom_resource_tools(server, non_destructive: bool):
         annotations=ToolAnnotations(
             title="Search CRDs by Keyword",
             readOnlyHint=True,
+            destructiveHint=False,
+            idempotentHint=True,
+            openWorldHint=True,
         ),
     )
     def search_crds(
@@ -774,6 +780,9 @@ def register_custom_resource_tools(server, non_destructive: bool):
         annotations=ToolAnnotations(
             title="List Custom Resource Instances",
             readOnlyHint=True,
+            destructiveHint=False,
+            idempotentHint=True,
+            openWorldHint=True,
         ),
     )
     def list_custom_resources(
@@ -894,6 +903,9 @@ def register_custom_resource_tools(server, non_destructive: bool):
         annotations=ToolAnnotations(
             title="Get Custom Resource",
             readOnlyHint=True,
+            destructiveHint=False,
+            idempotentHint=True,
+            openWorldHint=True,
         ),
     )
     def get_custom_resource(
@@ -973,6 +985,9 @@ def register_custom_resource_tools(server, non_destructive: bool):
         annotations=ToolAnnotations(
             title="Describe CRD Schema",
             readOnlyHint=True,
+            destructiveHint=False,
+            idempotentHint=True,
+            openWorldHint=True,
         ),
     )
     def describe_crd(
@@ -1065,6 +1080,9 @@ def register_custom_resource_tools(server, non_destructive: bool):
         annotations=ToolAnnotations(
             title="Detect CRD API Availability",
             readOnlyHint=True,
+            destructiveHint=False,
+            idempotentHint=True,
+            openWorldHint=True,
         ),
     )
     def detect_crds(

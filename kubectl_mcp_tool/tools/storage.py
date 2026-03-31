@@ -15,6 +15,9 @@ def register_storage_tools(server, non_destructive: bool):
         annotations=ToolAnnotations(
             title="Get Persistent Volumes",
             readOnlyHint=True,
+            destructiveHint=False,
+            idempotentHint=True,
+            openWorldHint=True,
         ),
     )
     def get_persistent_volumes(
@@ -73,6 +76,9 @@ def register_storage_tools(server, non_destructive: bool):
         annotations=ToolAnnotations(
             title="Get Persistent Volume Claims",
             readOnlyHint=True,
+            destructiveHint=False,
+            idempotentHint=True,
+            openWorldHint=True,
         ),
     )
     def get_pvcs(
@@ -117,6 +123,9 @@ def register_storage_tools(server, non_destructive: bool):
         annotations=ToolAnnotations(
             title="Get Storage Classes",
             readOnlyHint=True,
+            destructiveHint=False,
+            idempotentHint=True,
+            openWorldHint=True,
         ),
     )
     def get_storage_classes(context: str = "") -> Dict[str, Any]:

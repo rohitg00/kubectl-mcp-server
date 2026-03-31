@@ -531,7 +531,7 @@ def istio_detect(context: str = "") -> Dict[str, Any]:
 def register_istio_tools(mcp: FastMCP, non_destructive: bool = False):
     """Register Istio/Kiali tools with the MCP server."""
 
-    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True))
+    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
     def istio_virtualservices_list_tool(
         namespace: str = "",
         context: str = "",
@@ -540,7 +540,7 @@ def register_istio_tools(mcp: FastMCP, non_destructive: bool = False):
         """List Istio VirtualServices."""
         return json.dumps(istio_virtualservices_list(namespace, context, label_selector), indent=2)
 
-    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True))
+    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
     def istio_virtualservice_get_tool(
         name: str,
         namespace: str,
@@ -549,7 +549,7 @@ def register_istio_tools(mcp: FastMCP, non_destructive: bool = False):
         """Get detailed information about a VirtualService."""
         return json.dumps(istio_virtualservice_get(name, namespace, context), indent=2)
 
-    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True))
+    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
     def istio_destinationrules_list_tool(
         namespace: str = "",
         context: str = "",
@@ -558,7 +558,7 @@ def register_istio_tools(mcp: FastMCP, non_destructive: bool = False):
         """List Istio DestinationRules."""
         return json.dumps(istio_destinationrules_list(namespace, context, label_selector), indent=2)
 
-    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True))
+    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
     def istio_gateways_list_tool(
         namespace: str = "",
         context: str = "",
@@ -567,7 +567,7 @@ def register_istio_tools(mcp: FastMCP, non_destructive: bool = False):
         """List Istio Gateways."""
         return json.dumps(istio_gateways_list(namespace, context, label_selector), indent=2)
 
-    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True))
+    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
     def istio_peerauthentications_list_tool(
         namespace: str = "",
         context: str = "",
@@ -576,7 +576,7 @@ def register_istio_tools(mcp: FastMCP, non_destructive: bool = False):
         """List Istio PeerAuthentication policies."""
         return json.dumps(istio_peerauthentications_list(namespace, context, label_selector), indent=2)
 
-    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True))
+    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
     def istio_authorizationpolicies_list_tool(
         namespace: str = "",
         context: str = "",
@@ -585,12 +585,12 @@ def register_istio_tools(mcp: FastMCP, non_destructive: bool = False):
         """List Istio AuthorizationPolicies."""
         return json.dumps(istio_authorizationpolicies_list(namespace, context, label_selector), indent=2)
 
-    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True))
+    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
     def istio_proxy_status_tool(context: str = "") -> str:
         """Get Istio proxy synchronization status."""
         return json.dumps(istio_proxy_status(context), indent=2)
 
-    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True))
+    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
     def istio_analyze_tool(
         namespace: str = "",
         context: str = ""
@@ -598,7 +598,7 @@ def register_istio_tools(mcp: FastMCP, non_destructive: bool = False):
         """Analyze Istio configuration for potential issues."""
         return json.dumps(istio_analyze(namespace, context), indent=2)
 
-    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True))
+    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
     def istio_sidecar_status_tool(
         namespace: str = "",
         context: str = ""
@@ -606,7 +606,7 @@ def register_istio_tools(mcp: FastMCP, non_destructive: bool = False):
         """Get sidecar injection status for pods."""
         return json.dumps(istio_sidecar_status(namespace, context), indent=2)
 
-    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True))
+    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
     def istio_detect_tool(context: str = "") -> str:
         """Detect if Istio is installed and its components."""
         return json.dumps(istio_detect(context), indent=2)

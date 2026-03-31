@@ -610,7 +610,7 @@ def certs_detect(context: str = "") -> Dict[str, Any]:
 def register_certs_tools(mcp: FastMCP, non_destructive: bool = False):
     """Register cert-manager tools with the MCP server."""
 
-    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True))
+    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
     def certs_list_tool(
         namespace: str = "",
         context: str = "",
@@ -619,7 +619,7 @@ def register_certs_tools(mcp: FastMCP, non_destructive: bool = False):
         """List cert-manager certificates with status."""
         return json.dumps(certs_list(namespace, context, label_selector), indent=2)
 
-    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True))
+    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
     def certs_get_tool(
         name: str,
         namespace: str,
@@ -628,7 +628,7 @@ def register_certs_tools(mcp: FastMCP, non_destructive: bool = False):
         """Get detailed information about a certificate."""
         return json.dumps(certs_get(name, namespace, context), indent=2)
 
-    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True))
+    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
     def certs_issuers_list_tool(
         namespace: str = "",
         context: str = "",
@@ -637,7 +637,7 @@ def register_certs_tools(mcp: FastMCP, non_destructive: bool = False):
         """List cert-manager Issuers and ClusterIssuers."""
         return json.dumps(certs_issuers_list(namespace, context, include_cluster_issuers), indent=2)
 
-    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True))
+    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
     def certs_issuer_get_tool(
         name: str,
         namespace: str = "",
@@ -647,7 +647,7 @@ def register_certs_tools(mcp: FastMCP, non_destructive: bool = False):
         """Get detailed information about an Issuer or ClusterIssuer."""
         return json.dumps(certs_issuer_get(name, namespace, kind, context), indent=2)
 
-    @mcp.tool()
+    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=True, idempotentHint=False, openWorldHint=True))
     def certs_renew_tool(
         name: str,
         namespace: str,
@@ -658,7 +658,7 @@ def register_certs_tools(mcp: FastMCP, non_destructive: bool = False):
             return json.dumps({"success": False, "error": "Operation blocked: non-destructive mode"})
         return json.dumps(certs_renew(name, namespace, context), indent=2)
 
-    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True))
+    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
     def certs_status_explain_tool(
         name: str,
         namespace: str,
@@ -667,7 +667,7 @@ def register_certs_tools(mcp: FastMCP, non_destructive: bool = False):
         """Explain certificate status with diagnosis and recommendations."""
         return json.dumps(certs_status_explain(name, namespace, context), indent=2)
 
-    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True))
+    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
     def certs_challenges_list_tool(
         namespace: str = "",
         context: str = "",
@@ -676,7 +676,7 @@ def register_certs_tools(mcp: FastMCP, non_destructive: bool = False):
         """List ACME challenges for debugging certificate issuance."""
         return json.dumps(certs_challenges_list(namespace, context, label_selector), indent=2)
 
-    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True))
+    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
     def certs_requests_list_tool(
         namespace: str = "",
         context: str = "",
@@ -685,7 +685,7 @@ def register_certs_tools(mcp: FastMCP, non_destructive: bool = False):
         """List CertificateRequests."""
         return json.dumps(certs_requests_list(namespace, context, label_selector), indent=2)
 
-    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True))
+    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
     def certs_detect_tool(context: str = "") -> str:
         """Detect if cert-manager is installed and its components."""
         return json.dumps(certs_detect(context), indent=2)

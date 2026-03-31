@@ -582,17 +582,17 @@ def vind_platform_start(
 def register_vind_tools(mcp: "FastMCP", non_destructive: bool = False):
     """Register vind (vCluster in Docker) tools with the MCP server."""
 
-    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True))
+    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
     def vind_detect_tool() -> str:
         """Detect if vCluster CLI is installed and get version info."""
         return json.dumps(vind_detect(), indent=2)
 
-    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True))
+    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
     def vind_list_clusters_tool() -> str:
         """List all vCluster instances."""
         return json.dumps(vind_list_clusters(), indent=2)
 
-    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True))
+    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
     def vind_status_tool(
         name: str,
         namespace: str = "vcluster"
@@ -600,7 +600,7 @@ def register_vind_tools(mcp: "FastMCP", non_destructive: bool = False):
         """Get detailed status of a vCluster instance."""
         return json.dumps(vind_status(name, namespace), indent=2)
 
-    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True))
+    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
     def vind_get_kubeconfig_tool(
         name: str,
         namespace: str = "vcluster"
@@ -608,7 +608,7 @@ def register_vind_tools(mcp: "FastMCP", non_destructive: bool = False):
         """Get kubeconfig for a vCluster instance."""
         return json.dumps(vind_get_kubeconfig(name, namespace, print_only=True), indent=2)
 
-    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True))
+    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
     def vind_logs_tool(
         name: str,
         namespace: str = "vcluster",
@@ -617,7 +617,7 @@ def register_vind_tools(mcp: "FastMCP", non_destructive: bool = False):
         """Get logs from a vCluster instance."""
         return json.dumps(vind_logs(name, namespace, follow=False, tail=tail), indent=2)
 
-    @mcp.tool()
+    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=False, idempotentHint=False, openWorldHint=True))
     def vind_create_cluster_tool(
         name: str,
         namespace: str = "",
@@ -647,7 +647,7 @@ def register_vind_tools(mcp: "FastMCP", non_destructive: bool = False):
             indent=2
         )
 
-    @mcp.tool()
+    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=True, idempotentHint=True, openWorldHint=True))
     def vind_delete_cluster_tool(
         name: str,
         namespace: str = "",
@@ -659,7 +659,7 @@ def register_vind_tools(mcp: "FastMCP", non_destructive: bool = False):
             return json.dumps({"success": False, "error": "Operation blocked: non-destructive mode"})
         return json.dumps(vind_delete_cluster(name, namespace, delete_namespace, force), indent=2)
 
-    @mcp.tool()
+    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=True, idempotentHint=False, openWorldHint=True))
     def vind_pause_tool(
         name: str,
         namespace: str = ""
@@ -669,7 +669,7 @@ def register_vind_tools(mcp: "FastMCP", non_destructive: bool = False):
             return json.dumps({"success": False, "error": "Operation blocked: non-destructive mode"})
         return json.dumps(vind_pause(name, namespace), indent=2)
 
-    @mcp.tool()
+    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=True, idempotentHint=False, openWorldHint=True))
     def vind_resume_tool(
         name: str,
         namespace: str = ""
@@ -679,7 +679,7 @@ def register_vind_tools(mcp: "FastMCP", non_destructive: bool = False):
             return json.dumps({"success": False, "error": "Operation blocked: non-destructive mode"})
         return json.dumps(vind_resume(name, namespace), indent=2)
 
-    @mcp.tool()
+    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=False, idempotentHint=False, openWorldHint=True))
     def vind_connect_tool(
         name: str,
         namespace: str = "",
@@ -690,14 +690,14 @@ def register_vind_tools(mcp: "FastMCP", non_destructive: bool = False):
             return json.dumps({"success": False, "error": "Operation blocked: non-destructive mode"})
         return json.dumps(vind_connect(name, namespace, True, kube_config), indent=2)
 
-    @mcp.tool()
+    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=True, idempotentHint=True, openWorldHint=True))
     def vind_disconnect_tool() -> str:
         """Disconnect from a vCluster instance."""
         if non_destructive:
             return json.dumps({"success": False, "error": "Operation blocked: non-destructive mode"})
         return json.dumps(vind_disconnect("", ""), indent=2)
 
-    @mcp.tool()
+    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=True, idempotentHint=False, openWorldHint=True))
     def vind_upgrade_tool(
         name: str,
         namespace: str = "",
@@ -720,7 +720,7 @@ def register_vind_tools(mcp: "FastMCP", non_destructive: bool = False):
         values_list = [v.strip() for v in set_values.split(",") if v.strip()] if set_values else None
         return json.dumps(vind_upgrade(name, namespace, kubernetes_version, values_file, values_list), indent=2)
 
-    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True))
+    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
     def vind_describe_tool(
         name: str,
         namespace: str = ""
@@ -728,7 +728,7 @@ def register_vind_tools(mcp: "FastMCP", non_destructive: bool = False):
         """Describe a vCluster instance with detailed information."""
         return json.dumps(vind_describe(name, namespace), indent=2)
 
-    @mcp.tool()
+    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=True, idempotentHint=False, openWorldHint=True))
     def vind_platform_start_tool(
         host: str = "",
         port: int = 0

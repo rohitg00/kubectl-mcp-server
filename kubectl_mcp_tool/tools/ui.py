@@ -325,6 +325,9 @@ def register_ui_tools(server, non_destructive: bool):
         annotations=ToolAnnotations(
             title="Show Pod Logs UI",
             readOnlyHint=True,
+            destructiveHint=False,
+            idempotentHint=True,
+            openWorldHint=True,
         ),
     )
     def show_pod_logs_ui(
@@ -420,6 +423,9 @@ function refreshLogs() {{
         annotations=ToolAnnotations(
             title="Show Pods Dashboard UI",
             readOnlyHint=True,
+            destructiveHint=False,
+            idempotentHint=True,
+            openWorldHint=True,
         ),
     )
     def show_pods_dashboard_ui(
@@ -559,6 +565,9 @@ function viewLogs(pod, ns) {{
         annotations=ToolAnnotations(
             title="Show Resource YAML UI",
             readOnlyHint=True,
+            destructiveHint=False,
+            idempotentHint=True,
+            openWorldHint=True,
         ),
     )
     def show_resource_yaml_ui(
@@ -637,6 +646,9 @@ function copyYaml() {{
         annotations=ToolAnnotations(
             title="Show Cluster Overview UI",
             readOnlyHint=True,
+            destructiveHint=False,
+            idempotentHint=True,
+            openWorldHint=True,
         ),
     )
     def show_cluster_overview_ui() -> Union[List[UIResource], Dict[str, Any]]:
@@ -767,6 +779,9 @@ function refresh() {{
         annotations=ToolAnnotations(
             title="Show Events Timeline UI",
             readOnlyHint=True,
+            destructiveHint=False,
+            idempotentHint=True,
+            openWorldHint=True,
         ),
     )
     def show_events_timeline_ui(
@@ -895,6 +910,9 @@ function filterEvents(type) {{
         annotations=ToolAnnotations(
             title="Render K8s Dashboard Screenshot",
             readOnlyHint=True,
+            destructiveHint=False,
+            idempotentHint=True,
+            openWorldHint=True,
         ),
     )
     def render_k8s_dashboard_screenshot(

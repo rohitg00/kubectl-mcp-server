@@ -445,7 +445,7 @@ def gitops_detect_engine(context: str = "") -> Dict[str, Any]:
 def register_gitops_tools(mcp: FastMCP, non_destructive: bool = False):
     """Register GitOps tools with the MCP server."""
 
-    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True))
+    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
     def gitops_apps_list_tool(
         namespace: str = "",
         context: str = "",
@@ -455,7 +455,7 @@ def register_gitops_tools(mcp: FastMCP, non_destructive: bool = False):
         """List GitOps applications from Flux or Argo CD."""
         return json.dumps(gitops_apps_list(namespace, context, kind, label_selector), indent=2)
 
-    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True))
+    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
     def gitops_app_get_tool(
         name: str,
         namespace: str,
@@ -465,7 +465,7 @@ def register_gitops_tools(mcp: FastMCP, non_destructive: bool = False):
         """Get details of a specific GitOps application."""
         return json.dumps(gitops_app_get(name, namespace, kind, context), indent=2)
 
-    @mcp.tool()
+    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=True, idempotentHint=True, openWorldHint=True))
     def gitops_app_sync_tool(
         name: str,
         namespace: str,
@@ -477,7 +477,7 @@ def register_gitops_tools(mcp: FastMCP, non_destructive: bool = False):
             return json.dumps({"success": False, "error": "Operation blocked: non-destructive mode"})
         return json.dumps(gitops_app_sync(name, namespace, kind, context), indent=2)
 
-    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True))
+    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
     def gitops_app_status_tool(
         name: str,
         namespace: str,
@@ -487,7 +487,7 @@ def register_gitops_tools(mcp: FastMCP, non_destructive: bool = False):
         """Get sync status of a GitOps application."""
         return json.dumps(gitops_app_status(name, namespace, kind, context), indent=2)
 
-    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True))
+    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
     def gitops_sources_list_tool(
         namespace: str = "",
         context: str = "",
@@ -497,7 +497,7 @@ def register_gitops_tools(mcp: FastMCP, non_destructive: bool = False):
         """List Flux source resources (GitRepositories, HelmRepositories)."""
         return json.dumps(gitops_sources_list(namespace, context, kind, label_selector), indent=2)
 
-    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True))
+    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
     def gitops_source_get_tool(
         name: str,
         namespace: str,
@@ -507,7 +507,7 @@ def register_gitops_tools(mcp: FastMCP, non_destructive: bool = False):
         """Get details of a Flux source resource."""
         return json.dumps(gitops_source_get(name, namespace, kind, context), indent=2)
 
-    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True))
+    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
     def gitops_detect_engine_tool(context: str = "") -> str:
         """Detect which GitOps engines are installed in the cluster."""
         return json.dumps(gitops_detect_engine(context), indent=2)
