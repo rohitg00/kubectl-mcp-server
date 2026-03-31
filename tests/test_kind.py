@@ -405,38 +405,38 @@ class TestKindToolsRegistration:
         tool_names = {t.name for t in tools}
 
         kind_tools = [
-            "kind_detect_tool",
-            "kind_version_tool",
-            "kind_list_clusters_tool",
-            "kind_get_nodes_tool",
-            "kind_get_kubeconfig_tool",
-            "kind_export_logs_tool",
-            "kind_cluster_info_tool",
-            "kind_node_labels_tool",
-            "kind_create_cluster_tool",
-            "kind_delete_cluster_tool",
-            "kind_delete_all_clusters_tool",
-            "kind_load_image_tool",
-            "kind_load_image_archive_tool",
-            "kind_build_node_image_tool",
-            "kind_set_kubeconfig_tool",
-            "kind_config_validate_tool",
-            "kind_config_generate_tool",
-            "kind_config_show_tool",
-            "kind_available_images_tool",
-            "kind_registry_create_tool",
-            "kind_registry_connect_tool",
-            "kind_registry_status_tool",
-            "kind_node_exec_tool",
-            "kind_node_logs_tool",
-            "kind_node_inspect_tool",
-            "kind_node_restart_tool",
-            "kind_network_inspect_tool",
-            "kind_port_mappings_tool",
-            "kind_ingress_setup_tool",
-            "kind_cluster_status_tool",
-            "kind_images_list_tool",
-            "kind_provider_info_tool",
+            "kind_detect",
+            "kind_version",
+            "kind_list_clusters",
+            "kind_get_nodes",
+            "kind_get_kubeconfig",
+            "kind_export_logs",
+            "kind_cluster_info",
+            "kind_node_labels",
+            "kind_create_cluster",
+            "kind_delete_cluster",
+            "kind_delete_all_clusters",
+            "kind_load_image",
+            "kind_load_image_archive",
+            "kind_build_node_image",
+            "kind_set_kubeconfig",
+            "kind_config_validate",
+            "kind_config_generate",
+            "kind_config_show",
+            "kind_available_images",
+            "kind_registry_create",
+            "kind_registry_connect",
+            "kind_registry_status",
+            "kind_node_exec",
+            "kind_node_logs",
+            "kind_node_inspect",
+            "kind_node_restart",
+            "kind_network_inspect",
+            "kind_port_mappings",
+            "kind_ingress_setup",
+            "kind_cluster_status",
+            "kind_images_list",
+            "kind_provider_info",
         ]
         for tool in kind_tools:
             assert tool in tool_names, f"kind tool '{tool}' not registered"
@@ -500,7 +500,7 @@ class TestKindNonDestructiveBlocking:
         mcp = FastMCP(name="test")
         register_kind_tools(mcp, non_destructive=True)
 
-        tool = await mcp.get_tool("kind_create_cluster_tool")
+        tool = await mcp.get_tool("kind_create_cluster")
         result = tool.fn(name="test")
         result_dict = json.loads(result)
         assert result_dict["success"] is False
@@ -520,7 +520,7 @@ class TestKindNonDestructiveBlocking:
         mcp = FastMCP(name="test")
         register_kind_tools(mcp, non_destructive=True)
 
-        tool = await mcp.get_tool("kind_delete_cluster_tool")
+        tool = await mcp.get_tool("kind_delete_cluster")
         result = tool.fn(name="test")
         result_dict = json.loads(result)
         assert result_dict["success"] is False
@@ -540,7 +540,7 @@ class TestKindNonDestructiveBlocking:
         mcp = FastMCP(name="test")
         register_kind_tools(mcp, non_destructive=True)
 
-        tool = await mcp.get_tool("kind_delete_all_clusters_tool")
+        tool = await mcp.get_tool("kind_delete_all_clusters")
         result = tool.fn()
         result_dict = json.loads(result)
         assert result_dict["success"] is False
@@ -560,7 +560,7 @@ class TestKindNonDestructiveBlocking:
         mcp = FastMCP(name="test")
         register_kind_tools(mcp, non_destructive=True)
 
-        tool = await mcp.get_tool("kind_load_image_tool")
+        tool = await mcp.get_tool("kind_load_image")
         result = tool.fn(images="myapp:latest", name="test")
         result_dict = json.loads(result)
         assert result_dict["success"] is False
@@ -580,7 +580,7 @@ class TestKindNonDestructiveBlocking:
         mcp = FastMCP(name="test")
         register_kind_tools(mcp, non_destructive=True)
 
-        tool = await mcp.get_tool("kind_detect_tool")
+        tool = await mcp.get_tool("kind_detect")
         with patch("subprocess.run") as mock_run:
             mock_run.side_effect = FileNotFoundError()
             result = tool.fn()
@@ -1119,7 +1119,7 @@ class TestNewKindNonDestructiveBlocking:
         mcp = FastMCP(name="test")
         register_kind_tools(mcp, non_destructive=True)
 
-        tool = await mcp.get_tool("kind_registry_create_tool")
+        tool = await mcp.get_tool("kind_registry_create")
         result = tool.fn()
         result_dict = json.loads(result)
         assert result_dict["success"] is False
@@ -1139,7 +1139,7 @@ class TestNewKindNonDestructiveBlocking:
         mcp = FastMCP(name="test")
         register_kind_tools(mcp, non_destructive=True)
 
-        tool = await mcp.get_tool("kind_node_exec_tool")
+        tool = await mcp.get_tool("kind_node_exec")
         result = tool.fn(node="test", command="ls")
         result_dict = json.loads(result)
         assert result_dict["success"] is False
@@ -1159,7 +1159,7 @@ class TestNewKindNonDestructiveBlocking:
         mcp = FastMCP(name="test")
         register_kind_tools(mcp, non_destructive=True)
 
-        tool = await mcp.get_tool("kind_node_restart_tool")
+        tool = await mcp.get_tool("kind_node_restart")
         result = tool.fn(node="test")
         result_dict = json.loads(result)
         assert result_dict["success"] is False
@@ -1179,7 +1179,7 @@ class TestNewKindNonDestructiveBlocking:
         mcp = FastMCP(name="test")
         register_kind_tools(mcp, non_destructive=True)
 
-        tool = await mcp.get_tool("kind_ingress_setup_tool")
+        tool = await mcp.get_tool("kind_ingress_setup")
         result = tool.fn()
         result_dict = json.loads(result)
         assert result_dict["success"] is False
@@ -1199,7 +1199,7 @@ class TestNewKindNonDestructiveBlocking:
         mcp = FastMCP(name="test")
         register_kind_tools(mcp, non_destructive=True)
 
-        tool = await mcp.get_tool("kind_available_images_tool")
+        tool = await mcp.get_tool("kind_available_images")
         result = tool.fn()
         result_dict = json.loads(result)
         assert result_dict["success"] is True

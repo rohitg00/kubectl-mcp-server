@@ -581,7 +581,7 @@ def register_capi_tools(mcp: FastMCP, non_destructive: bool = False):
     """Register Cluster API tools with the MCP server."""
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
-    def capi_clusters_list_tool(
+    def capi_list_clusters(
         namespace: str = "",
         context: str = "",
         label_selector: str = ""
@@ -590,7 +590,7 @@ def register_capi_tools(mcp: FastMCP, non_destructive: bool = False):
         return json.dumps(capi_clusters_list(namespace, context, label_selector), indent=2)
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
-    def capi_cluster_get_tool(
+    def capi_get_cluster(
         name: str,
         namespace: str,
         context: str = ""
@@ -599,7 +599,7 @@ def register_capi_tools(mcp: FastMCP, non_destructive: bool = False):
         return json.dumps(capi_cluster_get(name, namespace, context), indent=2)
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
-    def capi_machines_list_tool(
+    def capi_list_machines(
         namespace: str = "",
         cluster_name: str = "",
         context: str = "",
@@ -609,7 +609,7 @@ def register_capi_tools(mcp: FastMCP, non_destructive: bool = False):
         return json.dumps(capi_machines_list(namespace, cluster_name, context, label_selector), indent=2)
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
-    def capi_machine_get_tool(
+    def capi_get_machine(
         name: str,
         namespace: str,
         context: str = ""
@@ -618,7 +618,7 @@ def register_capi_tools(mcp: FastMCP, non_destructive: bool = False):
         return json.dumps(capi_machine_get(name, namespace, context), indent=2)
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
-    def capi_machinedeployments_list_tool(
+    def capi_list_machinedeployments(
         namespace: str = "",
         cluster_name: str = "",
         context: str = "",
@@ -628,7 +628,7 @@ def register_capi_tools(mcp: FastMCP, non_destructive: bool = False):
         return json.dumps(capi_machinedeployments_list(namespace, cluster_name, context, label_selector), indent=2)
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=True, idempotentHint=False, openWorldHint=True))
-    def capi_machinedeployment_scale_tool(
+    def capi_scale_machinedeployment(
         name: str,
         namespace: str,
         replicas: int,
@@ -640,7 +640,7 @@ def register_capi_tools(mcp: FastMCP, non_destructive: bool = False):
         return json.dumps(capi_machinedeployment_scale(name, namespace, replicas, context), indent=2)
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
-    def capi_machinesets_list_tool(
+    def capi_list_machinesets(
         namespace: str = "",
         cluster_name: str = "",
         context: str = "",
@@ -650,7 +650,7 @@ def register_capi_tools(mcp: FastMCP, non_destructive: bool = False):
         return json.dumps(capi_machinesets_list(namespace, cluster_name, context, label_selector), indent=2)
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
-    def capi_machinehealthchecks_list_tool(
+    def capi_list_machinehealthchecks(
         namespace: str = "",
         cluster_name: str = "",
         context: str = "",
@@ -660,7 +660,7 @@ def register_capi_tools(mcp: FastMCP, non_destructive: bool = False):
         return json.dumps(capi_machinehealthchecks_list(namespace, cluster_name, context, label_selector), indent=2)
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
-    def capi_clusterclasses_list_tool(
+    def capi_list_clusterclasses(
         namespace: str = "",
         context: str = "",
         label_selector: str = ""
@@ -669,7 +669,7 @@ def register_capi_tools(mcp: FastMCP, non_destructive: bool = False):
         return json.dumps(capi_clusterclasses_list(namespace, context, label_selector), indent=2)
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
-    def capi_cluster_kubeconfig_tool(
+    def capi_get_cluster_kubeconfig(
         name: str,
         namespace: str,
         context: str = ""
@@ -678,6 +678,6 @@ def register_capi_tools(mcp: FastMCP, non_destructive: bool = False):
         return json.dumps(capi_cluster_kubeconfig(name, namespace, context), indent=2)
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
-    def capi_detect_tool(context: str = "") -> str:
+    def detect_capi(context: str = "") -> str:
         """Detect if Cluster API is installed and its components."""
         return json.dumps(capi_detect(context), indent=2)

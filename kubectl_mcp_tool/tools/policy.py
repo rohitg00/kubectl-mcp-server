@@ -464,7 +464,7 @@ def register_policy_tools(mcp: FastMCP, non_destructive: bool = False):
     """Register policy tools with the MCP server."""
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
-    def policy_list_tool(
+    def get_policy_list(
         namespace: str = "",
         context: str = "",
         engine: str = "all",
@@ -474,7 +474,7 @@ def register_policy_tools(mcp: FastMCP, non_destructive: bool = False):
         return json.dumps(policy_list(namespace, context, engine, label_selector), indent=2)
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
-    def policy_get_tool(
+    def get_policy(
         name: str,
         namespace: str = "",
         kind: str = "ClusterPolicy",
@@ -484,7 +484,7 @@ def register_policy_tools(mcp: FastMCP, non_destructive: bool = False):
         return json.dumps(policy_get(name, namespace, kind, context), indent=2)
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
-    def policy_violations_list_tool(
+    def get_policy_violations(
         namespace: str = "",
         context: str = "",
         engine: str = "all",
@@ -494,7 +494,7 @@ def register_policy_tools(mcp: FastMCP, non_destructive: bool = False):
         return json.dumps(policy_violations_list(namespace, context, engine, severity), indent=2)
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
-    def policy_explain_denial_tool(
+    def explain_policy_denial(
         message: str,
         context: str = ""
     ) -> str:
@@ -502,7 +502,7 @@ def register_policy_tools(mcp: FastMCP, non_destructive: bool = False):
         return json.dumps(policy_explain_denial(message, context), indent=2)
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
-    def policy_audit_tool(
+    def audit_policies(
         namespace: str = "",
         context: str = "",
         resource_kind: str = ""
@@ -511,6 +511,6 @@ def register_policy_tools(mcp: FastMCP, non_destructive: bool = False):
         return json.dumps(policy_audit(namespace, context, resource_kind), indent=2)
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
-    def policy_detect_tool(context: str = "") -> str:
+    def detect_policy_engines(context: str = "") -> str:
         """Detect which policy engines are installed in the cluster."""
         return json.dumps(policy_detect(context), indent=2)

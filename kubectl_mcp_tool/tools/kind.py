@@ -1346,35 +1346,68 @@ def kind_provider_info() -> Dict[str, Any]:
         }
 
 
+_kind_detect_impl = kind_detect
+_kind_version_impl = kind_version
+_kind_list_clusters_impl = kind_list_clusters
+_kind_get_nodes_impl = kind_get_nodes
+_kind_get_kubeconfig_impl = kind_get_kubeconfig
+_kind_export_logs_impl = kind_export_logs
+_kind_cluster_info_impl = kind_cluster_info
+_kind_node_labels_impl = kind_node_labels
+_kind_create_cluster_impl = kind_create_cluster
+_kind_delete_cluster_impl = kind_delete_cluster
+_kind_delete_all_clusters_impl = kind_delete_all_clusters
+_kind_load_image_impl = kind_load_image
+_kind_load_image_archive_impl = kind_load_image_archive
+_kind_build_node_image_impl = kind_build_node_image
+_kind_config_validate_impl = kind_config_validate
+_kind_config_generate_impl = kind_config_generate
+_kind_config_show_impl = kind_config_show
+_kind_available_images_impl = kind_available_images
+_kind_registry_create_impl = kind_registry_create
+_kind_registry_connect_impl = kind_registry_connect
+_kind_registry_status_impl = kind_registry_status
+_kind_node_exec_impl = kind_node_exec
+_kind_node_logs_impl = kind_node_logs
+_kind_node_inspect_impl = kind_node_inspect
+_kind_node_restart_impl = kind_node_restart
+_kind_network_inspect_impl = kind_network_inspect
+_kind_port_mappings_impl = kind_port_mappings
+_kind_ingress_setup_impl = kind_ingress_setup
+_kind_cluster_status_impl = kind_cluster_status
+_kind_images_list_impl = kind_images_list
+_kind_provider_info_impl = kind_provider_info
+
+
 def register_kind_tools(mcp: "FastMCP", non_destructive: bool = False):
     """Register kind (Kubernetes IN Docker) tools with the MCP server."""
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
-    def kind_detect_tool() -> str:
+    def kind_detect() -> str:
         """Detect if kind CLI is installed and get version info."""
-        return json.dumps(kind_detect(), indent=2)
+        return json.dumps(_kind_detect_impl(), indent=2)
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
-    def kind_version_tool() -> str:
+    def kind_version() -> str:
         """Get kind CLI version information."""
-        return json.dumps(kind_version(), indent=2)
+        return json.dumps(_kind_version_impl(), indent=2)
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
-    def kind_list_clusters_tool() -> str:
+    def kind_list_clusters() -> str:
         """List all kind clusters."""
-        return json.dumps(kind_list_clusters(), indent=2)
+        return json.dumps(_kind_list_clusters_impl(), indent=2)
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
-    def kind_get_nodes_tool(name: str = "kind") -> str:
+    def kind_get_nodes(name: str = "kind") -> str:
         """List nodes in a kind cluster.
 
         Args:
             name: Name of the kind cluster (default: kind)
         """
-        return json.dumps(kind_get_nodes(name), indent=2)
+        return json.dumps(_kind_get_nodes_impl(name), indent=2)
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
-    def kind_get_kubeconfig_tool(
+    def kind_get_kubeconfig(
         name: str = "kind",
         internal: bool = False
     ) -> str:
@@ -1384,10 +1417,10 @@ def register_kind_tools(mcp: "FastMCP", non_destructive: bool = False):
             name: Name of the kind cluster
             internal: Return internal (container) kubeconfig instead of external
         """
-        return json.dumps(kind_get_kubeconfig(name, internal), indent=2)
+        return json.dumps(_kind_get_kubeconfig_impl(name, internal), indent=2)
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
-    def kind_export_logs_tool(
+    def kind_export_logs(
         name: str = "kind",
         output_dir: str = ""
     ) -> str:
@@ -1397,28 +1430,28 @@ def register_kind_tools(mcp: "FastMCP", non_destructive: bool = False):
             name: Name of the kind cluster
             output_dir: Directory to export logs to (default: temp directory)
         """
-        return json.dumps(kind_export_logs(name, output_dir), indent=2)
+        return json.dumps(_kind_export_logs_impl(name, output_dir), indent=2)
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
-    def kind_cluster_info_tool(name: str = "kind") -> str:
+    def kind_cluster_info(name: str = "kind") -> str:
         """Get cluster information including nodes and kubeconfig.
 
         Args:
             name: Name of the kind cluster
         """
-        return json.dumps(kind_cluster_info(name), indent=2)
+        return json.dumps(_kind_cluster_info_impl(name), indent=2)
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
-    def kind_node_labels_tool(name: str = "kind") -> str:
+    def kind_node_labels(name: str = "kind") -> str:
         """Get node labels for kind cluster nodes.
 
         Args:
             name: Name of the kind cluster
         """
-        return json.dumps(kind_node_labels(name), indent=2)
+        return json.dumps(_kind_node_labels_impl(name), indent=2)
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=False, idempotentHint=False, openWorldHint=True))
-    def kind_create_cluster_tool(
+    def kind_create_cluster(
         name: str = "kind",
         image: str = "",
         config: str = "",
@@ -1436,10 +1469,10 @@ def register_kind_tools(mcp: "FastMCP", non_destructive: bool = False):
         """
         if non_destructive:
             return json.dumps({"success": False, "error": "Operation blocked: non-destructive mode"})
-        return json.dumps(kind_create_cluster(name, image, config, wait, retain), indent=2)
+        return json.dumps(_kind_create_cluster_impl(name, image, config, wait, retain), indent=2)
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=True, idempotentHint=True, openWorldHint=True))
-    def kind_delete_cluster_tool(name: str = "kind") -> str:
+    def kind_delete_cluster(name: str = "kind") -> str:
         """Delete a kind cluster.
 
         Args:
@@ -1447,17 +1480,17 @@ def register_kind_tools(mcp: "FastMCP", non_destructive: bool = False):
         """
         if non_destructive:
             return json.dumps({"success": False, "error": "Operation blocked: non-destructive mode"})
-        return json.dumps(kind_delete_cluster(name), indent=2)
+        return json.dumps(_kind_delete_cluster_impl(name), indent=2)
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=True, idempotentHint=True, openWorldHint=True))
-    def kind_delete_all_clusters_tool() -> str:
+    def kind_delete_all_clusters() -> str:
         """Delete all kind clusters."""
         if non_destructive:
             return json.dumps({"success": False, "error": "Operation blocked: non-destructive mode"})
-        return json.dumps(kind_delete_all_clusters(), indent=2)
+        return json.dumps(_kind_delete_all_clusters_impl(), indent=2)
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=False, idempotentHint=False, openWorldHint=True))
-    def kind_load_image_tool(
+    def kind_load_image(
         images: str,
         name: str = "kind"
     ) -> str:
@@ -1473,10 +1506,10 @@ def register_kind_tools(mcp: "FastMCP", non_destructive: bool = False):
         if non_destructive:
             return json.dumps({"success": False, "error": "Operation blocked: non-destructive mode"})
         image_list = [img.strip() for img in images.split(",") if img.strip()]
-        return json.dumps(kind_load_image(image_list, name), indent=2)
+        return json.dumps(_kind_load_image_impl(image_list, name), indent=2)
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=False, idempotentHint=False, openWorldHint=True))
-    def kind_load_image_archive_tool(
+    def kind_load_image_archive(
         archive: str,
         name: str = "kind"
     ) -> str:
@@ -1488,10 +1521,10 @@ def register_kind_tools(mcp: "FastMCP", non_destructive: bool = False):
         """
         if non_destructive:
             return json.dumps({"success": False, "error": "Operation blocked: non-destructive mode"})
-        return json.dumps(kind_load_image_archive(archive, name), indent=2)
+        return json.dumps(_kind_load_image_archive_impl(archive, name), indent=2)
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=False, idempotentHint=False, openWorldHint=True))
-    def kind_build_node_image_tool(
+    def kind_build_node_image(
         image: str = "",
         base_image: str = "",
         kube_root: str = ""
@@ -1507,10 +1540,10 @@ def register_kind_tools(mcp: "FastMCP", non_destructive: bool = False):
         """
         if non_destructive:
             return json.dumps({"success": False, "error": "Operation blocked: non-destructive mode"})
-        return json.dumps(kind_build_node_image(image, base_image, kube_root), indent=2)
+        return json.dumps(_kind_build_node_image_impl(image, base_image, kube_root), indent=2)
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=False, idempotentHint=False, openWorldHint=True))
-    def kind_set_kubeconfig_tool(name: str = "kind") -> str:
+    def kind_set_kubeconfig(name: str = "kind") -> str:
         """Export kubeconfig and set as current context.
 
         This updates your KUBECONFIG to add the kind cluster context.
@@ -1530,16 +1563,16 @@ def register_kind_tools(mcp: "FastMCP", non_destructive: bool = False):
         return json.dumps(result, indent=2)
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
-    def kind_config_validate_tool(config_path: str) -> str:
+    def kind_config_validate(config_path: str) -> str:
         """Validate kind configuration file before cluster creation.
 
         Args:
             config_path: Path to kind config YAML file
         """
-        return json.dumps(kind_config_validate(config_path), indent=2)
+        return json.dumps(_kind_config_validate_impl(config_path), indent=2)
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
-    def kind_config_generate_tool(
+    def kind_config_generate(
         name: str = "kind",
         workers: int = 0,
         control_planes: int = 1,
@@ -1555,26 +1588,26 @@ def register_kind_tools(mcp: "FastMCP", non_destructive: bool = False):
             registry: Add local registry configuration
             ingress: Add port mappings for ingress (80, 443)
         """
-        return json.dumps(kind_config_generate(
+        return json.dumps(_kind_config_generate_impl(
             name, workers, control_planes, registry, ingress
         ), indent=2)
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
-    def kind_config_show_tool(name: str = "kind") -> str:
+    def kind_config_show(name: str = "kind") -> str:
         """Show effective config for a running cluster.
 
         Args:
             name: Name of the kind cluster
         """
-        return json.dumps(kind_config_show(name), indent=2)
+        return json.dumps(_kind_config_show_impl(name), indent=2)
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
-    def kind_available_images_tool() -> str:
+    def kind_available_images() -> str:
         """List available kindest/node images (K8s versions)."""
-        return json.dumps(kind_available_images(), indent=2)
+        return json.dumps(_kind_available_images_impl(), indent=2)
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=False, idempotentHint=False, openWorldHint=True))
-    def kind_registry_create_tool(
+    def kind_registry_create(
         name: str = "kind-registry",
         port: int = 5001
     ) -> str:
@@ -1586,10 +1619,10 @@ def register_kind_tools(mcp: "FastMCP", non_destructive: bool = False):
         """
         if non_destructive:
             return json.dumps({"success": False, "error": "Operation blocked: non-destructive mode"})
-        return json.dumps(kind_registry_create(name, port), indent=2)
+        return json.dumps(_kind_registry_create_impl(name, port), indent=2)
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=False, idempotentHint=False, openWorldHint=True))
-    def kind_registry_connect_tool(
+    def kind_registry_connect(
         cluster_name: str = "kind",
         registry_name: str = "kind-registry"
     ) -> str:
@@ -1601,19 +1634,19 @@ def register_kind_tools(mcp: "FastMCP", non_destructive: bool = False):
         """
         if non_destructive:
             return json.dumps({"success": False, "error": "Operation blocked: non-destructive mode"})
-        return json.dumps(kind_registry_connect(cluster_name, registry_name), indent=2)
+        return json.dumps(_kind_registry_connect_impl(cluster_name, registry_name), indent=2)
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
-    def kind_registry_status_tool(name: str = "kind-registry") -> str:
+    def kind_registry_status(name: str = "kind-registry") -> str:
         """Check local registry status.
 
         Args:
             name: Name of the registry container
         """
-        return json.dumps(kind_registry_status(name), indent=2)
+        return json.dumps(_kind_registry_status_impl(name), indent=2)
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=True, idempotentHint=False, openWorldHint=True))
-    def kind_node_exec_tool(
+    def kind_node_exec(
         node: str,
         command: str,
         cluster: str = "kind"
@@ -1629,29 +1662,29 @@ def register_kind_tools(mcp: "FastMCP", non_destructive: bool = False):
         """
         if non_destructive:
             return json.dumps({"success": False, "error": "Operation blocked: non-destructive mode"})
-        return json.dumps(kind_node_exec(node, command, cluster), indent=2)
+        return json.dumps(_kind_node_exec_impl(node, command, cluster), indent=2)
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
-    def kind_node_logs_tool(node: str, tail: int = 100) -> str:
+    def kind_node_logs(node: str, tail: int = 100) -> str:
         """Get logs from kind node container.
 
         Args:
             node: Node name
             tail: Number of lines to return
         """
-        return json.dumps(kind_node_logs(node, tail), indent=2)
+        return json.dumps(_kind_node_logs_impl(node, tail), indent=2)
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
-    def kind_node_inspect_tool(node: str) -> str:
+    def kind_node_inspect(node: str) -> str:
         """Inspect kind node container details.
 
         Args:
             node: Node name
         """
-        return json.dumps(kind_node_inspect(node), indent=2)
+        return json.dumps(_kind_node_inspect_impl(node), indent=2)
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=True, idempotentHint=False, openWorldHint=True))
-    def kind_node_restart_tool(node: str) -> str:
+    def kind_node_restart(node: str) -> str:
         """Restart kind node container.
 
         Args:
@@ -1659,28 +1692,28 @@ def register_kind_tools(mcp: "FastMCP", non_destructive: bool = False):
         """
         if non_destructive:
             return json.dumps({"success": False, "error": "Operation blocked: non-destructive mode"})
-        return json.dumps(kind_node_restart(node), indent=2)
+        return json.dumps(_kind_node_restart_impl(node), indent=2)
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
-    def kind_network_inspect_tool(cluster: str = "kind") -> str:
+    def kind_network_inspect(cluster: str = "kind") -> str:
         """Inspect kind Docker network.
 
         Args:
             cluster: Cluster name (kind network is shared)
         """
-        return json.dumps(kind_network_inspect(cluster), indent=2)
+        return json.dumps(_kind_network_inspect_impl(cluster), indent=2)
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
-    def kind_port_mappings_tool(cluster: str = "kind") -> str:
+    def kind_port_mappings(cluster: str = "kind") -> str:
         """List all port mappings for cluster.
 
         Args:
             cluster: Cluster name
         """
-        return json.dumps(kind_port_mappings(cluster), indent=2)
+        return json.dumps(_kind_port_mappings_impl(cluster), indent=2)
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=False, idempotentHint=False, openWorldHint=True))
-    def kind_ingress_setup_tool(
+    def kind_ingress_setup(
         cluster: str = "kind",
         ingress_type: str = "nginx"
     ) -> str:
@@ -1692,28 +1725,28 @@ def register_kind_tools(mcp: "FastMCP", non_destructive: bool = False):
         """
         if non_destructive:
             return json.dumps({"success": False, "error": "Operation blocked: non-destructive mode"})
-        return json.dumps(kind_ingress_setup(cluster, ingress_type), indent=2)
+        return json.dumps(_kind_ingress_setup_impl(cluster, ingress_type), indent=2)
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
-    def kind_cluster_status_tool(name: str = "kind") -> str:
+    def kind_cluster_status(name: str = "kind") -> str:
         """Get detailed cluster health status.
 
         Args:
             name: Cluster name
         """
-        return json.dumps(kind_cluster_status(name), indent=2)
+        return json.dumps(_kind_cluster_status_impl(name), indent=2)
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
-    def kind_images_list_tool(cluster: str = "kind", node: str = "") -> str:
+    def kind_images_list(cluster: str = "kind", node: str = "") -> str:
         """List images on cluster nodes.
 
         Args:
             cluster: Cluster name
             node: Specific node (optional, defaults to control-plane)
         """
-        return json.dumps(kind_images_list(cluster, node), indent=2)
+        return json.dumps(_kind_images_list_impl(cluster, node), indent=2)
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
-    def kind_provider_info_tool() -> str:
+    def kind_provider_info() -> str:
         """Get container runtime provider info (Docker/Podman)."""
-        return json.dumps(kind_provider_info(), indent=2)
+        return json.dumps(_kind_provider_info_impl(), indent=2)

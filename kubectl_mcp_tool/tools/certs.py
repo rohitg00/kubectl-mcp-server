@@ -611,7 +611,7 @@ def register_certs_tools(mcp: FastMCP, non_destructive: bool = False):
     """Register cert-manager tools with the MCP server."""
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
-    def certs_list_tool(
+    def list_certs(
         namespace: str = "",
         context: str = "",
         label_selector: str = ""
@@ -620,7 +620,7 @@ def register_certs_tools(mcp: FastMCP, non_destructive: bool = False):
         return json.dumps(certs_list(namespace, context, label_selector), indent=2)
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
-    def certs_get_tool(
+    def get_cert(
         name: str,
         namespace: str,
         context: str = ""
@@ -629,7 +629,7 @@ def register_certs_tools(mcp: FastMCP, non_destructive: bool = False):
         return json.dumps(certs_get(name, namespace, context), indent=2)
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
-    def certs_issuers_list_tool(
+    def list_cert_issuers(
         namespace: str = "",
         context: str = "",
         include_cluster_issuers: bool = True
@@ -638,7 +638,7 @@ def register_certs_tools(mcp: FastMCP, non_destructive: bool = False):
         return json.dumps(certs_issuers_list(namespace, context, include_cluster_issuers), indent=2)
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
-    def certs_issuer_get_tool(
+    def get_cert_issuer(
         name: str,
         namespace: str = "",
         kind: str = "Issuer",
@@ -648,7 +648,7 @@ def register_certs_tools(mcp: FastMCP, non_destructive: bool = False):
         return json.dumps(certs_issuer_get(name, namespace, kind, context), indent=2)
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=True, idempotentHint=False, openWorldHint=True))
-    def certs_renew_tool(
+    def renew_cert(
         name: str,
         namespace: str,
         context: str = ""
@@ -659,7 +659,7 @@ def register_certs_tools(mcp: FastMCP, non_destructive: bool = False):
         return json.dumps(certs_renew(name, namespace, context), indent=2)
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
-    def certs_status_explain_tool(
+    def explain_cert_status(
         name: str,
         namespace: str,
         context: str = ""
@@ -668,7 +668,7 @@ def register_certs_tools(mcp: FastMCP, non_destructive: bool = False):
         return json.dumps(certs_status_explain(name, namespace, context), indent=2)
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
-    def certs_challenges_list_tool(
+    def list_cert_challenges(
         namespace: str = "",
         context: str = "",
         label_selector: str = ""
@@ -677,7 +677,7 @@ def register_certs_tools(mcp: FastMCP, non_destructive: bool = False):
         return json.dumps(certs_challenges_list(namespace, context, label_selector), indent=2)
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
-    def certs_requests_list_tool(
+    def list_cert_requests(
         namespace: str = "",
         context: str = "",
         label_selector: str = ""
@@ -686,6 +686,6 @@ def register_certs_tools(mcp: FastMCP, non_destructive: bool = False):
         return json.dumps(certs_requests_list(namespace, context, label_selector), indent=2)
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
-    def certs_detect_tool(context: str = "") -> str:
+    def detect_certs(context: str = "") -> str:
         """Detect if cert-manager is installed and its components."""
         return json.dumps(certs_detect(context), indent=2)

@@ -54,6 +54,9 @@ def _validate_node_name(name: str) -> tuple:
     return True, None
 
 
+_list_contexts_impl = list_contexts
+
+
 def register_cluster_tools(server: "FastMCP", non_destructive: bool):
     """Register cluster and context management tools."""
 
@@ -66,13 +69,13 @@ def register_cluster_tools(server: "FastMCP", non_destructive: bool):
             openWorldHint=True,
         ),
     )
-    def list_contexts_tool() -> Dict[str, Any]:
+    def list_contexts() -> Dict[str, Any]:
         """List all available kubectl contexts with detailed info.
 
         Returns all contexts from kubeconfig with cluster, user, namespace info.
         """
         try:
-            contexts = list_contexts()
+            contexts = _list_contexts_impl()
             active = get_active_context()
 
             return {
@@ -121,7 +124,7 @@ def register_cluster_tools(server: "FastMCP", non_destructive: bool):
             context_name: Name of the context to get details for
         """
         try:
-            contexts = list_contexts()
+            contexts = _list_contexts_impl()
 
             for ctx in contexts:
                 if ctx.get("name") == context_name:
@@ -675,7 +678,7 @@ def register_cluster_tools(server: "FastMCP", non_destructive: bool):
         try:
             from kubectl_mcp_tool.k8s_config import _kubeconfig_watcher
 
-            contexts = list_contexts()
+            contexts = _list_contexts_impl()
             active = get_active_context()
 
             return {
@@ -810,7 +813,7 @@ def register_cluster_tools(server: "FastMCP", non_destructive: bool):
             openWorldHint=True,
         ),
     )
-    def node_logs_tool(
+    def node_logs(
         name: str,
         query: str = "kubelet",
         tail_lines: int = 100,
@@ -899,7 +902,7 @@ def register_cluster_tools(server: "FastMCP", non_destructive: bool):
             openWorldHint=True,
         ),
     )
-    def node_stats_summary_tool(
+    def node_stats_summary(
         name: str,
         context: str = ""
     ) -> Dict[str, Any]:
@@ -1010,7 +1013,7 @@ def register_cluster_tools(server: "FastMCP", non_destructive: bool):
             openWorldHint=True,
         ),
     )
-    def node_top_tool(
+    def node_top(
         name: str = "",
         label_selector: str = "",
         context: str = ""
@@ -1350,7 +1353,7 @@ def register_multicluster_tools(server, non_destructive: bool):
 
         if not contexts:
             try:
-                all_contexts = list_contexts()
+                all_contexts = _list_contexts_impl()
                 contexts = [c.get("name") for c in all_contexts if c.get("name")]
             except Exception as e:
                 return {"success": False, "error": f"Failed to list contexts: {e}"}
@@ -1447,7 +1450,7 @@ def register_multicluster_tools(server, non_destructive: bool):
 
         if not contexts:
             try:
-                all_contexts = list_contexts()
+                all_contexts = _list_contexts_impl()
                 contexts = [c.get("name") for c in all_contexts if c.get("name")]
             except Exception as e:
                 return {"success": False, "error": f"Failed to list contexts: {e}"}

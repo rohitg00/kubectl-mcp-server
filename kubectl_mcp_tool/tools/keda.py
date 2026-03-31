@@ -20,7 +20,7 @@ TRIGGERAUTH_CRD = "triggerauthentications.keda.sh"
 CLUSTERTRIGGERAUTH_CRD = "clustertriggerauthentications.keda.sh"
 
 
-def keda_scaledobjects_list(
+def _keda_scaledobjects_list(
     namespace: str = "",
     context: str = "",
     label_selector: str = ""
@@ -81,7 +81,7 @@ def keda_scaledobjects_list(
     }
 
 
-def keda_scaledobject_get(
+def _keda_scaledobject_get(
     name: str,
     namespace: str,
     context: str = ""
@@ -116,7 +116,7 @@ def keda_scaledobject_get(
     return {"success": False, "error": result.get("error", "Unknown error")}
 
 
-def keda_scaledjobs_list(
+def _keda_scaledjobs_list(
     namespace: str = "",
     context: str = "",
     label_selector: str = ""
@@ -171,7 +171,7 @@ def keda_scaledjobs_list(
     }
 
 
-def keda_triggerauths_list(
+def _keda_triggerauths_list(
     namespace: str = "",
     context: str = "",
     include_cluster: bool = True
@@ -229,7 +229,7 @@ def keda_triggerauths_list(
     }
 
 
-def keda_triggerauth_get(
+def _keda_triggerauth_get(
     name: str,
     namespace: str = "",
     kind: str = "TriggerAuthentication",
@@ -272,7 +272,7 @@ def keda_triggerauth_get(
     return {"success": False, "error": result.get("error", "Unknown error")}
 
 
-def keda_hpa_list(
+def _keda_hpa_list(
     namespace: str = "",
     context: str = "",
     label_selector: str = ""
@@ -341,7 +341,7 @@ def keda_hpa_list(
     }
 
 
-def keda_detect(context: str = "") -> Dict[str, Any]:
+def _keda_detect(context: str = "") -> Dict[str, Any]:
     """Detect if KEDA is installed and its components.
 
     Args:
@@ -366,61 +366,61 @@ def register_keda_tools(mcp: FastMCP, non_destructive: bool = False):
     """Register KEDA tools with the MCP server."""
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
-    def keda_scaledobjects_list_tool(
+    def keda_scaledobjects_list(
         namespace: str = "",
         context: str = "",
         label_selector: str = ""
     ) -> str:
         """List KEDA ScaledObjects with their scaling status."""
-        return json.dumps(keda_scaledobjects_list(namespace, context, label_selector), indent=2)
+        return json.dumps(_keda_scaledobjects_list(namespace, context, label_selector), indent=2)
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
-    def keda_scaledobject_get_tool(
+    def keda_scaledobject_get(
         name: str,
         namespace: str,
         context: str = ""
     ) -> str:
         """Get detailed information about a ScaledObject."""
-        return json.dumps(keda_scaledobject_get(name, namespace, context), indent=2)
+        return json.dumps(_keda_scaledobject_get(name, namespace, context), indent=2)
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
-    def keda_scaledjobs_list_tool(
+    def keda_scaledjobs_list(
         namespace: str = "",
         context: str = "",
         label_selector: str = ""
     ) -> str:
         """List KEDA ScaledJobs with their status."""
-        return json.dumps(keda_scaledjobs_list(namespace, context, label_selector), indent=2)
+        return json.dumps(_keda_scaledjobs_list(namespace, context, label_selector), indent=2)
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
-    def keda_triggerauths_list_tool(
+    def keda_triggerauths_list(
         namespace: str = "",
         context: str = "",
         include_cluster: bool = True
     ) -> str:
         """List KEDA TriggerAuthentications and ClusterTriggerAuthentications."""
-        return json.dumps(keda_triggerauths_list(namespace, context, include_cluster), indent=2)
+        return json.dumps(_keda_triggerauths_list(namespace, context, include_cluster), indent=2)
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
-    def keda_triggerauth_get_tool(
+    def keda_triggerauth_get(
         name: str,
         namespace: str = "",
         kind: str = "TriggerAuthentication",
         context: str = ""
     ) -> str:
         """Get detailed information about a TriggerAuthentication."""
-        return json.dumps(keda_triggerauth_get(name, namespace, kind, context), indent=2)
+        return json.dumps(_keda_triggerauth_get(name, namespace, kind, context), indent=2)
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
-    def keda_hpa_list_tool(
+    def keda_hpa_list(
         namespace: str = "",
         context: str = "",
         label_selector: str = ""
     ) -> str:
         """List HPAs managed by KEDA."""
-        return json.dumps(keda_hpa_list(namespace, context, label_selector), indent=2)
+        return json.dumps(_keda_hpa_list(namespace, context, label_selector), indent=2)
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
-    def keda_detect_tool(context: str = "") -> str:
+    def keda_detect(context: str = "") -> str:
         """Detect if KEDA is installed and its components."""
-        return json.dumps(keda_detect(context), indent=2)
+        return json.dumps(_keda_detect(context), indent=2)
