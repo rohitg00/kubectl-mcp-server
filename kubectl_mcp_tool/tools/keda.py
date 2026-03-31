@@ -365,7 +365,7 @@ def keda_detect(context: str = "") -> Dict[str, Any]:
 def register_keda_tools(mcp: FastMCP, non_destructive: bool = False):
     """Register KEDA tools with the MCP server."""
 
-    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True))
+    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
     def keda_scaledobjects_list_tool(
         namespace: str = "",
         context: str = "",
@@ -374,7 +374,7 @@ def register_keda_tools(mcp: FastMCP, non_destructive: bool = False):
         """List KEDA ScaledObjects with their scaling status."""
         return json.dumps(keda_scaledobjects_list(namespace, context, label_selector), indent=2)
 
-    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True))
+    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
     def keda_scaledobject_get_tool(
         name: str,
         namespace: str,
@@ -383,7 +383,7 @@ def register_keda_tools(mcp: FastMCP, non_destructive: bool = False):
         """Get detailed information about a ScaledObject."""
         return json.dumps(keda_scaledobject_get(name, namespace, context), indent=2)
 
-    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True))
+    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
     def keda_scaledjobs_list_tool(
         namespace: str = "",
         context: str = "",
@@ -392,7 +392,7 @@ def register_keda_tools(mcp: FastMCP, non_destructive: bool = False):
         """List KEDA ScaledJobs with their status."""
         return json.dumps(keda_scaledjobs_list(namespace, context, label_selector), indent=2)
 
-    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True))
+    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
     def keda_triggerauths_list_tool(
         namespace: str = "",
         context: str = "",
@@ -401,7 +401,7 @@ def register_keda_tools(mcp: FastMCP, non_destructive: bool = False):
         """List KEDA TriggerAuthentications and ClusterTriggerAuthentications."""
         return json.dumps(keda_triggerauths_list(namespace, context, include_cluster), indent=2)
 
-    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True))
+    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
     def keda_triggerauth_get_tool(
         name: str,
         namespace: str = "",
@@ -411,7 +411,7 @@ def register_keda_tools(mcp: FastMCP, non_destructive: bool = False):
         """Get detailed information about a TriggerAuthentication."""
         return json.dumps(keda_triggerauth_get(name, namespace, kind, context), indent=2)
 
-    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True))
+    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
     def keda_hpa_list_tool(
         namespace: str = "",
         context: str = "",
@@ -420,7 +420,7 @@ def register_keda_tools(mcp: FastMCP, non_destructive: bool = False):
         """List HPAs managed by KEDA."""
         return json.dumps(keda_hpa_list(namespace, context, label_selector), indent=2)
 
-    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True))
+    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
     def keda_detect_tool(context: str = "") -> str:
         """Detect if KEDA is installed and its components."""
         return json.dumps(keda_detect(context), indent=2)

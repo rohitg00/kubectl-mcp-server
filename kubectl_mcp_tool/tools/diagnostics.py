@@ -21,6 +21,9 @@ def register_diagnostics_tools(server: "FastMCP", non_destructive: bool):
         annotations=ToolAnnotations(
             title="Compare Namespaces",
             readOnlyHint=True,
+            destructiveHint=False,
+            idempotentHint=True,
+            openWorldHint=True,
         ),
     )
     def compare_namespaces(namespace1: str, namespace2: str, resource_type: str = "deployment", context: str = "") -> Dict[str, Any]:
@@ -91,6 +94,9 @@ def register_diagnostics_tools(server: "FastMCP", non_destructive: bool):
         annotations=ToolAnnotations(
             title="Get Pod Metrics",
             readOnlyHint=True,
+            destructiveHint=False,
+            idempotentHint=True,
+            openWorldHint=True,
         ),
     )
     def get_pod_metrics(namespace: Optional[str] = None, pod_name: Optional[str] = None, context: str = "") -> Dict[str, Any]:
@@ -152,6 +158,9 @@ def register_diagnostics_tools(server: "FastMCP", non_destructive: bool):
         annotations=ToolAnnotations(
             title="Get Node Metrics",
             readOnlyHint=True,
+            destructiveHint=False,
+            idempotentHint=True,
+            openWorldHint=True,
         ),
     )
     def get_node_metrics(context: str = "") -> Dict[str, Any]:

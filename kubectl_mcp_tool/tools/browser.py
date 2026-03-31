@@ -196,7 +196,7 @@ def _get_service_url(service: str, namespace: str) -> Optional[str]:
 def register_browser_tools(server, non_destructive: bool):
     _ = non_destructive
 
-    @server.tool(annotations=ToolAnnotations(title="Browser Open URL", readOnlyHint=True))
+    @server.tool(annotations=ToolAnnotations(title="Browser Open URL", readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
     def browser_open(
         url: str,
         wait_for: str = "networkidle",
@@ -228,7 +228,7 @@ def register_browser_tools(server, non_destructive: bool):
             _run_browser(["wait", "--load", wait_for])
         return {**result, "url": url}
 
-    @server.tool(annotations=ToolAnnotations(title="Browser Snapshot", readOnlyHint=True))
+    @server.tool(annotations=ToolAnnotations(title="Browser Snapshot", readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
     def browser_snapshot(
         interactive_only: bool = True,
         compact: bool = True,
@@ -254,17 +254,17 @@ def register_browser_tools(server, non_destructive: bool):
             args.extend(["-s", selector])
         return _run_browser(args)
 
-    @server.tool(annotations=ToolAnnotations(title="Browser Click"))
+    @server.tool(annotations=ToolAnnotations(title="Browser Click", readOnlyHint=False, destructiveHint=False, idempotentHint=False, openWorldHint=True))
     def browser_click(ref: str) -> Dict[str, Any]:
         """Click an element by ref (from snapshot)."""
         return _run_browser(["click", ref])
 
-    @server.tool(annotations=ToolAnnotations(title="Browser Fill"))
+    @server.tool(annotations=ToolAnnotations(title="Browser Fill", readOnlyHint=False, destructiveHint=False, idempotentHint=False, openWorldHint=True))
     def browser_fill(ref: str, text: str) -> Dict[str, Any]:
         """Fill a form field by ref."""
         return _run_browser(["fill", ref, text])
 
-    @server.tool(annotations=ToolAnnotations(title="Browser Screenshot", readOnlyHint=True))
+    @server.tool(annotations=ToolAnnotations(title="Browser Screenshot", readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
     def browser_screenshot(
         output_path: Optional[str] = None,
         full_page: bool = False,
@@ -288,17 +288,17 @@ def register_browser_tools(server, non_destructive: bool):
         result = _run_browser(args)
         return {**result, "path": output_path}
 
-    @server.tool(annotations=ToolAnnotations(title="Browser Get Text", readOnlyHint=True))
+    @server.tool(annotations=ToolAnnotations(title="Browser Get Text", readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
     def browser_get_text(ref: str) -> Dict[str, Any]:
         """Get text content of an element."""
         return _run_browser(["get", "text", ref])
 
-    @server.tool(annotations=ToolAnnotations(title="Browser Get URL", readOnlyHint=True))
+    @server.tool(annotations=ToolAnnotations(title="Browser Get URL", readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
     def browser_get_url() -> Dict[str, Any]:
         """Get current page URL."""
         return _run_browser(["get", "url"])
 
-    @server.tool(annotations=ToolAnnotations(title="Browser Wait"))
+    @server.tool(annotations=ToolAnnotations(title="Browser Wait", readOnlyHint=False, destructiveHint=False, idempotentHint=False, openWorldHint=True))
     def browser_wait(
         selector: Optional[str] = None,
         text: Optional[str] = None,
@@ -312,12 +312,12 @@ def register_browser_tools(server, non_destructive: bool):
         else:
             return _run_browser(["wait", str(timeout_ms)])
 
-    @server.tool(annotations=ToolAnnotations(title="Browser Close"))
+    @server.tool(annotations=ToolAnnotations(title="Browser Close", readOnlyHint=False, destructiveHint=False, idempotentHint=False, openWorldHint=True))
     def browser_close() -> Dict[str, Any]:
         """Close the browser."""
         return _run_browser(["close"])
 
-    @server.tool(annotations=ToolAnnotations(title="Browser Connect CDP", readOnlyHint=True))
+    @server.tool(annotations=ToolAnnotations(title="Browser Connect CDP", readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
     def browser_connect_cdp(
         target: str,
         session: Optional[str] = None
@@ -333,7 +333,7 @@ def register_browser_tools(server, non_destructive: bool):
             args.extend(["--session", session])
         return _run_browser_with_retry(args, use_global_opts=False)
 
-    @server.tool(annotations=ToolAnnotations(title="Browser Install"))
+    @server.tool(annotations=ToolAnnotations(title="Browser Install", readOnlyHint=False, destructiveHint=False, idempotentHint=False, openWorldHint=True))
     def browser_install(with_deps: bool = False) -> Dict[str, Any]:
         """Install Chromium browser for agent-browser.
 
@@ -345,7 +345,7 @@ def register_browser_tools(server, non_destructive: bool):
             args.append("--with-deps")
         return _run_browser(args, timeout=300, use_global_opts=False)
 
-    @server.tool(annotations=ToolAnnotations(title="Browser Set Provider"))
+    @server.tool(annotations=ToolAnnotations(title="Browser Set Provider", readOnlyHint=False, destructiveHint=False, idempotentHint=False, openWorldHint=True))
     def browser_set_provider(
         provider: str,
         api_key: Optional[str] = None,
@@ -379,12 +379,12 @@ def register_browser_tools(server, non_destructive: bool):
             "message": f"Provider set to {provider}. Use -p {provider} flag or set MCP_BROWSER_PROVIDER={provider}"
         }
 
-    @server.tool(annotations=ToolAnnotations(title="Browser Session List", readOnlyHint=True))
+    @server.tool(annotations=ToolAnnotations(title="Browser Session List", readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
     def browser_session_list() -> Dict[str, Any]:
         """List active browser sessions."""
         return _run_browser(["session", "list"], use_global_opts=False)
 
-    @server.tool(annotations=ToolAnnotations(title="Browser Session Switch"))
+    @server.tool(annotations=ToolAnnotations(title="Browser Session Switch", readOnlyHint=False, destructiveHint=False, idempotentHint=False, openWorldHint=True))
     def browser_session_switch(session: str) -> Dict[str, Any]:
         """Switch to a different browser session.
 
@@ -399,7 +399,7 @@ def register_browser_tools(server, non_destructive: bool):
             "message": f"Switched to session: {session}"
         }
 
-    @server.tool(annotations=ToolAnnotations(title="Browser Open With Headers", readOnlyHint=True))
+    @server.tool(annotations=ToolAnnotations(title="Browser Open With Headers", readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
     def browser_open_with_headers(
         url: str,
         headers: Dict[str, str],
@@ -420,7 +420,7 @@ def register_browser_tools(server, non_destructive: bool):
             _run_browser(["wait", "--load", wait_for])
         return {**result, "url": url, "headers_set": list(headers.keys())}
 
-    @server.tool(annotations=ToolAnnotations(title="Browser Set Viewport"))
+    @server.tool(annotations=ToolAnnotations(title="Browser Set Viewport", readOnlyHint=False, destructiveHint=False, idempotentHint=False, openWorldHint=True))
     def browser_set_viewport(
         width: Optional[int] = None,
         height: Optional[int] = None,
@@ -440,7 +440,7 @@ def register_browser_tools(server, non_destructive: bool):
         else:
             return {"success": False, "error": "Specify device or both width and height"}
 
-    @server.tool(annotations=ToolAnnotations(title="Test K8s Ingress", readOnlyHint=True))
+    @server.tool(annotations=ToolAnnotations(title="Test K8s Ingress", readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
     def browser_test_ingress(
         service_name: str,
         namespace: str = "default",
@@ -478,7 +478,7 @@ def register_browser_tools(server, non_destructive: bool):
         _run_browser(["close"])
         return result
 
-    @server.tool(annotations=ToolAnnotations(title="Screenshot K8s Service", readOnlyHint=True))
+    @server.tool(annotations=ToolAnnotations(title="Screenshot K8s Service", readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
     def browser_screenshot_service(
         service_name: str,
         namespace: str = "default",
@@ -505,7 +505,7 @@ def register_browser_tools(server, non_destructive: bool):
         _run_browser(["close"])
         return {**result, "url": full_url, "path": output_path}
 
-    @server.tool(annotations=ToolAnnotations(title="Screenshot Grafana", readOnlyHint=True))
+    @server.tool(annotations=ToolAnnotations(title="Screenshot Grafana", readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
     def browser_screenshot_grafana(
         grafana_url: str,
         dashboard_uid: Optional[str] = None,
@@ -523,7 +523,7 @@ def register_browser_tools(server, non_destructive: bool):
         _run_browser(["close"])
         return {**result, "url": url, "path": output_path}
 
-    @server.tool(annotations=ToolAnnotations(title="Screenshot ArgoCD", readOnlyHint=True))
+    @server.tool(annotations=ToolAnnotations(title="Screenshot ArgoCD", readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
     def browser_screenshot_argocd(
         argocd_url: str,
         app_name: Optional[str] = None,
@@ -541,7 +541,7 @@ def register_browser_tools(server, non_destructive: bool):
         _run_browser(["close"])
         return {**result, "url": url, "path": output_path}
 
-    @server.tool(annotations=ToolAnnotations(title="Health Check Web App", readOnlyHint=True))
+    @server.tool(annotations=ToolAnnotations(title="Health Check Web App", readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
     def browser_health_check(
         url: str,
         expected_status_text: Optional[str] = None,
@@ -580,7 +580,7 @@ def register_browser_tools(server, non_destructive: bool):
         _run_browser(["close"])
         return result
 
-    @server.tool(annotations=ToolAnnotations(title="Browser Form Submit"))
+    @server.tool(annotations=ToolAnnotations(title="Browser Form Submit", readOnlyHint=False, destructiveHint=False, idempotentHint=False, openWorldHint=True))
     def browser_form_submit(
         url: str,
         form_data: Dict[str, str],
@@ -612,17 +612,17 @@ def register_browser_tools(server, non_destructive: bool):
             "snapshot": snapshot.get("data")
         }
 
-    @server.tool(annotations=ToolAnnotations(title="Browser Session Save"))
+    @server.tool(annotations=ToolAnnotations(title="Browser Session Save", readOnlyHint=False, destructiveHint=False, idempotentHint=False, openWorldHint=True))
     def browser_session_save(path: str = "/tmp/browser-state.json") -> Dict[str, Any]:
         """Save browser session state (cookies, storage)."""
         return _run_browser(["state", "save", path])
 
-    @server.tool(annotations=ToolAnnotations(title="Browser Session Load"))
+    @server.tool(annotations=ToolAnnotations(title="Browser Session Load", readOnlyHint=False, destructiveHint=False, idempotentHint=False, openWorldHint=True))
     def browser_session_load(path: str = "/tmp/browser-state.json") -> Dict[str, Any]:
         """Load browser session state."""
         return _run_browser(["state", "load", path])
 
-    @server.tool(annotations=ToolAnnotations(title="Open Cloud Console", readOnlyHint=True))
+    @server.tool(annotations=ToolAnnotations(title="Open Cloud Console", readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
     def browser_open_cloud_console(
         provider: str,
         resource_type: str = "clusters",
@@ -643,7 +643,7 @@ def register_browser_tools(server, non_destructive: bool):
         result = _run_browser_with_retry(["open", url])
         return {**result, "provider": provider, "url": url}
 
-    @server.tool(annotations=ToolAnnotations(title="Browser PDF Export", readOnlyHint=True))
+    @server.tool(annotations=ToolAnnotations(title="Browser PDF Export", readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
     def browser_pdf_export(url: str, output_path: Optional[str] = None) -> Dict[str, Any]:
         """Export a web page as PDF."""
         if not output_path:

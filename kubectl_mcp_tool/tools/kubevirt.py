@@ -638,7 +638,7 @@ def kubevirt_detect(context: str = "") -> Dict[str, Any]:
 def register_kubevirt_tools(mcp: FastMCP, non_destructive: bool = False):
     """Register KubeVirt tools with the MCP server."""
 
-    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True))
+    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
     def kubevirt_vms_list_tool(
         namespace: str = "",
         context: str = "",
@@ -647,7 +647,7 @@ def register_kubevirt_tools(mcp: FastMCP, non_destructive: bool = False):
         """List KubeVirt VirtualMachines."""
         return json.dumps(kubevirt_vms_list(namespace, context, label_selector), indent=2)
 
-    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True))
+    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
     def kubevirt_vm_get_tool(
         name: str,
         namespace: str,
@@ -656,7 +656,7 @@ def register_kubevirt_tools(mcp: FastMCP, non_destructive: bool = False):
         """Get detailed information about a VirtualMachine."""
         return json.dumps(kubevirt_vm_get(name, namespace, context), indent=2)
 
-    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True))
+    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
     def kubevirt_vmis_list_tool(
         namespace: str = "",
         context: str = "",
@@ -665,7 +665,7 @@ def register_kubevirt_tools(mcp: FastMCP, non_destructive: bool = False):
         """List running VirtualMachineInstances."""
         return json.dumps(kubevirt_vmis_list(namespace, context, label_selector), indent=2)
 
-    @mcp.tool()
+    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=True, idempotentHint=False, openWorldHint=True))
     def kubevirt_vm_start_tool(
         name: str,
         namespace: str,
@@ -676,7 +676,7 @@ def register_kubevirt_tools(mcp: FastMCP, non_destructive: bool = False):
             return json.dumps({"success": False, "error": "Operation blocked: non-destructive mode"})
         return json.dumps(kubevirt_vm_start(name, namespace, context), indent=2)
 
-    @mcp.tool()
+    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=True, idempotentHint=False, openWorldHint=True))
     def kubevirt_vm_stop_tool(
         name: str,
         namespace: str,
@@ -688,7 +688,7 @@ def register_kubevirt_tools(mcp: FastMCP, non_destructive: bool = False):
             return json.dumps({"success": False, "error": "Operation blocked: non-destructive mode"})
         return json.dumps(kubevirt_vm_stop(name, namespace, force, context), indent=2)
 
-    @mcp.tool()
+    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=True, idempotentHint=False, openWorldHint=True))
     def kubevirt_vm_restart_tool(
         name: str,
         namespace: str,
@@ -699,7 +699,7 @@ def register_kubevirt_tools(mcp: FastMCP, non_destructive: bool = False):
             return json.dumps({"success": False, "error": "Operation blocked: non-destructive mode"})
         return json.dumps(kubevirt_vm_restart(name, namespace, context), indent=2)
 
-    @mcp.tool()
+    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=True, idempotentHint=False, openWorldHint=True))
     def kubevirt_vm_pause_tool(
         name: str,
         namespace: str,
@@ -710,7 +710,7 @@ def register_kubevirt_tools(mcp: FastMCP, non_destructive: bool = False):
             return json.dumps({"success": False, "error": "Operation blocked: non-destructive mode"})
         return json.dumps(kubevirt_vm_pause(name, namespace, context), indent=2)
 
-    @mcp.tool()
+    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=True, idempotentHint=False, openWorldHint=True))
     def kubevirt_vm_unpause_tool(
         name: str,
         namespace: str,
@@ -721,7 +721,7 @@ def register_kubevirt_tools(mcp: FastMCP, non_destructive: bool = False):
             return json.dumps({"success": False, "error": "Operation blocked: non-destructive mode"})
         return json.dumps(kubevirt_vm_unpause(name, namespace, context), indent=2)
 
-    @mcp.tool()
+    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=True, idempotentHint=False, openWorldHint=True))
     def kubevirt_vm_migrate_tool(
         name: str,
         namespace: str,
@@ -732,7 +732,7 @@ def register_kubevirt_tools(mcp: FastMCP, non_destructive: bool = False):
             return json.dumps({"success": False, "error": "Operation blocked: non-destructive mode"})
         return json.dumps(kubevirt_vm_migrate(name, namespace, context), indent=2)
 
-    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True))
+    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
     def kubevirt_datasources_list_tool(
         namespace: str = "",
         context: str = "",
@@ -741,7 +741,7 @@ def register_kubevirt_tools(mcp: FastMCP, non_destructive: bool = False):
         """List KubeVirt DataSources."""
         return json.dumps(kubevirt_datasources_list(namespace, context, label_selector), indent=2)
 
-    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True))
+    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
     def kubevirt_instancetypes_list_tool(
         namespace: str = "",
         context: str = "",
@@ -750,7 +750,7 @@ def register_kubevirt_tools(mcp: FastMCP, non_destructive: bool = False):
         """List KubeVirt InstanceTypes (VM sizing templates)."""
         return json.dumps(kubevirt_instancetypes_list(namespace, context, include_cluster), indent=2)
 
-    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True))
+    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
     def kubevirt_datavolumes_list_tool(
         namespace: str = "",
         context: str = "",
@@ -759,7 +759,7 @@ def register_kubevirt_tools(mcp: FastMCP, non_destructive: bool = False):
         """List KubeVirt DataVolumes (disk images)."""
         return json.dumps(kubevirt_datavolumes_list(namespace, context, label_selector), indent=2)
 
-    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True))
+    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
     def kubevirt_detect_tool(context: str = "") -> str:
         """Detect if KubeVirt is installed and its components."""
         return json.dumps(kubevirt_detect(context), indent=2)

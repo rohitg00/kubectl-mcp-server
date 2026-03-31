@@ -16,6 +16,9 @@ def register_networking_tools(server: "FastMCP", non_destructive: bool):
         annotations=ToolAnnotations(
             title="Get Ingress Resources",
             readOnlyHint=True,
+            destructiveHint=False,
+            idempotentHint=True,
+            openWorldHint=True,
         ),
     )
     def get_ingress(
@@ -77,6 +80,9 @@ def register_networking_tools(server: "FastMCP", non_destructive: bool):
         annotations=ToolAnnotations(
             title="Get Endpoints",
             readOnlyHint=True,
+            destructiveHint=False,
+            idempotentHint=True,
+            openWorldHint=True,
         ),
     )
     def get_endpoints(
@@ -137,6 +143,9 @@ def register_networking_tools(server: "FastMCP", non_destructive: bool):
         annotations=ToolAnnotations(
             title="Diagnose Network Connectivity",
             readOnlyHint=True,
+            destructiveHint=False,
+            idempotentHint=True,
+            openWorldHint=True,
         ),
     )
     def diagnose_network_connectivity(
@@ -195,6 +204,9 @@ def register_networking_tools(server: "FastMCP", non_destructive: bool):
         annotations=ToolAnnotations(
             title="Check DNS Resolution",
             readOnlyHint=True,
+            destructiveHint=False,
+            idempotentHint=True,
+            openWorldHint=True,
         ),
     )
     def check_dns_resolution(
@@ -241,6 +253,9 @@ def register_networking_tools(server: "FastMCP", non_destructive: bool):
         annotations=ToolAnnotations(
             title="Trace Service to Pods",
             readOnlyHint=True,
+            destructiveHint=False,
+            idempotentHint=True,
+            openWorldHint=True,
         ),
     )
     def trace_service_chain(
@@ -328,7 +343,10 @@ def register_networking_tools(server: "FastMCP", non_destructive: bool):
     @server.tool(
         annotations=ToolAnnotations(
             title="Port Forward",
+            readOnlyHint=False,
             destructiveHint=True,
+            idempotentHint=False,
+            openWorldHint=True,
         ),
     )
     def port_forward(

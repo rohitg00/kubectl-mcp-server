@@ -71,7 +71,10 @@ def register_helm_tools(
     @server.tool(
         annotations=ToolAnnotations(
             title="Install Helm Chart",
-            destructiveHint=True,
+            readOnlyHint=False,
+            destructiveHint=False,
+            idempotentHint=False,
+            openWorldHint=True,
         ),
     )
     def install_helm_chart(
@@ -149,7 +152,10 @@ def register_helm_tools(
     @server.tool(
         annotations=ToolAnnotations(
             title="Upgrade Helm Chart",
+            readOnlyHint=False,
             destructiveHint=True,
+            idempotentHint=False,
+            openWorldHint=True,
         ),
     )
     def upgrade_helm_chart(
@@ -215,7 +221,10 @@ def register_helm_tools(
     @server.tool(
         annotations=ToolAnnotations(
             title="Uninstall Helm Chart",
+            readOnlyHint=False,
             destructiveHint=True,
+            idempotentHint=True,
+            openWorldHint=True,
         ),
     )
     def uninstall_helm_chart(name: str, namespace: str, context: str = "") -> Dict[str, Any]:
@@ -255,6 +264,9 @@ def register_helm_tools(
         annotations=ToolAnnotations(
             title="List Helm Releases",
             readOnlyHint=True,
+            destructiveHint=False,
+            idempotentHint=True,
+            openWorldHint=True,
         ),
     )
     def helm_list(
@@ -329,6 +341,9 @@ def register_helm_tools(
         annotations=ToolAnnotations(
             title="Helm Release Status",
             readOnlyHint=True,
+            destructiveHint=False,
+            idempotentHint=True,
+            openWorldHint=True,
         ),
     )
     def helm_status(
@@ -378,6 +393,9 @@ def register_helm_tools(
         annotations=ToolAnnotations(
             title="Helm Release History",
             readOnlyHint=True,
+            destructiveHint=False,
+            idempotentHint=True,
+            openWorldHint=True,
         ),
     )
     def helm_history(
@@ -421,6 +439,9 @@ def register_helm_tools(
         annotations=ToolAnnotations(
             title="Helm Get Values",
             readOnlyHint=True,
+            destructiveHint=False,
+            idempotentHint=True,
+            openWorldHint=True,
         ),
     )
     def helm_get_values(
@@ -466,6 +487,9 @@ def register_helm_tools(
         annotations=ToolAnnotations(
             title="Helm Get Manifest",
             readOnlyHint=True,
+            destructiveHint=False,
+            idempotentHint=True,
+            openWorldHint=True,
         ),
     )
     def helm_get_manifest(
@@ -506,6 +530,9 @@ def register_helm_tools(
         annotations=ToolAnnotations(
             title="Helm Get Notes",
             readOnlyHint=True,
+            destructiveHint=False,
+            idempotentHint=True,
+            openWorldHint=True,
         ),
     )
     def helm_get_notes(
@@ -546,6 +573,9 @@ def register_helm_tools(
         annotations=ToolAnnotations(
             title="Helm Get Hooks",
             readOnlyHint=True,
+            destructiveHint=False,
+            idempotentHint=True,
+            openWorldHint=True,
         ),
     )
     def helm_get_hooks(
@@ -586,6 +616,9 @@ def register_helm_tools(
         annotations=ToolAnnotations(
             title="Helm Get All",
             readOnlyHint=True,
+            destructiveHint=False,
+            idempotentHint=True,
+            openWorldHint=True,
         ),
     )
     def helm_get_all(
@@ -626,6 +659,9 @@ def register_helm_tools(
         annotations=ToolAnnotations(
             title="Helm Show Chart",
             readOnlyHint=True,
+            destructiveHint=False,
+            idempotentHint=True,
+            openWorldHint=True,
         ),
     )
     def helm_show_chart(
@@ -667,6 +703,9 @@ def register_helm_tools(
         annotations=ToolAnnotations(
             title="Helm Show Values",
             readOnlyHint=True,
+            destructiveHint=False,
+            idempotentHint=True,
+            openWorldHint=True,
         ),
     )
     def helm_show_values(
@@ -712,6 +751,9 @@ def register_helm_tools(
         annotations=ToolAnnotations(
             title="Helm Show Readme",
             readOnlyHint=True,
+            destructiveHint=False,
+            idempotentHint=True,
+            openWorldHint=True,
         ),
     )
     def helm_show_readme(
@@ -752,6 +794,9 @@ def register_helm_tools(
         annotations=ToolAnnotations(
             title="Helm Show CRDs",
             readOnlyHint=True,
+            destructiveHint=False,
+            idempotentHint=True,
+            openWorldHint=True,
         ),
     )
     def helm_show_crds(
@@ -792,6 +837,9 @@ def register_helm_tools(
         annotations=ToolAnnotations(
             title="Helm Show All",
             readOnlyHint=True,
+            destructiveHint=False,
+            idempotentHint=True,
+            openWorldHint=True,
         ),
     )
     def helm_show_all(
@@ -832,6 +880,9 @@ def register_helm_tools(
         annotations=ToolAnnotations(
             title="Helm Search Repo",
             readOnlyHint=True,
+            destructiveHint=False,
+            idempotentHint=True,
+            openWorldHint=True,
         ),
     )
     def helm_search_repo(
@@ -883,6 +934,9 @@ def register_helm_tools(
         annotations=ToolAnnotations(
             title="Helm Search Hub",
             readOnlyHint=True,
+            destructiveHint=False,
+            idempotentHint=True,
+            openWorldHint=True,
         ),
     )
     def helm_search_hub(
@@ -927,6 +981,9 @@ def register_helm_tools(
         annotations=ToolAnnotations(
             title="Helm Repo List",
             readOnlyHint=True,
+            destructiveHint=False,
+            idempotentHint=True,
+            openWorldHint=True,
         ),
     )
     def helm_repo_list() -> Dict[str, Any]:
@@ -958,7 +1015,10 @@ def register_helm_tools(
     @server.tool(
         annotations=ToolAnnotations(
             title="Helm Repo Add",
+            readOnlyHint=False,
             destructiveHint=False,
+            idempotentHint=False,
+            openWorldHint=True,
         ),
     )
     def helm_repo_add(
@@ -1012,7 +1072,10 @@ def register_helm_tools(
     @server.tool(
         annotations=ToolAnnotations(
             title="Helm Repo Remove",
+            readOnlyHint=False,
             destructiveHint=True,
+            idempotentHint=True,
+            openWorldHint=True,
         ),
     )
     def helm_repo_remove(name: str) -> Dict[str, Any]:
@@ -1046,6 +1109,9 @@ def register_helm_tools(
         annotations=ToolAnnotations(
             title="Helm Repo Update",
             readOnlyHint=False,
+            destructiveHint=False,
+            idempotentHint=True,
+            openWorldHint=True,
         ),
     )
     def helm_repo_update(repos: Optional[List[str]] = None) -> Dict[str, Any]:
@@ -1081,7 +1147,10 @@ def register_helm_tools(
     @server.tool(
         annotations=ToolAnnotations(
             title="Helm Rollback",
+            readOnlyHint=False,
             destructiveHint=True,
+            idempotentHint=False,
+            openWorldHint=True,
         ),
     )
     def helm_rollback(
@@ -1146,6 +1215,9 @@ def register_helm_tools(
         annotations=ToolAnnotations(
             title="Helm Test",
             readOnlyHint=False,
+            destructiveHint=False,
+            idempotentHint=True,
+            openWorldHint=True,
         ),
     )
     def helm_test(
@@ -1202,6 +1274,9 @@ def register_helm_tools(
         annotations=ToolAnnotations(
             title="Helm Lint",
             readOnlyHint=True,
+            destructiveHint=False,
+            idempotentHint=True,
+            openWorldHint=True,
         ),
     )
     def helm_lint(
@@ -1258,6 +1333,9 @@ def register_helm_tools(
         annotations=ToolAnnotations(
             title="Helm Package",
             readOnlyHint=False,
+            destructiveHint=False,
+            idempotentHint=True,
+            openWorldHint=True,
         ),
     )
     def helm_package(
@@ -1310,6 +1388,9 @@ def register_helm_tools(
         annotations=ToolAnnotations(
             title="Helm Dependency Update",
             readOnlyHint=False,
+            destructiveHint=False,
+            idempotentHint=True,
+            openWorldHint=True,
         ),
     )
     def helm_dependency_update(chart_path: str, skip_refresh: bool = False) -> Dict[str, Any]:
@@ -1347,6 +1428,9 @@ def register_helm_tools(
         annotations=ToolAnnotations(
             title="Helm Dependency List",
             readOnlyHint=True,
+            destructiveHint=False,
+            idempotentHint=True,
+            openWorldHint=True,
         ),
     )
     def helm_dependency_list(chart_path: str) -> Dict[str, Any]:
@@ -1379,6 +1463,9 @@ def register_helm_tools(
         annotations=ToolAnnotations(
             title="Helm Dependency Build",
             readOnlyHint=False,
+            destructiveHint=False,
+            idempotentHint=True,
+            openWorldHint=True,
         ),
     )
     def helm_dependency_build(chart_path: str, skip_refresh: bool = False) -> Dict[str, Any]:
@@ -1416,6 +1503,9 @@ def register_helm_tools(
         annotations=ToolAnnotations(
             title="Helm Pull",
             readOnlyHint=False,
+            destructiveHint=False,
+            idempotentHint=True,
+            openWorldHint=True,
         ),
     )
     def helm_pull(
@@ -1468,6 +1558,9 @@ def register_helm_tools(
         annotations=ToolAnnotations(
             title="Helm Create",
             readOnlyHint=False,
+            destructiveHint=False,
+            idempotentHint=False,
+            openWorldHint=True,
         ),
     )
     def helm_create(name: str, starter: Optional[str] = None) -> Dict[str, Any]:
@@ -1505,6 +1598,9 @@ def register_helm_tools(
         annotations=ToolAnnotations(
             title="Helm Version",
             readOnlyHint=True,
+            destructiveHint=False,
+            idempotentHint=True,
+            openWorldHint=True,
         ),
     )
     def helm_version() -> Dict[str, Any]:
@@ -1533,6 +1629,9 @@ def register_helm_tools(
         annotations=ToolAnnotations(
             title="Helm Environment",
             readOnlyHint=True,
+            destructiveHint=False,
+            idempotentHint=True,
+            openWorldHint=True,
         ),
     )
     def helm_env() -> Dict[str, Any]:
@@ -1567,6 +1666,9 @@ def register_helm_tools(
         annotations=ToolAnnotations(
             title="Helm Template",
             readOnlyHint=True,
+            destructiveHint=False,
+            idempotentHint=True,
+            openWorldHint=True,
         ),
     )
     def helm_template(
@@ -1605,7 +1707,10 @@ def register_helm_tools(
     @server.tool(
         annotations=ToolAnnotations(
             title="Helm Template Apply",
+            readOnlyHint=False,
             destructiveHint=True,
+            idempotentHint=False,
+            openWorldHint=True,
         ),
     )
     def helm_template_apply(

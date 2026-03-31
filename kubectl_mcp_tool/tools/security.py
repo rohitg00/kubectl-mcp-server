@@ -19,6 +19,9 @@ def register_security_tools(server, non_destructive: bool):
         annotations=ToolAnnotations(
             title="Get RBAC Roles",
             readOnlyHint=True,
+            destructiveHint=False,
+            idempotentHint=True,
+            openWorldHint=True,
         ),
     )
     def get_rbac_roles(
@@ -66,6 +69,9 @@ def register_security_tools(server, non_destructive: bool):
         annotations=ToolAnnotations(
             title="Get Cluster Roles",
             readOnlyHint=True,
+            destructiveHint=False,
+            idempotentHint=True,
+            openWorldHint=True,
         ),
     )
     def get_cluster_roles(context: str = "") -> Dict[str, Any]:
@@ -104,6 +110,9 @@ def register_security_tools(server, non_destructive: bool):
         annotations=ToolAnnotations(
             title="Analyze Pod Security",
             readOnlyHint=True,
+            destructiveHint=False,
+            idempotentHint=True,
+            openWorldHint=True,
         ),
     )
     def analyze_pod_security(
@@ -168,6 +177,9 @@ def register_security_tools(server, non_destructive: bool):
         annotations=ToolAnnotations(
             title="Analyze Network Policies",
             readOnlyHint=True,
+            destructiveHint=False,
+            idempotentHint=True,
+            openWorldHint=True,
         ),
     )
     def analyze_network_policies(
@@ -225,6 +237,9 @@ def register_security_tools(server, non_destructive: bool):
         annotations=ToolAnnotations(
             title="Audit RBAC Permissions",
             readOnlyHint=True,
+            destructiveHint=False,
+            idempotentHint=True,
+            openWorldHint=True,
         ),
     )
     def audit_rbac_permissions(
@@ -287,6 +302,9 @@ def register_security_tools(server, non_destructive: bool):
         annotations=ToolAnnotations(
             title="Check Secrets Security",
             readOnlyHint=True,
+            destructiveHint=False,
+            idempotentHint=True,
+            openWorldHint=True,
         ),
     )
     def check_secrets_security(
@@ -340,6 +358,9 @@ def register_security_tools(server, non_destructive: bool):
         annotations=ToolAnnotations(
             title="Get Pod Security Policies (Deprecated) / Pod Security Standards",
             readOnlyHint=True,
+            destructiveHint=False,
+            idempotentHint=True,
+            openWorldHint=True,
         ),
     )
     def get_pod_security_info(

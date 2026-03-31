@@ -463,7 +463,7 @@ def policy_detect(context: str = "") -> Dict[str, Any]:
 def register_policy_tools(mcp: FastMCP, non_destructive: bool = False):
     """Register policy tools with the MCP server."""
 
-    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True))
+    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
     def policy_list_tool(
         namespace: str = "",
         context: str = "",
@@ -473,7 +473,7 @@ def register_policy_tools(mcp: FastMCP, non_destructive: bool = False):
         """List policies from Kyverno or Gatekeeper."""
         return json.dumps(policy_list(namespace, context, engine, label_selector), indent=2)
 
-    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True))
+    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
     def policy_get_tool(
         name: str,
         namespace: str = "",
@@ -483,7 +483,7 @@ def register_policy_tools(mcp: FastMCP, non_destructive: bool = False):
         """Get detailed information about a policy."""
         return json.dumps(policy_get(name, namespace, kind, context), indent=2)
 
-    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True))
+    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
     def policy_violations_list_tool(
         namespace: str = "",
         context: str = "",
@@ -493,7 +493,7 @@ def register_policy_tools(mcp: FastMCP, non_destructive: bool = False):
         """List policy violations from PolicyReports or Gatekeeper."""
         return json.dumps(policy_violations_list(namespace, context, engine, severity), indent=2)
 
-    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True))
+    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
     def policy_explain_denial_tool(
         message: str,
         context: str = ""
@@ -501,7 +501,7 @@ def register_policy_tools(mcp: FastMCP, non_destructive: bool = False):
         """Explain an admission denial message by matching against policies."""
         return json.dumps(policy_explain_denial(message, context), indent=2)
 
-    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True))
+    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
     def policy_audit_tool(
         namespace: str = "",
         context: str = "",
@@ -510,7 +510,7 @@ def register_policy_tools(mcp: FastMCP, non_destructive: bool = False):
         """Audit resources against installed policies."""
         return json.dumps(policy_audit(namespace, context, resource_kind), indent=2)
 
-    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True))
+    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
     def policy_detect_tool(context: str = "") -> str:
         """Detect which policy engines are installed in the cluster."""
         return json.dumps(policy_detect(context), indent=2)

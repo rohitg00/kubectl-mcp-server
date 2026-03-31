@@ -24,7 +24,10 @@ def register_operations_tools(server: "FastMCP", non_destructive: bool):
     @server.tool(
         annotations=ToolAnnotations(
             title="Kubectl Apply",
+            readOnlyHint=False,
             destructiveHint=True,
+            idempotentHint=False,
+            openWorldHint=True,
         ),
     )
     def kubectl_apply(manifest: str, namespace: Optional[str] = "default", context: str = "") -> Dict[str, Any]:
@@ -65,6 +68,9 @@ def register_operations_tools(server: "FastMCP", non_destructive: bool):
         annotations=ToolAnnotations(
             title="Kubectl Describe",
             readOnlyHint=True,
+            destructiveHint=False,
+            idempotentHint=True,
+            openWorldHint=True,
         ),
     )
     def kubectl_describe(resource_type: str, name: str, namespace: Optional[str] = "default", context: str = "") -> Dict[str, Any]:
@@ -92,6 +98,9 @@ def register_operations_tools(server: "FastMCP", non_destructive: bool):
         annotations=ToolAnnotations(
             title="Kubectl Generic",
             readOnlyHint=True,
+            destructiveHint=False,
+            idempotentHint=True,
+            openWorldHint=True,
         ),
     )
     def kubectl_generic(command: str, context: str = "") -> Dict[str, Any]:
@@ -163,7 +172,10 @@ def register_operations_tools(server: "FastMCP", non_destructive: bool):
     @server.tool(
         annotations=ToolAnnotations(
             title="Kubectl Patch",
+            readOnlyHint=False,
             destructiveHint=True,
+            idempotentHint=False,
+            openWorldHint=True,
         ),
     )
     def kubectl_patch(resource_type: str, name: str, patch: str, patch_type: str = "strategic", namespace: Optional[str] = "default", context: str = "") -> Dict[str, Any]:
@@ -206,7 +218,10 @@ def register_operations_tools(server: "FastMCP", non_destructive: bool):
     @server.tool(
         annotations=ToolAnnotations(
             title="Kubectl Rollout",
+            readOnlyHint=False,
             destructiveHint=True,
+            idempotentHint=False,
+            openWorldHint=True,
         ),
     )
     def kubectl_rollout(action: str, resource_type: str, name: str, namespace: Optional[str] = "default", context: str = "") -> Dict[str, Any]:
@@ -244,7 +259,10 @@ def register_operations_tools(server: "FastMCP", non_destructive: bool):
     @server.tool(
         annotations=ToolAnnotations(
             title="Kubectl Create",
+            readOnlyHint=False,
             destructiveHint=True,
+            idempotentHint=False,
+            openWorldHint=True,
         ),
     )
     def kubectl_create(resource_type: str, name: str, namespace: Optional[str] = "default", image: Optional[str] = None, context: str = "") -> Dict[str, Any]:
@@ -276,7 +294,10 @@ def register_operations_tools(server: "FastMCP", non_destructive: bool):
     @server.tool(
         annotations=ToolAnnotations(
             title="Delete Resource",
+            readOnlyHint=False,
             destructiveHint=True,
+            idempotentHint=True,
+            openWorldHint=True,
         ),
     )
     def delete_resource(resource_type: str, name: str, namespace: Optional[str] = "default", context: str = "") -> Dict[str, Any]:
@@ -305,7 +326,10 @@ def register_operations_tools(server: "FastMCP", non_destructive: bool):
     @server.tool(
         annotations=ToolAnnotations(
             title="Kubectl Copy",
+            readOnlyHint=False,
             destructiveHint=True,
+            idempotentHint=False,
+            openWorldHint=True,
         ),
     )
     def kubectl_cp(source: str, destination: str, namespace: str = "default", container: Optional[str] = None, context: str = "") -> Dict[str, Any]:
@@ -342,6 +366,9 @@ def register_operations_tools(server: "FastMCP", non_destructive: bool):
         annotations=ToolAnnotations(
             title="Backup Resource as YAML",
             readOnlyHint=True,
+            destructiveHint=False,
+            idempotentHint=True,
+            openWorldHint=True,
         ),
     )
     def backup_resource(resource_type: str, name: str, namespace: Optional[str] = None, context: str = "") -> Dict[str, Any]:
@@ -381,7 +408,10 @@ def register_operations_tools(server: "FastMCP", non_destructive: bool):
     @server.tool(
         annotations=ToolAnnotations(
             title="Label Resource",
+            readOnlyHint=False,
             destructiveHint=True,
+            idempotentHint=False,
+            openWorldHint=True,
         ),
     )
     def label_resource(
@@ -438,7 +468,10 @@ def register_operations_tools(server: "FastMCP", non_destructive: bool):
     @server.tool(
         annotations=ToolAnnotations(
             title="Annotate Resource",
+            readOnlyHint=False,
             destructiveHint=True,
+            idempotentHint=False,
+            openWorldHint=True,
         ),
     )
     def annotate_resource(
@@ -495,7 +528,10 @@ def register_operations_tools(server: "FastMCP", non_destructive: bool):
     @server.tool(
         annotations=ToolAnnotations(
             title="Taint Node",
+            readOnlyHint=False,
             destructiveHint=True,
+            idempotentHint=False,
+            openWorldHint=True,
         ),
     )
     def taint_node(
@@ -556,6 +592,9 @@ def register_operations_tools(server: "FastMCP", non_destructive: bool):
         annotations=ToolAnnotations(
             title="Wait for Condition",
             readOnlyHint=True,
+            destructiveHint=False,
+            idempotentHint=True,
+            openWorldHint=True,
         ),
     )
     def wait_for_condition(
@@ -616,7 +655,10 @@ def register_operations_tools(server: "FastMCP", non_destructive: bool):
     @server.tool(
         annotations=ToolAnnotations(
             title="Node Management",
+            readOnlyHint=False,
             destructiveHint=True,
+            idempotentHint=False,
+            openWorldHint=True,
         ),
     )
     def node_management(action: str, node_name: str, force: bool = False, context: str = "") -> Dict[str, Any]:

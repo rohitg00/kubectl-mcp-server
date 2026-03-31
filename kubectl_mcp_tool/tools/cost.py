@@ -65,6 +65,9 @@ def register_cost_tools(server: "FastMCP", non_destructive: bool):
         annotations=ToolAnnotations(
             title="Get Resource Recommendations",
             readOnlyHint=True,
+            destructiveHint=False,
+            idempotentHint=True,
+            openWorldHint=True,
         ),
     )
     def get_resource_recommendations(
@@ -156,6 +159,9 @@ def register_cost_tools(server: "FastMCP", non_destructive: bool):
         annotations=ToolAnnotations(
             title="Get Idle Resources",
             readOnlyHint=True,
+            destructiveHint=False,
+            idempotentHint=True,
+            openWorldHint=True,
         ),
     )
     def get_idle_resources(
@@ -231,6 +237,9 @@ def register_cost_tools(server: "FastMCP", non_destructive: bool):
         annotations=ToolAnnotations(
             title="Get Resource Quotas Usage",
             readOnlyHint=True,
+            destructiveHint=False,
+            idempotentHint=True,
+            openWorldHint=True,
         ),
     )
     def get_resource_quotas_usage(namespace: Optional[str] = None, context: str = "") -> Dict[str, Any]:
@@ -283,6 +292,9 @@ def register_cost_tools(server: "FastMCP", non_destructive: bool):
         annotations=ToolAnnotations(
             title="Get Cost Analysis",
             readOnlyHint=True,
+            destructiveHint=False,
+            idempotentHint=True,
+            openWorldHint=True,
         ),
     )
     def get_cost_analysis(namespace: Optional[str] = None, context: str = "") -> Dict[str, Any]:
@@ -363,6 +375,9 @@ def register_cost_tools(server: "FastMCP", non_destructive: bool):
         annotations=ToolAnnotations(
             title="Get Overprovisioned Resources",
             readOnlyHint=True,
+            destructiveHint=False,
+            idempotentHint=True,
+            openWorldHint=True,
         ),
     )
     def get_overprovisioned_resources(
@@ -464,6 +479,9 @@ def register_cost_tools(server: "FastMCP", non_destructive: bool):
         annotations=ToolAnnotations(
             title="Get Resource Trends",
             readOnlyHint=True,
+            destructiveHint=False,
+            idempotentHint=True,
+            openWorldHint=True,
         ),
     )
     def get_resource_trends(
@@ -561,6 +579,9 @@ def register_cost_tools(server: "FastMCP", non_destructive: bool):
         annotations=ToolAnnotations(
             title="Get Namespace Cost Allocation",
             readOnlyHint=True,
+            destructiveHint=False,
+            idempotentHint=True,
+            openWorldHint=True,
         ),
     )
     def get_namespace_cost_allocation(context: str = "") -> Dict[str, Any]:
@@ -631,6 +652,9 @@ def register_cost_tools(server: "FastMCP", non_destructive: bool):
         annotations=ToolAnnotations(
             title="Optimize Resource Requests",
             readOnlyHint=True,
+            destructiveHint=False,
+            idempotentHint=True,
+            openWorldHint=True,
         ),
     )
     def optimize_resource_requests(

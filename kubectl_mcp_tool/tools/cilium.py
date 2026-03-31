@@ -480,7 +480,7 @@ def cilium_detect(context: str = "") -> Dict[str, Any]:
 def register_cilium_tools(mcp: FastMCP, non_destructive: bool = False):
     """Register Cilium tools with the MCP server."""
 
-    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True))
+    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
     def cilium_policies_list_tool(
         namespace: str = "",
         context: str = "",
@@ -489,7 +489,7 @@ def register_cilium_tools(mcp: FastMCP, non_destructive: bool = False):
         """List Cilium network policies."""
         return json.dumps(cilium_policies_list(namespace, context, include_clusterwide), indent=2)
 
-    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True))
+    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
     def cilium_policy_get_tool(
         name: str,
         namespace: str = "",
@@ -499,7 +499,7 @@ def register_cilium_tools(mcp: FastMCP, non_destructive: bool = False):
         """Get detailed information about a Cilium network policy."""
         return json.dumps(cilium_policy_get(name, namespace, kind, context), indent=2)
 
-    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True))
+    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
     def cilium_endpoints_list_tool(
         namespace: str = "",
         context: str = "",
@@ -508,7 +508,7 @@ def register_cilium_tools(mcp: FastMCP, non_destructive: bool = False):
         """List Cilium endpoints with their status."""
         return json.dumps(cilium_endpoints_list(namespace, context, label_selector), indent=2)
 
-    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True))
+    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
     def cilium_identities_list_tool(
         context: str = "",
         label_selector: str = ""
@@ -516,17 +516,17 @@ def register_cilium_tools(mcp: FastMCP, non_destructive: bool = False):
         """List Cilium identities."""
         return json.dumps(cilium_identities_list(context, label_selector), indent=2)
 
-    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True))
+    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
     def cilium_nodes_list_tool(context: str = "") -> str:
         """List Cilium nodes with their status."""
         return json.dumps(cilium_nodes_list(context), indent=2)
 
-    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True))
+    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
     def cilium_status_tool(context: str = "") -> str:
         """Get Cilium cluster status."""
         return json.dumps(cilium_status(context), indent=2)
 
-    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True))
+    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
     def hubble_flows_query_tool(
         namespace: str = "",
         pod: str = "",
@@ -539,7 +539,7 @@ def register_cilium_tools(mcp: FastMCP, non_destructive: bool = False):
         """Query Hubble flows for network observability."""
         return json.dumps(hubble_flows_query(namespace, pod, label_selector, verdict, protocol, last, context), indent=2)
 
-    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True))
+    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
     def cilium_detect_tool(context: str = "") -> str:
         """Detect if Cilium is installed and its components."""
         return json.dumps(cilium_detect(context), indent=2)
