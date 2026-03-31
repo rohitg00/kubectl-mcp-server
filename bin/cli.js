@@ -33,12 +33,17 @@ kubectl-mcp-server - MCP Server for Kubernetes
 Usage: kubectl-mcp-server [options]
 
 Options:
-  --transport <mode>   Transport: stdio, sse, http, streamable-http (default: stdio)
-  --host <host>        Host for network transports (default: 0.0.0.0)
-  --port <port>        Port for network transports (default: 8000)
-  --non-destructive    Block destructive operations
-  --help, -h           Show this help message
-  --version, -v        Show version
+  --transport <mode>       Transport: stdio, sse, http, streamable-http (default: stdio)
+  --host <host>            Host for network transports (default: 0.0.0.0)
+  --port <port>            Port for network transports (default: 8000)
+  --disable-destructive    Block destructive operations (alias: --non-destructive)
+  --read-only              Block all write operations
+  --config <path>          Path to TOML configuration file
+  --stateless              Don't cache API clients, reload config each request
+  --watch-kubeconfig       Watch kubeconfig files for changes and auto-reload
+  --watch-interval <sec>   Interval for kubeconfig watch checks (default: 5.0)
+  --help, -h               Show this help message
+  --version, -v            Show version
 
 For more info: https://github.com/rohitg00/kubectl-mcp-server
 `);

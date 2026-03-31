@@ -158,6 +158,6 @@ curl http://localhost:8000/health
 ## Security Considerations
 
 1. **RBAC**: The default configuration uses read-only permissions
-2. **Non-destructive mode**: Add `--non-destructive` to args for extra safety
+2. **Non-destructive mode**: Add `--disable-destructive` to args for extra safety
 3. **Network Policies**: Consider adding NetworkPolicy to restrict access
 4. **Secrets**: Secrets are masked in output by default
