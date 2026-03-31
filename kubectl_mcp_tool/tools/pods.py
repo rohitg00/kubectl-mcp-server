@@ -13,6 +13,13 @@ from typing import Any, Dict, List, Optional
 from mcp.types import ToolAnnotations
 
 from kubectl_mcp_tool.k8s_config import get_k8s_client, _get_kubectl_context_args
+from kubectl_mcp_tool.schemas import (
+    GetPodsResponse,
+    GetLogsResponse,
+    GetPodEventsResponse,
+    CheckPodHealthResponse,
+)
+from kubectl_mcp_tool.structured import structured_response
 
 logger = logging.getLogger("mcp-server")
 
@@ -29,6 +36,7 @@ def register_pod_tools(
     """
 
     @server.tool(
+        output_schema=GetPodsResponse.model_json_schema(),
         annotations=ToolAnnotations(
             title="Get Pods",
             readOnlyHint=True,
@@ -55,7 +63,7 @@ def register_pod_tools(
             else:
                 pods = v1.list_pod_for_all_namespaces()
 
-            return {
+            return structured_response({
                 "success": True,
                 "context": context or "current",
                 "pods": [
@@ -67,12 +75,13 @@ def register_pod_tools(
                     }
                     for pod in pods.items
                 ]
-            }
+            }, GetPodsResponse)
         except Exception as e:
             logger.error(f"Error getting pods: {e}")
             return {"success": False, "error": str(e)}
 
     @server.tool(
+        output_schema=GetLogsResponse.model_json_schema(),
         annotations=ToolAnnotations(
             title="Get Logs",
             readOnlyHint=True,
@@ -107,16 +116,17 @@ def register_pod_tools(
                 tail_lines=tail
             )
 
-            return {
+            return structured_response({
                 "success": True,
                 "context": context or "current",
                 "logs": logs
-            }
+            }, GetLogsResponse)
         except Exception as e:
             logger.error(f"Error getting logs: {e}")
             return {"success": False, "error": str(e)}
 
     @server.tool(
+        output_schema=GetPodEventsResponse.model_json_schema(),
         annotations=ToolAnnotations(
             title="Get Pod Events",
             readOnlyHint=True,
@@ -141,7 +151,7 @@ def register_pod_tools(
             v1 = get_k8s_client(context)
             field_selector = f"involvedObject.name={pod_name}"
             events = v1.list_namespaced_event(namespace, field_selector=field_selector)
-            return {
+            return structured_response({
                 "success": True,
                 "context": context or "current",
                 "events": [
@@ -153,12 +163,13 @@ def register_pod_tools(
                         "timestamp": event.last_timestamp.isoformat() if event.last_timestamp else None
                     } for event in events.items
                 ]
-            }
+            }, GetPodEventsResponse)
         except Exception as e:
             logger.error(f"Error getting pod events: {e}")
             return {"success": False, "error": str(e)}
 
     @server.tool(
+        output_schema=CheckPodHealthResponse.model_json_schema(),
         annotations=ToolAnnotations(
             title="Check Pod Health",
             readOnlyHint=True,
@@ -183,12 +194,12 @@ def register_pod_tools(
             v1 = get_k8s_client(context)
             pod = v1.read_namespaced_pod(pod_name, namespace)
             status = pod.status
-            return {
+            return structured_response({
                 "success": True,
                 "context": context or "current",
                 "phase": status.phase,
                 "conditions": [c.type for c in status.conditions] if status.conditions else []
-            }
+            }, CheckPodHealthResponse)
         except Exception as e:
             logger.error(f"Error checking pod health: {e}")
             return {"success": False, "error": str(e)}

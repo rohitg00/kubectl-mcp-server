@@ -9,6 +9,12 @@ from ..k8s_config import (
     get_apiextensions_client,
     _get_kubectl_context_args,
 )
+from kubectl_mcp_tool.schemas import (
+    GetNamespacesResponse,
+    GetConfigMapsResponse,
+    GetServicesResponse,
+)
+from kubectl_mcp_tool.structured import structured_response
 
 logger = logging.getLogger("mcp-server")
 
@@ -17,6 +23,7 @@ def register_core_tools(server: "FastMCP", non_destructive: bool):
     """Register core Kubernetes resource tools."""
 
     @server.tool(
+        output_schema=GetNamespacesResponse.model_json_schema(),
         annotations=ToolAnnotations(
             title="Get Namespaces",
             readOnlyHint=True,
@@ -34,16 +41,17 @@ def register_core_tools(server: "FastMCP", non_destructive: bool):
         try:
             v1 = get_k8s_client(context)
             namespaces = v1.list_namespace()
-            return {
+            return structured_response({
                 "success": True,
                 "context": context or "current",
                 "namespaces": [ns.metadata.name for ns in namespaces.items]
-            }
+            }, GetNamespacesResponse)
         except Exception as e:
             logger.error(f"Error getting namespaces: {e}")
             return {"success": False, "error": str(e)}
 
     @server.tool(
+        output_schema=GetServicesResponse.model_json_schema(),
         annotations=ToolAnnotations(
             title="Get Services",
             readOnlyHint=True,
@@ -68,7 +76,7 @@ def register_core_tools(server: "FastMCP", non_destructive: bool):
                 services = v1.list_namespaced_service(namespace)
             else:
                 services = v1.list_service_for_all_namespaces()
-            return {
+            return structured_response({
                 "success": True,
                 "context": context or "current",
                 "services": [
@@ -79,7 +87,7 @@ def register_core_tools(server: "FastMCP", non_destructive: bool):
                         "cluster_ip": svc.spec.cluster_ip
                     } for svc in services.items
                 ]
-            }
+            }, GetServicesResponse)
         except Exception as e:
             logger.error(f"Error getting services: {e}")
             return {"success": False, "error": str(e)}
@@ -128,6 +136,7 @@ def register_core_tools(server: "FastMCP", non_destructive: bool):
             return {"success": False, "error": str(e)}
 
     @server.tool(
+        output_schema=GetConfigMapsResponse.model_json_schema(),
         annotations=ToolAnnotations(
             title="Get ConfigMaps",
             readOnlyHint=True,
@@ -152,7 +161,7 @@ def register_core_tools(server: "FastMCP", non_destructive: bool):
                 cms = v1.list_namespaced_config_map(namespace)
             else:
                 cms = v1.list_config_map_for_all_namespaces()
-            return {
+            return structured_response({
                 "success": True,
                 "context": context or "current",
                 "configmaps": [
@@ -162,7 +171,7 @@ def register_core_tools(server: "FastMCP", non_destructive: bool):
                         "data": cm.data
                     } for cm in cms.items
                 ]
-            }
+            }, GetConfigMapsResponse)
         except Exception as e:
             logger.error(f"Error getting ConfigMaps: {e}")
             return {"success": False, "error": str(e)}

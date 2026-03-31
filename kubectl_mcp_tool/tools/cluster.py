@@ -25,6 +25,8 @@ from kubectl_mcp_tool.k8s_config import (
     set_stateless_mode,
     _get_kubectl_context_args,
 )
+from kubectl_mcp_tool.schemas import GetNodesSummaryResponse, ListContextsResponse
+from kubectl_mcp_tool.structured import structured_response
 
 logger = logging.getLogger("mcp-server")
 
@@ -61,6 +63,7 @@ def register_cluster_tools(server: "FastMCP", non_destructive: bool):
     """Register cluster and context management tools."""
 
     @server.tool(
+        output_schema=ListContextsResponse.model_json_schema(),
         annotations=ToolAnnotations(
             title="List Contexts",
             readOnlyHint=True,
@@ -78,12 +81,12 @@ def register_cluster_tools(server: "FastMCP", non_destructive: bool):
             contexts = _list_contexts_impl()
             active = get_active_context()
 
-            return {
+            return structured_response({
                 "success": True,
                 "contexts": contexts,
                 "active_context": active,
                 "total": len(contexts)
-            }
+            }, ListContextsResponse)
         except Exception as e:
             logger.error(f"Error listing contexts: {e}")
             return {"success": False, "error": str(e)}
@@ -594,6 +597,7 @@ def register_cluster_tools(server: "FastMCP", non_destructive: bool):
             return {"success": False, "error": str(e)}
 
     @server.tool(
+        output_schema=GetNodesSummaryResponse.model_json_schema(),
         annotations=ToolAnnotations(
             title="Get Nodes Summary",
             readOnlyHint=True,
@@ -648,11 +652,11 @@ def register_cluster_tools(server: "FastMCP", non_destructive: bool):
 
                 summary["nodes"].append(node_info)
 
-            return {
+            return structured_response({
                 "success": True,
                 "context": context or "current",
                 "summary": summary
-            }
+            }, GetNodesSummaryResponse)
         except Exception as e:
             logger.error(f"Error getting nodes summary: {e}")
             return {"success": False, "error": str(e)}

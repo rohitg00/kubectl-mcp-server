@@ -12,6 +12,8 @@ from ..k8s_config import (
     _load_config_for_context,
     _get_kubectl_context_args,
 )
+from kubectl_mcp_tool.schemas import GetDeploymentsResponse
+from kubectl_mcp_tool.structured import structured_response
 
 logger = logging.getLogger("mcp-server")
 
@@ -20,6 +22,7 @@ def register_deployment_tools(server: "FastMCP", non_destructive: bool):
     """Register deployment and workload management tools."""
 
     @server.tool(
+        output_schema=GetDeploymentsResponse.model_json_schema(),
         annotations=ToolAnnotations(
             title="Get Deployments",
             readOnlyHint=True,
@@ -46,7 +49,7 @@ def register_deployment_tools(server: "FastMCP", non_destructive: bool):
             else:
                 deployments = apps.list_deployment_for_all_namespaces()
 
-            return {
+            return structured_response({
                 "success": True,
                 "context": context or "current",
                 "deployments": [
@@ -59,7 +62,7 @@ def register_deployment_tools(server: "FastMCP", non_destructive: bool):
                     }
                     for d in deployments.items
                 ]
-            }
+            }, GetDeploymentsResponse)
         except Exception as e:
             logger.error(f"Error getting deployments: {e}")
             return {"success": False, "error": str(e)}
