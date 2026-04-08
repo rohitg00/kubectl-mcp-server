@@ -6,8 +6,11 @@
 
 <p align="center">
 <b>Control your entire Kubernetes infrastructure through natural language conversations with AI.</b><br>
-Talk to your clusters like you talk to a DevOps expert. Debug crashed pods, optimize costs, deploy applications, audit security, manage Helm charts, and visualize dashboards—all through natural language.
+Talk to your clusters like you talk to a DevOps expert. Debug crashed pods, optimize costs, deploy applications, audit security, manage Helm charts, and visualize dashboards, all through natural language.<br>
+<b>Part of CNCF Landscape, Next to Terraform</b>
 </p>
+
+<img width="2473" height="1332" alt="Screenshot 2026-04-08 at 23 36 21" src="https://github.com/user-attachments/assets/616b4e65-37bc-474e-8124-68e64c6d7c95" />
 
 <p align="center">
   <a href="https://github.com/rohitg00/kubectl-mcp-server"><img src="https://img.shields.io/github/stars/rohitg00/kubectl-mcp-server?style=flat&logo=github" alt="GitHub Stars"></a>
