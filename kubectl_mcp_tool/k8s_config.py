@@ -315,7 +315,50 @@ def patch_kubernetes_config():
         logger.debug("kubernetes package not available for patching")
 
 
+def _patch_kubernetes_auth_settings():
+    """Patch Configuration.auth_settings for kubernetes-client >= 30 compatibility.
+
+    In recent versions the kubeconfig loader stores the bearer token under
+    api_key['authorization'], but Configuration.auth_settings() only checks
+    api_key['BearerToken'].  The two are out of sync so the Authorization header
+    is never added to requests, producing a 401 despite a valid token in the
+    kubeconfig.  This patch makes auth_settings() fall back to the
+    'authorization' key when 'BearerToken' is absent.
+    """
+    try:
+        from kubernetes.client import Configuration
+
+        if getattr(Configuration, '_mcp_auth_patched', False):
+            return
+
+        _orig = Configuration.auth_settings
+
+        def _patched(self):
+            auth = _orig(self)
+            if 'BearerToken' not in auth and 'authorization' in self.api_key:
+                # Trigger the token-refresh hook the same way get_api_key_with_prefix
+                # would, so expiring tokens (OIDC, GCP) are refreshed before we read.
+                if self.refresh_api_key_hook is not None:
+                    self.refresh_api_key_hook(self)
+                token = self.api_key.get('authorization', '')
+                if token:
+                    auth['BearerToken'] = {
+                        'type': 'api_key',
+                        'in': 'header',
+                        'key': 'authorization',
+                        'value': token,
+                    }
+            return auth
+
+        Configuration.auth_settings = _patched
+        Configuration._mcp_auth_patched = True
+        logger.debug("Patched kubernetes.client.Configuration.auth_settings for token key compatibility")
+    except Exception as e:
+        logger.debug(f"Failed to patch kubernetes auth settings: {e}")
+
+
 patch_kubernetes_config()
+_patch_kubernetes_auth_settings()
 
 
 def _load_config_for_context(context: str = "") -> Any:
