@@ -24,6 +24,8 @@ import threading
 import time
 from typing import Optional, Any, List, Dict, Callable
 
+from .kubeconfig import kubeconfig_path_exists, normalize_kubeconfig_path
+
 logger = logging.getLogger("mcp-server")
 
 _stateless_mode = os.environ.get("MCP_STATELESS_MODE", "").lower() in ("true", "1", "yes")
@@ -245,8 +247,9 @@ def load_kubernetes_config(context: str = ""):
         logger.debug("Not running in-cluster, trying kubeconfig...")
 
     try:
-        kubeconfig_path = os.environ.get('KUBECONFIG', '~/.kube/config')
-        kubeconfig_path = os.path.expanduser(kubeconfig_path)
+        kubeconfig_path = normalize_kubeconfig_path(
+            os.environ.get('KUBECONFIG', '~/.kube/config')
+        )
 
         if context:
             config.load_kube_config(config_file=kubeconfig_path, context=context)
@@ -353,10 +356,11 @@ def _load_config_for_context(context: str = "") -> Any:
     except ConfigException:
         logger.debug("In-cluster config not available in fallback path")
 
-    kubeconfig_path = os.environ.get('KUBECONFIG', '~/.kube/config')
-    kubeconfig_path = os.path.expanduser(kubeconfig_path)
+    kubeconfig_path = normalize_kubeconfig_path(
+        os.environ.get('KUBECONFIG', '~/.kube/config')
+    )
 
-    if not os.path.exists(kubeconfig_path):
+    if not kubeconfig_path_exists(kubeconfig_path):
         raise RuntimeError(
             f"No Kubernetes configuration found. "
             f"In-cluster config not available and kubeconfig not found at '{kubeconfig_path}'. "
@@ -498,8 +502,9 @@ def list_contexts() -> list:
     from kubernetes import config
 
     try:
-        kubeconfig_path = os.environ.get('KUBECONFIG', '~/.kube/config')
-        kubeconfig_path = os.path.expanduser(kubeconfig_path)
+        kubeconfig_path = normalize_kubeconfig_path(
+            os.environ.get('KUBECONFIG', '~/.kube/config')
+        )
 
         contexts, active = config.list_kube_config_contexts(config_file=kubeconfig_path)
 
@@ -528,8 +533,9 @@ def get_active_context() -> Optional[str]:
 
     from kubernetes import config
     try:
-        kubeconfig_path = os.environ.get('KUBECONFIG', '~/.kube/config')
-        kubeconfig_path = os.path.expanduser(kubeconfig_path)
+        kubeconfig_path = normalize_kubeconfig_path(
+            os.environ.get('KUBECONFIG', '~/.kube/config')
+        )
 
         _, active = config.list_kube_config_contexts(config_file=kubeconfig_path)
         return active.get("name") if active else None

@@ -91,6 +91,7 @@ from kubectl_mcp_tool.tools import (
     register_kind_tools,
     register_custom_resource_tools,
 )
+from kubectl_mcp_tool.kubeconfig import normalize_kubeconfig_path
 from kubectl_mcp_tool.resources import register_resources
 from kubectl_mcp_tool.prompts import register_prompts
 from kubectl_mcp_tool.auth import get_auth_config, create_auth_verifier
@@ -462,7 +463,7 @@ class MCPServer:
             logger.debug("Starting MCP server with stdio transport")
             logger.debug(f"Working directory: {os.getcwd()}")
             kube_config = os.environ.get('KUBECONFIG', '~/.kube/config')
-            expanded_path = os.path.expanduser(kube_config)
+            expanded_path = normalize_kubeconfig_path(kube_config)
             logger.debug(f"KUBECONFIG: {expanded_path}")
             logger.debug(f"Dependencies: {'available' if self.dependencies_available else 'missing'}")
 
