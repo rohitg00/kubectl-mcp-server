@@ -275,12 +275,16 @@ Add to `~/.config/windsurf/mcp.json`:
       "command": "python",
       "args": ["-m", "kubectl_mcp_tool.mcp_server"],
       "env": {
-        "KUBECONFIG": "/path/to/.kube/config"
+        "KUBECONFIG": "/path/to/sit.config:/path/to/stg.config"
       }
     }
   }
 }
 ```
+
+`KUBECONFIG` accepts either one file or an OS-specific path-separated list of
+files. Use `:` on Linux and macOS, or `;` on Windows. Contexts from all existing
+files are merged using the standard Kubernetes client behavior.
 
 **More integrations**: GitHub Copilot, Goose, Gemini CLI, Roo Code, and [15+ other clients](#mcp-client-compatibility) —> see [full configuration guide](#all-supported-ai-assistants) below.
 
@@ -595,7 +599,7 @@ kubectl-mcp-server --transport streamable-http --port 8000
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `KUBECONFIG` | Path to kubeconfig file | `~/.kube/config` |
+| `KUBECONFIG` | Kubeconfig file or OS-specific path-separated file list | `~/.kube/config` |
 | `MCP_DEBUG` | Enable verbose logging | `false` |
 | `MCP_LOG_FILE` | Log file path | None (stdout) |
 

@@ -1,8 +1,10 @@
 import os
 import logging
 from enum import Enum
-from typing import Any, Dict, List, Optional, Tuple
-from dataclasses import dataclass, field
+from typing import Any, Dict, List, Optional
+from dataclasses import dataclass
+
+from .kubeconfig import kubeconfig_path_exists, normalize_kubeconfig_path
 
 logger = logging.getLogger("mcp-server")
 
@@ -55,7 +57,7 @@ class ProviderConfig:
             "MCP_K8S_KUBECONFIG",
             os.environ.get("KUBECONFIG", "~/.kube/config")
         )
-        kubeconfig_path = os.path.expanduser(kubeconfig_path)
+        kubeconfig_path = normalize_kubeconfig_path(kubeconfig_path)
 
         return cls(
             provider_type=provider_type,
@@ -156,7 +158,7 @@ class KubernetesProvider:
         from kubernetes import config
         from kubernetes.config.config_exception import ConfigException
 
-        kubeconfig_exists = os.path.exists(self.config.kubeconfig_path)
+        kubeconfig_exists = kubeconfig_path_exists(self.config.kubeconfig_path)
 
         if not kubeconfig_exists:
             try:
