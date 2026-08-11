@@ -283,8 +283,9 @@ Add to `~/.config/windsurf/mcp.json`:
 ```
 
 `KUBECONFIG` accepts either one file or an OS-specific path-separated list of
-files. Use `:` on Linux and macOS, or `;` on Windows. Contexts from all existing
-files are merged using the standard Kubernetes client behavior.
+files. The example above uses `:`, the separator on Linux and macOS; on Windows
+use `;` instead. Contexts from all existing files are merged using the standard
+Kubernetes client behavior.
 
 **More integrations**: GitHub Copilot, Goose, Gemini CLI, Roo Code, and [15+ other clients](#mcp-client-compatibility) —> see [full configuration guide](#all-supported-ai-assistants) below.
 
