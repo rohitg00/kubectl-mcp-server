@@ -50,7 +50,7 @@ def secret_masking_enabled() -> bool:
 
 
 _SECRET_KIND_LINE = re.compile(r"^\s*kind:\s*[\"']?secret[\"']?\s*$", re.IGNORECASE | re.MULTILINE)
-_SECRET_BLOCK = re.compile(r"^(\s*)(?:data|stringData):\s*$|^(\s*)kubectl\.kubernetes\.io/last-applied-configuration:")
+_SECRET_FIELD = re.compile(r"^(\s*[\"']?(data|stringData|kubectl\.kubernetes\.io/last-applied-configuration)[\"']?:)(.*)$")
 
 
 def _may_hold_secret(text: str) -> bool:
@@ -116,11 +116,12 @@ def _redact_secret_blocks(text: str) -> str:
             elif ":" in body and not drop_block:
                 out.append(f'{line.split(":", 1)[0]}: "{REDACTED}"{eol}')
             continue
-        match = _SECRET_BLOCK.match(line)
+        match = _SECRET_FIELD.match(line)
         if match:
-            block_indent, drop_block = indent, match.group(2) is not None
+            block_indent = indent
+            drop_block = bool(match.group(3).strip()) or match.group(2).startswith("kubectl.")
             if drop_block:
-                line = f'{line.split(":", 1)[0]}: "{REDACTED}"{eol}'
+                line = f'{match.group(1)} "{REDACTED}"{eol}'
         out.append(line)
     return "".join(out)
 

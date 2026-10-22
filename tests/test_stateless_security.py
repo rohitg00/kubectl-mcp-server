@@ -83,6 +83,18 @@ class TestSecretRedaction:
         assert "aHVudGVyMg==" not in out
         assert "type: Opaque" in out and "name: db" in out
 
+    @pytest.mark.parametrize("inline", [
+        "data: {password: aHVudGVyMg==}",
+        'data: {"password": "aHVudGVyMg=="}',
+        "data: {password: aHVudGVyMg==,\n  user: YWRtaW4=}",
+        "stringData: {password: hunter2}",
+    ])
+    def test_inline_secret_data_in_unparseable_text(self, inline):
+        text = f"oops: [unclosed\napiVersion: v1\nkind: Secret\nmetadata:\n  name: db\n{inline}\ntype: Opaque\n"
+        out = mask_secrets(text)
+        assert "aHVudGVyMg==" not in out and "hunter2" not in out and "YWRtaW4=" not in out
+        assert "name: db" in out and "type: Opaque" in out
+
     def test_kind_match_is_case_insensitive(self):
         assert redact_secrets({"kind": "secret", "data": {"k": "dg=="}})["data"] == {"k": REDACTED}
 
