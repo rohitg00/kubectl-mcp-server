@@ -20,7 +20,6 @@ from .loader import (
 from .schema import (
     ServerConfig,
     SafetyConfig,
-    BrowserConfig,
     MetricsConfig,
     LoggingConfig,
     validate_config,
@@ -39,7 +38,6 @@ __all__ = [
     # Config schemas
     "ServerConfig",
     "SafetyConfig",
-    "BrowserConfig",
     "MetricsConfig",
     "LoggingConfig",
     "validate_config",

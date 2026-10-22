@@ -1,7 +1,7 @@
 {
   "name": "kubectl-mcp-server",
-  "version": "1.25.0",
-  "description": "A Model Context Protocol (MCP) server for Kubernetes with 270+ tools, 8 resources, and 8 prompts for AI assistants",
+  "version": "2.0.0",
+  "description": "Stateless MCP (2026-07-28) server for Kubernetes with 280+ tools, resources, and prompts for AI assistants",
   "keywords": [
     "kubernetes",
     "kubectl",
@@ -12,7 +12,7 @@
     "ai",
     "devops",
     "k8s",
-    "mcp-ui"
+    "stateless"
   ],
   "author": "Rohit Ghumare",
   "license": "MIT",
@@ -31,7 +31,7 @@
     "bin/"
   ],
   "engines": {
-    "node": ">=16.0.0"
+    "node": ">=18.0.0"
   },
   "os": [
     "darwin",

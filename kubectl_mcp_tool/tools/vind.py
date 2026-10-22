@@ -95,23 +95,6 @@ def _run_vcluster(
         return {"success": False, "error": str(e)}
 
 
-def vind_detect() -> Dict[str, Any]:
-    """Detect if vCluster CLI is installed and get version info.
-
-    Returns:
-        Detection results including CLI availability and version
-    """
-    available = _vcluster_available()
-    version = _get_vcluster_version() if available else None
-
-    return {
-        "installed": available,
-        "cli_available": available,
-        "version": version,
-        "install_instructions": "https://www.vcluster.com/docs/getting-started/setup" if not available else None
-    }
-
-
 def vind_list_clusters() -> Dict[str, Any]:
     """List all vCluster instances.
 
@@ -226,31 +209,6 @@ def vind_get_kubeconfig(
             "message": f"Kubeconfig for vCluster '{name}'"
         }
 
-    return result
-
-
-def vind_logs(
-    name: str,
-    namespace: str = "vcluster",
-    follow: bool = False,
-    tail: int = 100
-) -> Dict[str, Any]:
-    """Get logs from a vCluster instance.
-
-    Args:
-        name: Name of the vCluster instance
-        namespace: Namespace where vCluster is running
-        follow: Follow log output (not recommended for API use)
-        tail: Number of lines to show
-
-    Returns:
-        Log output
-    """
-    args = ["logs", name, "--namespace", namespace]
-    if tail:
-        args.extend(["--tail", str(tail)])
-
-    result = _run_vcluster(args, timeout=60)
     return result
 
 
@@ -541,49 +499,9 @@ def vind_describe(name: str, namespace: str = "") -> Dict[str, Any]:
     return result
 
 
-def vind_platform_start(
-    host: str = "",
-    port: int = 0,
-    no_port_forwarding: bool = True
-) -> Dict[str, Any]:
-    """Start the vCluster Platform UI.
-
-    Args:
-        host: Host to bind to (default: localhost)
-        port: Port to bind to (default: 9898)
-        no_port_forwarding: Don't start port-forwarding (install only, default: True)
-
-    Returns:
-        Platform start result
-    """
-    args = ["platform", "start"]
-
-    if host:
-        args.extend(["--host", host])
-
-    if port:
-        args.extend(["--port", str(port)])
-
-    if no_port_forwarding:
-        args.append("--no-port-forwarding")
-
-    result = _run_vcluster(args, timeout=60)
-
-    if result["success"]:
-        return {
-            "success": True,
-            "message": "vCluster Platform started",
-            "output": result.get("output", "")
-        }
-
-    return result
-
-
-_vind_detect_impl = vind_detect
 _vind_list_clusters_impl = vind_list_clusters
 _vind_status_impl = vind_status
 _vind_get_kubeconfig_impl = vind_get_kubeconfig
-_vind_logs_impl = vind_logs
 _vind_create_cluster_impl = vind_create_cluster
 _vind_delete_cluster_impl = vind_delete_cluster
 _vind_pause_impl = vind_pause
@@ -592,18 +510,12 @@ _vind_connect_impl = vind_connect
 _vind_disconnect_impl = vind_disconnect
 _vind_upgrade_impl = vind_upgrade
 _vind_describe_impl = vind_describe
-_vind_platform_start_impl = vind_platform_start
 
 
 def register_vind_tools(mcp: "FastMCP", non_destructive: bool = False):
     """Register vind (vCluster in Docker) tools with the MCP server."""
     from fastmcp import Context
     from kubectl_mcp_tool.elicit import confirm_destructive
-
-    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
-    def vind_detect() -> str:
-        """Detect if vCluster CLI is installed and get version info."""
-        return json.dumps(_vind_detect_impl(), indent=2)
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
     def vind_list_clusters() -> str:
@@ -625,15 +537,6 @@ def register_vind_tools(mcp: "FastMCP", non_destructive: bool = False):
     ) -> str:
         """Get kubeconfig for a vCluster instance."""
         return json.dumps(_vind_get_kubeconfig_impl(name, namespace, print_only=True), indent=2)
-
-    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
-    def vind_logs(
-        name: str,
-        namespace: str = "vcluster",
-        tail: int = 100
-    ) -> str:
-        """Get logs from a vCluster instance."""
-        return json.dumps(_vind_logs_impl(name, namespace, follow=False, tail=tail), indent=2)
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=False, idempotentHint=False, openWorldHint=True))
     async def vind_create_cluster(
@@ -759,14 +662,3 @@ def register_vind_tools(mcp: "FastMCP", non_destructive: bool = False):
         """Describe a vCluster instance with detailed information."""
         return json.dumps(_vind_describe_impl(name, namespace), indent=2)
 
-    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=True, idempotentHint=False, openWorldHint=True))
-    async def vind_platform_start(
-        host: str = "",
-        port: int = 0,
-        ctx: Context = None
-    ) -> str:
-        """Start the vCluster Platform UI."""
-        blocked = await confirm_destructive(ctx, "Start vCluster Platform", host or "localhost")
-        if blocked:
-            return json.dumps(blocked)
-        return json.dumps(_vind_platform_start_impl(host, port), indent=2)

@@ -1,11 +1,11 @@
 ---
 name: k8s-cli
 description: kubectl-mcp-server CLI commands for tool discovery, direct invocation, and diagnostics. Use when exploring available tools, calling tools from command line, or checking server health.
-license: Apache-2.0
+license: MIT-0
 metadata:
   author: rohitg00
-  version: "1.0.0"
-  tools: 0
+  version: "2.0.0"
+  tools: 6
   category: tooling
 ---
 
@@ -35,7 +35,7 @@ Use this skill when:
 |------|---------|---------|
 | List tools | `tools -d` | `kubectl-mcp-server tools -d` |
 | Search tools | `grep` | `kubectl-mcp-server grep "*pod*"` |
-| Call tool | `call` | `kubectl-mcp-server call get_pods '{"namespace": "default"}'` |
+| Call tool | `call` | `kubectl-mcp-server call kubectl_get '{"namespace": "default"}'` |
 | Check health | `doctor` | `kubectl-mcp-server doctor` |
 
 ## Server Commands
@@ -96,7 +96,7 @@ kubectl-mcp-server grep "*velero*"
 
 ```bash
 # Show tool parameters
-kubectl-mcp-server tools get_pods
+kubectl-mcp-server tools kubectl_get
 kubectl-mcp-server tools install_helm_chart
 
 # Shows:
@@ -111,29 +111,29 @@ kubectl-mcp-server tools install_helm_chart
 
 ```bash
 # Call with JSON arguments
-kubectl-mcp-server call get_pods '{"namespace": "default"}'
+kubectl-mcp-server call kubectl_get '{"namespace": "default"}'
 
 # Call with stdin
-echo '{"namespace": "kube-system"}' | kubectl-mcp-server call get_pods
+echo '{"namespace": "kube-system"}' | kubectl-mcp-server call kubectl_get
 
 # Call with no arguments
-kubectl-mcp-server call get_namespaces '{}'
+kubectl-mcp-server call kubectl_get '{}'
 ```
 
 ### Examples
 
 ```bash
 # Get pods
-kubectl-mcp-server call get_pods '{"namespace": "default"}'
+kubectl-mcp-server call kubectl_get '{"namespace": "default"}'
 
 # Describe pod
-kubectl-mcp-server call describe_pod '{"name": "nginx-xxx", "namespace": "default"}'
+kubectl-mcp-server call kubectl_describe '{"name": "nginx-xxx", "namespace": "default"}'
 
 # Get logs
-kubectl-mcp-server call get_pod_logs '{"name": "nginx-xxx", "namespace": "default"}'
+kubectl-mcp-server call kubectl_logs '{"name": "nginx-xxx", "namespace": "default"}'
 
 # Scale deployment
-kubectl-mcp-server call scale_deployment '{"name": "nginx", "namespace": "default", "replicas": 3}'
+kubectl-mcp-server call kubectl_scale '{"name": "nginx", "namespace": "default", "replicas": 3}'
 
 # Install helm chart
 kubectl-mcp-server call install_helm_chart '{
@@ -153,7 +153,7 @@ kubectl-mcp-server context
 kubectl-mcp-server context production
 
 # List available contexts
-kubectl-mcp-server call list_contexts_tool '{}'
+kubectl-mcp-server call list_contexts '{}'
 ```
 
 ## Server Info
@@ -211,10 +211,9 @@ export MCP_DEBUG=true           # Enable debug logging
 export MCP_LOG_FILE=/var/log/mcp.log  # Log to file
 export NO_COLOR=1               # Disable colors
 
-# Browser (optional)
-export MCP_BROWSER_ENABLED=true
-export MCP_BROWSER_PROVIDER=browserbase
-export BROWSERBASE_API_KEY=bb_...
+# Safety
+export MCP_SAFETY_MODE=read-only   # read-only | disable-destructive | confirm | normal
+export MCP_MASK_SECRETS=true       # Redact Secret values in tool output (default)
 ```
 
 ## Claude Desktop Configuration

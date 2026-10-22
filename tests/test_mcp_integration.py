@@ -178,7 +178,7 @@ class TestMCPServerConfig:
         assert config is not None
         assert hasattr(config, 'server')
         assert hasattr(config, 'safety')
-        assert hasattr(config, 'browser')
+        assert not hasattr(config, 'browser')
 
     def test_config_reload_callbacks(self):
         """Test config reload callback registration."""
@@ -216,14 +216,11 @@ class TestMCPServerSafety:
         info = get_mode_info()
         assert info["mode"] == "normal"
         assert "description" in info
-        assert info["blocked_operations"] == []
 
         set_safety_mode(SafetyMode.READ_ONLY)
         info = get_mode_info()
         assert info["mode"] == "read_only"
-        assert len(info["blocked_operations"]) > 0
 
         set_safety_mode(SafetyMode.DISABLE_DESTRUCTIVE)
         info = get_mode_info()
         assert info["mode"] == "disable_destructive"
-        assert "delete_pod" in info["blocked_operations"]

@@ -92,38 +92,6 @@ def _run_kind(
         return {"success": False, "error": str(e)}
 
 
-def kind_detect() -> Dict[str, Any]:
-    """Detect if kind CLI is installed and get version info.
-
-    Returns:
-        Detection results including CLI availability and version
-    """
-    available = _kind_available()
-    version = _get_kind_version() if available else None
-
-    return {
-        "installed": available,
-        "cli_available": available,
-        "version": version,
-        "install_instructions": "https://kind.sigs.k8s.io/docs/user/quick-start/#installation" if not available else None
-    }
-
-
-def kind_version() -> Dict[str, Any]:
-    """Get kind CLI version information.
-
-    Returns:
-        Version information
-    """
-    result = _run_kind(["version"], timeout=10)
-    if result["success"]:
-        return {
-            "success": True,
-            "version": result.get("output", ""),
-        }
-    return result
-
-
 def kind_list_clusters() -> Dict[str, Any]:
     """List all kind clusters.
 
@@ -298,32 +266,6 @@ def kind_delete_cluster(name: str = "kind", kubeconfig: str = "") -> Dict[str, A
         return {
             "success": True,
             "message": f"kind cluster '{name}' deleted successfully",
-            "output": result.get("output", "")
-        }
-
-    return result
-
-
-def kind_delete_all_clusters(kubeconfig: str = "") -> Dict[str, Any]:
-    """Delete all kind clusters.
-
-    Args:
-        kubeconfig: Path to kubeconfig file to update
-
-    Returns:
-        Deletion result
-    """
-    args = ["delete", "clusters", "--all"]
-
-    if kubeconfig:
-        args.extend(["--kubeconfig", kubeconfig])
-
-    result = _run_kind(args, timeout=300)
-
-    if result["success"]:
-        return {
-            "success": True,
-            "message": "All kind clusters deleted successfully",
             "output": result.get("output", "")
         }
 
@@ -1346,8 +1288,6 @@ def kind_provider_info() -> Dict[str, Any]:
         }
 
 
-_kind_detect_impl = kind_detect
-_kind_version_impl = kind_version
 _kind_list_clusters_impl = kind_list_clusters
 _kind_get_nodes_impl = kind_get_nodes
 _kind_get_kubeconfig_impl = kind_get_kubeconfig
@@ -1356,7 +1296,6 @@ _kind_cluster_info_impl = kind_cluster_info
 _kind_node_labels_impl = kind_node_labels
 _kind_create_cluster_impl = kind_create_cluster
 _kind_delete_cluster_impl = kind_delete_cluster
-_kind_delete_all_clusters_impl = kind_delete_all_clusters
 _kind_load_image_impl = kind_load_image
 _kind_load_image_archive_impl = kind_load_image_archive
 _kind_build_node_image_impl = kind_build_node_image
@@ -1383,16 +1322,6 @@ def register_kind_tools(mcp: "FastMCP", non_destructive: bool = False):
     """Register kind (Kubernetes IN Docker) tools with the MCP server."""
     from fastmcp import Context
     from kubectl_mcp_tool.elicit import confirm_destructive
-
-    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
-    def kind_detect() -> str:
-        """Detect if kind CLI is installed and get version info."""
-        return json.dumps(_kind_detect_impl(), indent=2)
-
-    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
-    def kind_version() -> str:
-        """Get kind CLI version information."""
-        return json.dumps(_kind_version_impl(), indent=2)
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
     def kind_list_clusters() -> str:
@@ -1486,14 +1415,6 @@ def register_kind_tools(mcp: "FastMCP", non_destructive: bool = False):
         if blocked:
             return json.dumps(blocked)
         return json.dumps(_kind_delete_cluster_impl(name), indent=2)
-
-    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=True, idempotentHint=True, openWorldHint=True))
-    async def kind_delete_all_clusters(ctx: Context = None) -> str:
-        """Delete all kind clusters."""
-        blocked = await confirm_destructive(ctx, "Delete all kind clusters", "all")
-        if blocked:
-            return json.dumps(blocked)
-        return json.dumps(_kind_delete_all_clusters_impl(), indent=2)
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=False, idempotentHint=False, openWorldHint=True))
     async def kind_load_image(

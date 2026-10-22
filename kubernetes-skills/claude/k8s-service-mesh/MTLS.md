@@ -103,16 +103,16 @@ spec:
 
 ```python
 # List PeerAuthentications
-istio_peerauthentications_list_tool(namespace)
+istio_peerauthentications_list(namespace)
 
 # List DestinationRules
-istio_destinationrules_list_tool(namespace)
+istio_destinationrules_list(namespace)
 
 # Check proxy status
-istio_proxy_status_tool()
+istio_proxy_status()
 
 # Analyze for issues
-istio_analyze_tool(namespace)
+istio_analyze(namespace)
 ```
 
 ## Migration to STRICT mTLS
@@ -120,7 +120,7 @@ istio_analyze_tool(namespace)
 ### Step 1: Inventory Non-Mesh Services
 
 ```python
-istio_sidecar_status_tool(namespace)
+istio_sidecar_status(namespace)
 # Identify services without sidecars
 ```
 
@@ -157,8 +157,8 @@ spec:
 
 **Check:**
 ```python
-istio_peerauthentications_list_tool(namespace)
-istio_sidecar_status_tool(namespace)  # Client has sidecar?
+istio_peerauthentications_list(namespace)
+istio_sidecar_status(namespace)  # Client has sidecar?
 ```
 
 **Resolution:**
@@ -169,7 +169,7 @@ istio_sidecar_status_tool(namespace)  # Client has sidecar?
 
 **Check:**
 ```python
-istio_proxy_status_tool()
+istio_proxy_status()
 # Look for certificate sync issues
 ```
 
@@ -184,8 +184,8 @@ istio_proxy_status_tool()
 
 **Check:**
 ```python
-istio_peerauthentications_list_tool(namespace)
-istio_destinationrules_list_tool(namespace)
+istio_peerauthentications_list(namespace)
+istio_destinationrules_list(namespace)
 ```
 
 **Resolution:**
@@ -205,7 +205,7 @@ istio_destinationrules_list_tool(namespace)
 3. **Audit Regularly**
    ```python
    for ns in namespaces:
-       istio_peerauthentications_list_tool(ns)
+       istio_peerauthentications_list(ns)
    ```
 
 4. **Monitor Certificate Expiry**

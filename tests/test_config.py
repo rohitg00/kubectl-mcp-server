@@ -74,9 +74,9 @@ class TestSafetyConfig:
         """Test all valid safety modes."""
         from kubectl_mcp_tool.config.schema import SafetyConfig
 
-        for mode in ["normal", "read-only", "disable-destructive"]:
+        for mode in ["normal", "read-only", "disable-destructive", "confirm", "read_only", "READ-ONLY"]:
             config = SafetyConfig(mode=mode)
-            assert config.mode == mode
+            assert config.mode == mode.lower()
 
     def test_invalid_mode(self):
         """Test validation rejects invalid mode."""
@@ -84,35 +84,6 @@ class TestSafetyConfig:
 
         with pytest.raises(ValueError, match="Invalid safety mode"):
             SafetyConfig(mode="invalid")
-
-
-class TestBrowserConfig:
-    """Test BrowserConfig dataclass."""
-
-    def test_default_values(self):
-        """Test default browser configuration."""
-        from kubectl_mcp_tool.config.schema import BrowserConfig
-
-        config = BrowserConfig()
-        assert config.enabled is False
-        assert config.provider == "local"
-        assert config.headed is False
-        assert config.timeout == 60
-
-    def test_valid_providers(self):
-        """Test all valid browser providers."""
-        from kubectl_mcp_tool.config.schema import BrowserConfig
-
-        for provider in ["local", "browserbase", "browseruse", "cdp"]:
-            config = BrowserConfig(provider=provider)
-            assert config.provider == provider
-
-    def test_invalid_provider(self):
-        """Test validation rejects invalid provider."""
-        from kubectl_mcp_tool.config.schema import BrowserConfig
-
-        with pytest.raises(ValueError, match="Invalid browser provider"):
-            BrowserConfig(provider="invalid")
 
 
 class TestMetricsConfig:
@@ -148,7 +119,6 @@ class TestValidateConfig:
         config = {
             "server": {"transport": "stdio", "port": 8000},
             "safety": {"mode": "read-only"},
-            "browser": {"provider": "browserbase"},
             "metrics": {"sample_rate": 0.5},
         }
         errors = validate_config(config)
@@ -161,11 +131,10 @@ class TestValidateConfig:
         config = {
             "server": {"transport": "invalid", "port": 0},
             "safety": {"mode": "invalid"},
-            "browser": {"provider": "invalid"},
             "metrics": {"sample_rate": 2.0},
         }
         errors = validate_config(config)
-        assert len(errors) == 5
+        assert len(errors) == 4
 
 
 class TestConfigPaths:
@@ -231,14 +200,6 @@ class TestEnvOverrides:
         with patch.dict(os.environ, {"MCP_SAFETY_MODE": "read-only"}):
             result = _apply_env_overrides({})
             assert result["safety"]["mode"] == "read-only"
-
-    def test_browser_enabled_override(self):
-        """Test MCP_BROWSER_ENABLED environment override."""
-        from kubectl_mcp_tool.config.loader import _apply_env_overrides
-
-        with patch.dict(os.environ, {"MCP_BROWSER_ENABLED": "true"}):
-            result = _apply_env_overrides({})
-            assert result["browser"]["enabled"] is True
 
     def test_debug_override(self):
         """Test MCP_DEBUG environment override."""
@@ -372,7 +333,7 @@ class TestConfigDataclass:
         config = Config()
         assert hasattr(config, "server")
         assert hasattr(config, "safety")
-        assert hasattr(config, "browser")
+        assert not hasattr(config, "browser")
         assert hasattr(config, "metrics")
         assert hasattr(config, "logging")
         assert hasattr(config, "kubernetes")

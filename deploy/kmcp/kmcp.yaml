@@ -8,16 +8,18 @@ metadata:
     app.kubernetes.io/name: kubectl-mcp-server
 spec:
   deployment:
-    image: "rohitghumare64/kubectl-mcp-server:latest"
+    image: "rohitghumare64/kubectl-mcp-server:2.0.0"
     imagePullPolicy: IfNotPresent
     port: 8000
+    args: ["--transport", "http", "--read-only"]
     env:
       MCP_DEBUG: "0"
+      MCP_ALLOW_UNAUTHENTICATED: "true"
     secretRefs:
       - name: kubeconfig-secret
     volumeMounts:
       - name: kubeconfig
-        mountPath: /root/.kube
+        mountPath: /home/mcp/.kube
         readOnly: true
     volumes:
       - name: kubeconfig

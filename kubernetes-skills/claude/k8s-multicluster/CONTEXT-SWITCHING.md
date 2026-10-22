@@ -42,7 +42,7 @@ platform-admin
 
 ```python
 # List all contexts
-list_contexts_tool()
+list_contexts()
 
 # View kubeconfig (sanitized)
 kubeconfig_view()
@@ -54,11 +54,11 @@ All kubectl-mcp-server tools accept `context` parameter:
 
 ```python
 # Explicit context (recommended)
-get_pods(namespace="default", context="production")
-get_pods(namespace="default", context="staging")
+kubectl_get(resource_type="pods", namespace="default", context="production")
+kubectl_get(resource_type="pods", namespace="default", context="staging")
 
 # Current context (implicit)
-get_pods(namespace="default")
+kubectl_get(resource_type="pods", namespace="default")
 ```
 
 ## Multi-Cluster Patterns
@@ -67,18 +67,18 @@ get_pods(namespace="default")
 
 ```python
 # Get deployments from both clusters
-prod_deps = get_deployments(namespace="app", context="production")
-staging_deps = get_deployments(namespace="app", context="staging")
+prod_deps = kubectl_get(resource_type="deployments", namespace="app", context="production")
+staging_deps = kubectl_get(resource_type="deployments", namespace="app", context="staging")
 ```
 
 ### Cross-Cluster Secret Sync
 
 ```python
 # Read secret from source
-secret = get_secrets(namespace="app", context="source-cluster")
+secret = kubectl_get(resource_type="secrets", namespace="app", context="source-cluster")
 
 # Apply to target (via manifest)
-apply_manifest(secret_yaml, namespace="app", context="target-cluster")
+kubectl_apply(secret_yaml, namespace="app", context="target-cluster")
 ```
 
 ### Parallel Health Checks
@@ -86,8 +86,8 @@ apply_manifest(secret_yaml, namespace="app", context="target-cluster")
 ```python
 contexts = ["prod-1", "prod-2", "staging"]
 for ctx in contexts:
-    nodes = get_nodes(context=ctx)
-    pods = get_pods(namespace="kube-system", context=ctx)
+    nodes = kubectl_get(resource_type="nodes", context=ctx)
+    pods = kubectl_get(resource_type="pods", namespace="kube-system", context=ctx)
     # Report status
 ```
 
@@ -99,14 +99,14 @@ install_helm_chart(name="app", chart="./app",
                    namespace="prod", context="staging")
 
 # Verify
-get_pods(namespace="prod", label_selector="app=myapp", context="staging")
+kubectl_get(resource_type="pods", namespace="prod", label_selector="app=myapp", context="staging")
 
 # Deploy to production regions sequentially
 for region in ["us-east", "us-west", "eu-west"]:
     install_helm_chart(name="app", chart="./app",
                        namespace="prod", context=f"production-{region}")
     # Wait for healthy
-    get_pods(namespace="prod", context=f"production-{region}")
+    kubectl_get(resource_type="pods", namespace="prod", context=f"production-{region}")
 ```
 
 ## Access Control Per Context
@@ -124,10 +124,10 @@ export KUBECONFIG=~/.kube/development.yaml
 ```python
 # Different SAs for different access levels
 # Production: read-only SA
-get_pods(namespace="app", context="production-readonly")
+kubectl_get(resource_type="pods", namespace="app", context="production-readonly")
 
 # Development: full access SA
-apply_manifest(manifest, namespace="app", context="development-admin")
+kubectl_apply(manifest, namespace="app", context="development-admin")
 ```
 
 ## Cluster API Management
@@ -136,10 +136,10 @@ For managing cluster lifecycle:
 
 ```python
 # List CAPI-managed clusters
-capi_clusters_list_tool(namespace="capi-system")
+capi_list_clusters(namespace="capi-system")
 
 # Get workload cluster kubeconfig
-kubeconfig = capi_cluster_kubeconfig_tool(
+kubeconfig = capi_get_cluster_kubeconfig(
     name="workload-cluster-1",
     namespace="capi-system"
 )
@@ -158,15 +158,15 @@ Cross-cluster resource propagation with KubeFed.
 
 ```python
 # Check Cilium cluster mesh status
-cilium_nodes_list_tool(context="cluster-1")
-cilium_nodes_list_tool(context="cluster-2")
+cilium_list_nodes(context="cluster-1")
+cilium_list_nodes(context="cluster-2")
 ```
 
 ### Multi-Cluster Service Mesh (Istio)
 
 ```python
-istio_proxy_status_tool(context="primary")
-istio_proxy_status_tool(context="remote")
+istio_proxy_status(context="primary")
+istio_proxy_status(context="remote")
 ```
 
 ## Best Practices
@@ -174,10 +174,10 @@ istio_proxy_status_tool(context="remote")
 1. **Always Use Explicit Context**
    ```python
    # Good: explicit
-   get_pods(context="production")
+   kubectl_get(resource_type="pods", context="production")
 
    # Risky: implicit
-   get_pods()  # Which cluster?
+   kubectl_get(resource_type="pods")  # Which cluster?
    ```
 
 2. **Naming Convention**
@@ -201,7 +201,7 @@ istio_proxy_status_tool(context="remote")
 ### Context Not Found
 
 ```python
-list_contexts_tool()
+list_contexts()
 # Verify context name is correct
 ```
 

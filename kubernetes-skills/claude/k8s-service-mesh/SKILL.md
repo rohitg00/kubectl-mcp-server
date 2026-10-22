@@ -1,17 +1,19 @@
 ---
 name: k8s-service-mesh
 description: Manage Istio service mesh for traffic management, security, and observability. Use for traffic shifting, canary releases, mTLS, and service mesh troubleshooting.
-license: Apache-2.0
+license: MIT-0
 metadata:
   author: rohitg00
-  version: "1.0.0"
-  tools: 10
+  version: "2.0.0"
+  tools: 13
   category: networking
 ---
 
 # Kubernetes Service Mesh (Istio)
 
 Traffic management, security, and observability using kubectl-mcp-server's Istio/Kiali tools.
+
+> Requires the `cilium`, `istio` toolsets: start kubectl-mcp-server with `--toolsets default,cilium,istio` (or `MCP_TOOLSETS=default,cilium,istio`).
 
 ## When to Apply
 
@@ -24,39 +26,39 @@ Use this skill when:
 
 | Priority | Rule | Impact | Tools |
 |----------|------|--------|-------|
-| 1 | Detect Istio installation first | CRITICAL | `istio_detect_tool` |
-| 2 | Run analyze before changes | HIGH | `istio_analyze_tool` |
-| 3 | Check proxy status for sync | HIGH | `istio_proxy_status_tool` |
-| 4 | Verify sidecar injection | MEDIUM | `istio_sidecar_status_tool` |
+| 1 | Detect Istio installation first | CRITICAL | `detect_ecosystem` |
+| 2 | Run analyze before changes | HIGH | `istio_analyze` |
+| 3 | Check proxy status for sync | HIGH | `istio_proxy_status` |
+| 4 | Verify sidecar injection | MEDIUM | `istio_sidecar_status` |
 
 ## Quick Reference
 
 | Task | Tool | Example |
 |------|------|---------|
-| Detect Istio | `istio_detect_tool` | `istio_detect_tool()` |
-| Analyze config | `istio_analyze_tool` | `istio_analyze_tool(namespace)` |
-| Proxy status | `istio_proxy_status_tool` | `istio_proxy_status_tool()` |
-| List VirtualServices | `istio_virtualservices_list_tool` | `istio_virtualservices_list_tool(namespace)` |
+| Detect Istio | `detect_ecosystem` | `detect_ecosystem()` |
+| Analyze config | `istio_analyze` | `istio_analyze(namespace)` |
+| Proxy status | `istio_proxy_status` | `istio_proxy_status()` |
+| List VirtualServices | `istio_virtualservices_list` | `istio_virtualservices_list(namespace)` |
 
 ## Quick Status Check
 
 ### Detect Istio Installation
 
 ```python
-istio_detect_tool()
+detect_ecosystem()
 ```
 
 ### Check Proxy Status
 
 ```python
-istio_proxy_status_tool()
-istio_sidecar_status_tool(namespace)
+istio_proxy_status()
+istio_sidecar_status(namespace)
 ```
 
 ### Analyze Configuration
 
 ```python
-istio_analyze_tool(namespace)
+istio_analyze(namespace)
 ```
 
 ## Traffic Management
@@ -66,8 +68,8 @@ istio_analyze_tool(namespace)
 List and inspect:
 
 ```python
-istio_virtualservices_list_tool(namespace)
-istio_virtualservice_get_tool(name, namespace)
+istio_virtualservices_list(namespace)
+istio_virtualservice_get(name, namespace)
 ```
 
 See [TRAFFIC-SHIFTING.md](TRAFFIC-SHIFTING.md) for canary and blue-green patterns.
@@ -75,13 +77,13 @@ See [TRAFFIC-SHIFTING.md](TRAFFIC-SHIFTING.md) for canary and blue-green pattern
 ### DestinationRules
 
 ```python
-istio_destinationrules_list_tool(namespace)
+istio_destinationrules_list(namespace)
 ```
 
 ### Gateways
 
 ```python
-istio_gateways_list_tool(namespace)
+istio_gateways_list(namespace)
 ```
 
 ## Traffic Shifting Patterns
@@ -114,7 +116,7 @@ Apply and verify:
 
 ```python
 kubectl_apply(vs_yaml, namespace)
-istio_virtualservice_get_tool("my-service", namespace)
+istio_virtualservice_get("my-service", namespace)
 ```
 
 ### Header-Based Routing
@@ -144,13 +146,13 @@ See [MTLS.md](MTLS.md) for detailed mTLS configuration.
 ### PeerAuthentication (mTLS Mode)
 
 ```python
-istio_peerauthentications_list_tool(namespace)
+istio_peerauthentications_list(namespace)
 ```
 
 ### AuthorizationPolicy
 
 ```python
-istio_authorizationpolicies_list_tool(namespace)
+istio_authorizationpolicies_list(namespace)
 ```
 
 ## Observability
@@ -158,7 +160,7 @@ istio_authorizationpolicies_list_tool(namespace)
 ### Proxy Metrics
 
 ```python
-istio_proxy_status_tool()
+istio_proxy_status()
 ```
 
 ### Hubble (Cilium Integration)
@@ -166,8 +168,8 @@ istio_proxy_status_tool()
 If using Cilium with Istio:
 
 ```python
-hubble_flows_query_tool(namespace)
-cilium_endpoints_list_tool(namespace)
+get_hubble_flows(namespace)
+cilium_list_endpoints(namespace)
 ```
 
 ## Troubleshooting
@@ -175,41 +177,41 @@ cilium_endpoints_list_tool(namespace)
 ### Sidecar Not Injected
 
 ```python
-istio_sidecar_status_tool(namespace)
+istio_sidecar_status(namespace)
 ```
 
 ### Traffic Not Routing
 
 ```python
-istio_analyze_tool(namespace)
-istio_virtualservice_get_tool(name, namespace)
-istio_destinationrules_list_tool(namespace)
-istio_proxy_status_tool()
+istio_analyze(namespace)
+istio_virtualservice_get(name, namespace)
+istio_destinationrules_list(namespace)
+istio_proxy_status()
 ```
 
 ### mTLS Failures
 
 ```python
-istio_peerauthentications_list_tool(namespace)
+istio_peerauthentications_list(namespace)
 ```
 
 ### Common Issues
 
 | Symptom | Check | Resolution |
 |---------|-------|------------|
-| 503 errors | `istio_analyze_tool()` | Fix VirtualService/DestinationRule |
-| No sidecar | `istio_sidecar_status_tool()` | Label namespace |
-| Config not applied | `istio_proxy_status_tool()` | Wait for sync or restart pod |
+| 503 errors | `istio_analyze()` | Fix VirtualService/DestinationRule |
+| No sidecar | `istio_sidecar_status()` | Label namespace |
+| Config not applied | `istio_proxy_status()` | Wait for sync or restart pod |
 
 ## Multi-Cluster Service Mesh
 
 Istio multi-cluster setup:
 
 ```python
-istio_proxy_status_tool(context="primary")
-istio_virtualservices_list_tool(namespace, context="primary")
+istio_proxy_status(context="primary")
+istio_virtualservices_list(namespace, context="primary")
 
-istio_proxy_status_tool(context="remote")
+istio_proxy_status(context="remote")
 ```
 
 ## Prerequisites

@@ -1,17 +1,19 @@
 ---
 name: k8s-troubleshoot
 description: Debug Kubernetes pods, nodes, and workloads. Use when pods are failing, containers crash, nodes are unhealthy, or users mention debugging, troubleshooting, or diagnosing Kubernetes issues.
-license: Apache-2.0
+license: MIT-0
 metadata:
   author: rohitg00
-  version: "1.0.0"
-  tools: 15
+  version: "2.0.0"
+  tools: 14
   category: observability
 ---
 
 # Kubernetes Troubleshooting
 
 Expert debugging and diagnostics for Kubernetes clusters using kubectl-mcp-server tools.
+
+> Requires the `cilium`, `diagnostics`, `istio`, `policy`, `security` toolsets: start kubectl-mcp-server with `--toolsets default,cilium,diagnostics,istio,policy,security` (or `MCP_TOOLSETS=default,cilium,diagnostics,istio,policy,security`). For deep work, the project-maintained MCP servers may fit better: Kyverno: https://github.com/nirmata/kyverno-mcp.
 
 ## When to Apply
 
@@ -25,53 +27,53 @@ Use this skill when:
 
 | Priority | Rule | Impact | Tools |
 |----------|------|--------|-------|
-| 1 | Check pod status first | CRITICAL | `get_pods`, `describe_pod` |
-| 2 | View recent events | CRITICAL | `get_events` |
-| 3 | Inspect logs (including previous) | HIGH | `get_pod_logs` |
-| 4 | Check resource metrics | HIGH | `get_pod_metrics` |
-| 5 | Verify endpoints | MEDIUM | `get_endpoints` |
-| 6 | Review network policies | MEDIUM | `get_network_policies` |
-| 7 | Examine node status | LOW | `get_nodes`, `describe_node` |
+| 1 | Check pod status first | CRITICAL | `kubectl_get`, `kubectl_describe` |
+| 2 | View recent events | CRITICAL | `kubectl_get` |
+| 3 | Inspect logs (including previous) | HIGH | `kubectl_logs` |
+| 4 | Check resource metrics | HIGH | `kubectl_top` |
+| 5 | Verify endpoints | MEDIUM | `kubectl_get` |
+| 6 | Review network policies | MEDIUM | `analyze_network_policies` |
+| 7 | Examine node status | LOW | `kubectl_get`, `kubectl_describe` |
 
 ## Quick Reference
 
 | Symptom | First Tool | Next Steps |
 |---------|------------|------------|
-| Pod Pending | `describe_pod` | Check events, node capacity, resource requests |
-| CrashLoopBackOff | `get_pod_logs(previous=True)` | Check exit code, resources, liveness probes |
-| ImagePullBackOff | `describe_pod` | Verify image name, registry auth, network |
-| OOMKilled | `get_pod_metrics` | Increase memory limits, check for memory leaks |
-| ContainerCreating | `describe_pod` | Check PVC binding, secrets, configmaps |
-| Terminating (stuck) | `describe_pod` | Check finalizers, PDBs, preStop hooks |
+| Pod Pending | `kubectl_describe` | Check events, node capacity, resource requests |
+| CrashLoopBackOff | `kubectl_logs(pod_name, previous=True)` | Check exit code, resources, liveness probes |
+| ImagePullBackOff | `kubectl_describe` | Verify image name, registry auth, network |
+| OOMKilled | `kubectl_top` | Increase memory limits, check for memory leaks |
+| ContainerCreating | `kubectl_describe` | Check PVC binding, secrets, configmaps |
+| Terminating (stuck) | `kubectl_describe` | Check finalizers, PDBs, preStop hooks |
 
 ## Diagnostic Workflows
 
 ### Pod Not Starting
 
 ```
-1. get_pods(namespace, label_selector) - Get pod status
-2. describe_pod(name, namespace) - See events and conditions
-3. get_events(namespace, field_selector="involvedObject.name=<pod>") - Check events
-4. get_pod_logs(name, namespace, previous=True) - For crash loops
+1. kubectl_get(resource_type="pods", namespace, label_selector) - Get pod status
+2. kubectl_describe(name, namespace) - See events and conditions
+3. kubectl_get(resource_type="events", namespace, field_selector="involvedObject.name=<pod>") - Check events
+4. kubectl_logs(name, namespace, previous=True) - For crash loops
 ```
 
 ### Common Pod States
 
 | State | Likely Cause | Tools to Use |
 |-------|-------------|--------------|
-| Pending | Scheduling issues | `describe_pod`, `get_nodes`, `get_events` |
-| ImagePullBackOff | Registry/auth | `describe_pod`, check image name |
-| CrashLoopBackOff | App crash | `get_pod_logs(previous=True)` |
-| OOMKilled | Memory limit | `get_pod_metrics`, adjust limits |
-| ContainerCreating | Volume/network | `describe_pod`, `get_pvc` |
+| Pending | Scheduling issues | `kubectl_describe`, `kubectl_get`, `kubectl_get` |
+| ImagePullBackOff | Registry/auth | `kubectl_describe`, check image name |
+| CrashLoopBackOff | App crash | `kubectl_logs(pod_name, previous=True)` |
+| OOMKilled | Memory limit | `kubectl_top`, adjust limits |
+| ContainerCreating | Volume/network | `kubectl_describe`, `kubectl_get` |
 
 ### Node Issues
 
 ```
-1. get_nodes() - List nodes and status
-2. describe_node(name) - See conditions and capacity
+1. kubectl_get(resource_type="nodes") - List nodes and status
+2. kubectl_describe(name) - See conditions and capacity
 3. Check: Ready, MemoryPressure, DiskPressure, PIDPressure
-4. node_logs_tool(name, "kubelet") - Kubelet logs
+4. node_logs(name, "kubelet") - Kubelet logs
 ```
 
 ## Deep Debugging Workflows
@@ -79,9 +81,9 @@ Use this skill when:
 ### CrashLoopBackOff Investigation
 
 ```
-1. get_pod_logs(name, namespace, previous=True) - See why it crashed
-2. describe_pod(name, namespace) - Check resource limits, probes
-3. get_pod_metrics(name, namespace) - Memory/CPU at crash time
+1. kubectl_logs(name, namespace, previous=True) - See why it crashed
+2. kubectl_describe(name, namespace) - Check resource limits, probes
+3. kubectl_top(name, namespace) - Memory/CPU at crash time
 4. If OOM: compare requests/limits to actual usage
 5. If app error: check logs for stack trace
 ```
@@ -89,29 +91,29 @@ Use this skill when:
 ### Networking Issues
 
 ```
-1. get_services(namespace) - Verify service exists
-2. get_endpoints(namespace) - Check endpoint backends
+1. kubectl_get(resource_type="services", namespace) - Verify service exists
+2. kubectl_get(resource_type="endpoints", namespace) - Check endpoint backends
 3. If empty endpoints: pods don't match selector
-4. get_network_policies(namespace) - Check traffic rules
-5. For Cilium: cilium_endpoints_list_tool(), hubble_flows_query_tool()
+4. analyze_network_policies(namespace) - Check traffic rules
+5. For Cilium: cilium_list_endpoints(), get_hubble_flows()
 ```
 
 ### Storage Problems
 
 ```
-1. get_pvc(namespace) - Check PVC status
-2. describe_pvc(name, namespace) - See binding issues
-3. get_storage_classes() - Verify provisioner exists
+1. kubectl_get(resource_type="pvc", namespace) - Check PVC status
+2. kubectl_describe(name, namespace) - See binding issues
+3. kubectl_get(resource_type="storageclasses") - Verify provisioner exists
 4. If Pending: check storage class, access modes
 ```
 
 ### DNS Resolution
 
 ```
-1. kubectl_exec(pod, namespace, "nslookup kubernetes.default") - Test DNS
+1. exec_in_pod(pod, namespace, "nslookup kubernetes.default") - Test DNS
 2. If fails: check coredns pods in kube-system
-3. get_pods(namespace="kube-system", label_selector="k8s-app=kube-dns")
-4. get_pod_logs(name="coredns-*", namespace="kube-system")
+3. kubectl_get(resource_type="pods", namespace="kube-system", label_selector="k8s-app=kube-dns")
+4. kubectl_logs(pod_name="coredns-*", namespace="kube-system")
 ```
 
 ## Multi-Cluster Debugging
@@ -119,9 +121,9 @@ Use this skill when:
 All tools support `context` parameter for targeting different clusters:
 
 ```python
-get_pods(namespace="kube-system", context="production-cluster")
-get_events(namespace="default", context="staging-cluster")
-describe_pod(name="myapp-xyz", namespace="prod", context="prod-east")
+kubectl_get(resource_type="pods", namespace="kube-system", context="production-cluster")
+kubectl_get(resource_type="events", namespace="default", context="staging-cluster")
+kubectl_describe(resource_type="pod", name="myapp-xyz", namespace="prod", context="prod-east")
 ```
 
 ## Diagnostic Scripts
@@ -141,13 +143,13 @@ See [references/COMMON-ERRORS.md](references/COMMON-ERRORS.md) for error message
 ## Related Tools
 
 ### Core Diagnostics
-- `get_pods`, `describe_pod`, `get_pod_logs`, `get_pod_metrics`
-- `get_events`, `get_nodes`, `describe_node`
-- `get_resource_usage`, `compare_namespaces`
+- `kubectl_get`, `kubectl_describe`, `kubectl_logs`, `kubectl_top`
+- `kubectl_get`, `kubectl_get`, `kubectl_describe`
+- `kubectl_top`, `compare_namespaces`
 
 ### Advanced (Ecosystem)
-- Cilium: `cilium_endpoints_list_tool`, `hubble_flows_query_tool`
-- Istio: `istio_proxy_status_tool`, `istio_analyze_tool`
+- Cilium: `cilium_list_endpoints`, `get_hubble_flows`
+- Istio: `istio_proxy_status`, `istio_analyze`
 
 ## Related Skills
 

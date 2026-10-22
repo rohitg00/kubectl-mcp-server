@@ -20,7 +20,6 @@ class TestCliErrors:
         assert ErrorCode.CLIENT_ERROR == 1
         assert ErrorCode.SERVER_ERROR == 2
         assert ErrorCode.K8S_ERROR == 3
-        assert ErrorCode.BROWSER_ERROR == 4
         assert ErrorCode.NETWORK_ERROR == 5
 
     @pytest.mark.unit
@@ -96,17 +95,6 @@ class TestCliErrors:
         # Test unknown command
         error = unknown_subcommand_error("unknown")
         assert "help" in error.suggestion.lower()
-
-    @pytest.mark.unit
-    def test_browser_not_found_error(self):
-        """Test browser_not_found_error factory."""
-        from kubectl_mcp_tool.cli.errors import browser_not_found_error, ErrorCode
-
-        error = browser_not_found_error()
-
-        assert error.code == ErrorCode.BROWSER_ERROR
-        assert "agent-browser" in error.message
-        assert "npm install" in error.suggestion
 
 
 class TestCliOutput:
@@ -236,7 +224,6 @@ class TestCliCommands:
         assert _get_tool_category("get_pods") == "pods"
         assert _get_tool_category("list_deployments") == "deployments"
         assert _get_tool_category("helm_install") == "helm"
-        assert _get_tool_category("browser_open") == "browser"
         assert _get_tool_category("unknown_tool") == "other"
 
     @pytest.mark.unit

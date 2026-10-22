@@ -145,68 +145,6 @@ class TestMCPScopes:
         assert set(admin_scopes) == set(all_scopes)
 
 
-class TestToolScopes:
-    """Tests for tool-to-scope mappings."""
-
-    def test_get_required_scopes_read_tool(self):
-        """Test read tools require read scope."""
-        from kubectl_mcp_tool.auth.scopes import get_required_scopes, MCPScopes
-        scopes = get_required_scopes("get_pods")
-        assert MCPScopes.READ.value in scopes
-
-    def test_get_required_scopes_write_tool(self):
-        """Test write tools require write scope."""
-        from kubectl_mcp_tool.auth.scopes import get_required_scopes, MCPScopes
-        scopes = get_required_scopes("scale_deployment")
-        assert MCPScopes.WRITE.value in scopes
-
-    def test_get_required_scopes_admin_tool(self):
-        """Test admin tools require admin scope."""
-        from kubectl_mcp_tool.auth.scopes import get_required_scopes, MCPScopes
-        scopes = get_required_scopes("drain_node")
-        assert MCPScopes.ADMIN.value in scopes
-
-    def test_get_required_scopes_helm_tool(self):
-        """Test helm tools require helm scope."""
-        from kubectl_mcp_tool.auth.scopes import get_required_scopes, MCPScopes
-        scopes = get_required_scopes("helm_list_releases")
-        assert MCPScopes.HELM.value in scopes
-
-    def test_get_required_scopes_unknown_tool(self):
-        """Test unknown tools require default scope."""
-        from kubectl_mcp_tool.auth.scopes import get_required_scopes, MCPScopes
-        scopes = get_required_scopes("unknown_tool_xyz")
-        assert MCPScopes.TOOLS.value in scopes
-
-    def test_has_required_scopes_with_tools_scope(self):
-        """Test mcp:tools grants access to all tools."""
-        from kubectl_mcp_tool.auth.scopes import has_required_scopes, MCPScopes
-        token_scopes = {MCPScopes.TOOLS.value}
-        assert has_required_scopes(token_scopes, "get_pods") is True
-        assert has_required_scopes(token_scopes, "drain_node") is True
-
-    def test_has_required_scopes_with_admin_scope(self):
-        """Test mcp:admin grants access to all tools."""
-        from kubectl_mcp_tool.auth.scopes import has_required_scopes, MCPScopes
-        token_scopes = {MCPScopes.ADMIN.value}
-        assert has_required_scopes(token_scopes, "get_pods") is True
-        assert has_required_scopes(token_scopes, "drain_node") is True
-
-    def test_has_required_scopes_read_only(self):
-        """Test read scope grants access to read tools only."""
-        from kubectl_mcp_tool.auth.scopes import has_required_scopes, MCPScopes
-        token_scopes = {MCPScopes.READ.value}
-        assert has_required_scopes(token_scopes, "get_pods") is True
-        assert has_required_scopes(token_scopes, "scale_deployment") is False
-
-    def test_has_required_scopes_write_not_admin(self):
-        """Test write scope doesn't grant admin access."""
-        from kubectl_mcp_tool.auth.scopes import has_required_scopes, MCPScopes
-        token_scopes = {MCPScopes.WRITE.value}
-        assert has_required_scopes(token_scopes, "scale_deployment") is True
-        assert has_required_scopes(token_scopes, "drain_node") is False
-
-
 class TestAuthVerifier:
     """Tests for authentication verifier creation."""
 

@@ -5,6 +5,7 @@ This module handles registration of both built-in and custom prompts.
 Custom prompts can be loaded from a TOML configuration file.
 """
 
+import inspect
 import logging
 import os
 from typing import Optional, Dict, Any
@@ -134,7 +135,7 @@ def _register_custom_prompt(server, prompt: CustomPrompt):
         """Create a closure that captures the prompt."""
         def handler(**kwargs) -> str:
             # Apply defaults for missing optional arguments
-            args = apply_defaults(p, kwargs)
+            args = apply_defaults(p, {k: v for k, v in kwargs.items() if v is not None})
 
             # Validate required arguments
             errors = validate_prompt_args(p, args)
@@ -159,17 +160,22 @@ def _register_custom_prompt(server, prompt: CustomPrompt):
     handler.__name__ = prompt.name.replace("-", "_")
     handler.__doc__ = prompt.description or prompt.title
 
-    # Build parameter annotations from arguments
-    params = {}
-    for arg in prompt.arguments:
-        # All prompt arguments are strings with Optional if not required
-        if arg.required:
-            params[arg.name] = str
-        else:
-            params[arg.name] = Optional[str]
-
-    handler.__annotations__ = params
-    handler.__annotations__["return"] = str
+    handler.__signature__ = inspect.Signature(
+        [
+            inspect.Parameter(
+                arg.name,
+                inspect.Parameter.KEYWORD_ONLY,
+                default=inspect.Parameter.empty if arg.required else None,
+                annotation=str if arg.required else Optional[str],
+            )
+            for arg in prompt.arguments
+        ],
+        return_annotation=str,
+    )
+    handler.__annotations__ = {
+        **{p.name: p.annotation for p in handler.__signature__.parameters.values()},
+        "return": str,
+    }
 
     # Register with server
     try:
@@ -197,7 +203,7 @@ Target: {resource_type}s matching '{workload}' {ns_text}
 
 ## Step 1: Discovery
 First, identify all relevant resources:
-- Use `get_pods` with namespace={namespace or 'None'} to list pods
+- Use `kubectl_get` with namespace={namespace or 'None'} to list pods
 - Filter results for pods containing '{workload}' in the name
 - Note the status of each pod (Running, Pending, CrashLoopBackOff, etc.)
 
@@ -211,20 +217,20 @@ For each pod found, check:
 ### Common Status Issues:
 | Status | Likely Cause | First Check |
 |--------|--------------|-------------|
-| Pending | Scheduling issues | get_pod_events |
-| CrashLoopBackOff | App crash on start | get_logs |
+| Pending | Scheduling issues | kubectl_get |
+| CrashLoopBackOff | App crash on start | kubectl_logs |
 | ImagePullBackOff | Image not found | kubectl_describe |
 | OOMKilled | Memory limit exceeded | kubectl_describe |
-| CreateContainerError | Config issue | get_pod_events |
+| CreateContainerError | Config issue | kubectl_get |
 
 ## Step 3: Deep Inspection
 Use these tools in order:
 
-1. **Events** - `get_pod_events(pod_name, namespace)`
+1. **Events** - `kubectl_get(resource_type="events", namespace=namespace, field_selector="involvedObject.name=" + pod_name)`
    - Look for: FailedScheduling, FailedMount, Unhealthy
    - Check timestamps for recent issues
 
-2. **Logs** - `get_logs(pod_name, namespace, tail=100)`
+2. **Logs** - `kubectl_logs(pod_name, namespace, tail=100)`
    - Look for: exceptions, errors, stack traces
    - If container crashed: use previous=true
 
@@ -239,7 +245,7 @@ Check parent resources:
 - For DaemonSets: `kubectl_describe("daemonset", name, namespace)`
 
 Check dependencies:
-- Services: `get_services(namespace)`
+- Services: `kubectl_get(resource_type="services", namespace)`
 - ConfigMaps/Secrets: referenced in pod spec
 - PVCs: `kubectl_describe("pvc", name, namespace)` if storage issues
 
@@ -272,15 +278,15 @@ Desired Replicas: {replicas}
 ## Pre-Deployment Checklist
 
 ### Step 1: Verify Cluster Access
-- Use `get_namespaces` to confirm cluster connectivity
+- Use `kubectl_get` to confirm cluster connectivity
 - Check if namespace '{namespace}' exists
 - If not, create it: `kubectl_create_namespace("{namespace}")`
 
 ### Step 2: Review Existing Resources
 Check for conflicts or existing deployments:
-- `get_deployments(namespace="{namespace}")` - List current deployments
-- `get_services(namespace="{namespace}")` - List current services
-- `get_configmaps(namespace="{namespace}")` - List ConfigMaps
+- `kubectl_get(resource_type="deployments", namespace="{namespace}")` - List current deployments
+- `kubectl_get(resource_type="services", namespace="{namespace}")` - List current services
+- `kubectl_get(resource_type="configmaps", namespace="{namespace}")` - List ConfigMaps
 
 ### Step 3: Prepare Deployment Manifest
 Required components for '{app_name}':
@@ -334,8 +340,8 @@ Use `kubectl_apply` with the manifest YAML
 
 ### Step 5: Verify Deployment
 1. `kubectl_rollout_status("deployment", "{app_name}", "{namespace}")` - Watch rollout
-2. `get_pods(namespace="{namespace}")` - Check pod status
-3. `get_logs(pod_name, "{namespace}")` - Check application logs
+2. `kubectl_get(resource_type="pods", namespace="{namespace}")` - Check pod status
+3. `kubectl_logs(pod_name, "{namespace}")` - Check application logs
 
 ### Step 6: Expose Service (if needed)
 ```yaml
@@ -559,8 +565,8 @@ DR Type: {dr_type}
 
 ### Step 1: Inventory Current State
 Document all resources:
-- `get_deployments(namespace="{namespace}")` - All deployments
-- `get_services(namespace="{namespace}")` - All services
+- `kubectl_get(resource_type="deployments", namespace="{namespace}")` - All deployments
+- `kubectl_get(resource_type="services", namespace="{namespace}")` - All services
 - `kubectl_get("configmaps", namespace="{namespace}")` - ConfigMaps
 - `kubectl_get("secrets", namespace="{namespace}")` - Secrets
 - `kubectl_get("pvc", namespace="{namespace}")` - Persistent volumes
@@ -633,7 +639,7 @@ For namespace '{namespace or "default"}':
 
 ### Step 9: Verification
 Post-recovery checks:
-- `get_pods(namespace="{namespace}")` - All pods running
+- `kubectl_get(resource_type="pods", namespace="{namespace}")` - All pods running
 - `kubectl_get_endpoints` - Services have endpoints
 - Application health checks
 - Data verification
@@ -672,7 +678,7 @@ Target: Service '{service_name}' in namespace '{namespace}'
 - Verify endpoint IPs match pod IPs
 
 ### Step 3: Verify Backend Pods
-- `get_pods(namespace="{namespace}")` - List pods
+- `kubectl_get(resource_type="pods", namespace="{namespace}")` - List pods
 - Check pods have matching labels
 - Verify pods are in Running state
 
@@ -687,8 +693,8 @@ nslookup {service_name}.{namespace}.svc.cluster.local
 Expected format: `<service>.<namespace>.svc.cluster.local`
 
 ### Step 5: CoreDNS Health
-- `get_pods(namespace="kube-system")` - Check CoreDNS pods
-- `get_logs(coredns_pod, "kube-system")` - Check DNS logs
+- `kubectl_get(resource_type="pods", namespace="kube-system")` - Check CoreDNS pods
+- `kubectl_logs(coredns_pod, "kube-system")` - Check DNS logs
 
 ## Phase 3: Connectivity Testing
 
@@ -838,7 +844,7 @@ spec:
 ## Post-Scaling Verification
 
 ### Step 4: Verify Scaling Success
-1. `get_pods(namespace="{namespace}")` - Check pod count
+1. `kubectl_get(resource_type="pods", namespace="{namespace}")` - Check pod count
 2. Verify all pods are Running and Ready
 3. Check pod distribution across nodes
 
@@ -954,7 +960,7 @@ For each node:
 ### Step 10: Cluster Health Check
 Run comprehensive checks:
 - `kubectl_cluster_info` - Cluster status
-- `get_pods(namespace="kube-system")` - System pods
+- `kubectl_get(resource_type="pods", namespace="kube-system")` - System pods
 - All nodes Ready
 - All system pods Running
 

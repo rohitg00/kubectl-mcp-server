@@ -22,15 +22,12 @@ class TestKindHelpers:
             _get_kind_version,
             _run_kind,
             _run_docker,
-            kind_detect,
-            kind_version,
             kind_list_clusters,
             kind_get_nodes,
             kind_get_kubeconfig,
             kind_export_logs,
             kind_create_cluster,
             kind_delete_cluster,
-            kind_delete_all_clusters,
             kind_load_image,
             kind_load_image_archive,
             kind_build_node_image,
@@ -59,15 +56,12 @@ class TestKindHelpers:
         assert callable(_get_kind_version)
         assert callable(_run_kind)
         assert callable(_run_docker)
-        assert callable(kind_detect)
-        assert callable(kind_version)
         assert callable(kind_list_clusters)
         assert callable(kind_get_nodes)
         assert callable(kind_get_kubeconfig)
         assert callable(kind_export_logs)
         assert callable(kind_create_cluster)
         assert callable(kind_delete_cluster)
-        assert callable(kind_delete_all_clusters)
         assert callable(kind_load_image)
         assert callable(kind_load_image_archive)
         assert callable(kind_build_node_image)
@@ -173,39 +167,6 @@ class TestKindHelpers:
             result = _run_kind(["create", "cluster"])
             assert result["success"] is False
             assert "timed out" in result["error"]
-
-
-class TestKindDetect:
-    """Tests for kind_detect function."""
-
-    @pytest.mark.unit
-    def test_kind_detect_installed(self):
-        """Test kind_detect when kind is installed."""
-        from kubectl_mcp_tool.tools.kind import kind_detect
-
-        with patch("subprocess.run") as mock_run:
-            mock_run.return_value = MagicMock(
-                returncode=0,
-                stdout="kind v0.23.0 go1.21.0 darwin/arm64"
-            )
-            result = kind_detect()
-            assert result["installed"] is True
-            assert result["cli_available"] is True
-            assert result["version"] == "v0.23.0"
-            assert result["install_instructions"] is None
-
-    @pytest.mark.unit
-    def test_kind_detect_not_installed(self):
-        """Test kind_detect when kind is not installed."""
-        from kubectl_mcp_tool.tools.kind import kind_detect
-
-        with patch("subprocess.run") as mock_run:
-            mock_run.side_effect = FileNotFoundError()
-            result = kind_detect()
-            assert result["installed"] is False
-            assert result["cli_available"] is False
-            assert result["version"] is None
-            assert result["install_instructions"] is not None
 
 
 class TestKindListClusters:
@@ -323,25 +284,6 @@ class TestKindDeleteCluster:
             assert "deleted" in result["message"].lower()
 
 
-class TestKindDeleteAllClusters:
-    """Tests for kind_delete_all_clusters function."""
-
-    @pytest.mark.unit
-    def test_kind_delete_all_clusters_success(self):
-        """Test kind_delete_all_clusters deletes all clusters."""
-        from kubectl_mcp_tool.tools.kind import kind_delete_all_clusters
-
-        with patch("subprocess.run") as mock_run:
-            mock_run.return_value = MagicMock(
-                returncode=0,
-                stdout="Deleted clusters: [\"test1\" \"test2\"]",
-                stderr=""
-            )
-            result = kind_delete_all_clusters()
-            assert result["success"] is True
-            assert "deleted" in result["message"].lower()
-
-
 class TestKindLoadImage:
     """Tests for kind_load_image function."""
 
@@ -399,14 +341,12 @@ class TestKindToolsRegistration:
         from kubectl_mcp_tool.mcp_server import MCPServer
 
         with patch("kubectl_mcp_tool.mcp_server.MCPServer._check_dependencies", return_value=True):
-            server = MCPServer(name="test")
+            server = MCPServer(name="test", toolsets="all")
 
         tools = await server.server.list_tools()
         tool_names = {t.name for t in tools}
 
         kind_tools = [
-            "kind_detect",
-            "kind_version",
             "kind_list_clusters",
             "kind_get_nodes",
             "kind_get_kubeconfig",
@@ -415,7 +355,6 @@ class TestKindToolsRegistration:
             "kind_node_labels",
             "kind_create_cluster",
             "kind_delete_cluster",
-            "kind_delete_all_clusters",
             "kind_load_image",
             "kind_load_image_archive",
             "kind_build_node_image",
@@ -448,12 +387,12 @@ class TestKindToolsRegistration:
         from kubectl_mcp_tool.mcp_server import MCPServer
 
         with patch("kubectl_mcp_tool.mcp_server.MCPServer._check_dependencies", return_value=True):
-            server = MCPServer(name="test")
+            server = MCPServer(name="test", toolsets="all")
 
         tools = await server.server.list_tools()
         tool_names = {t.name for t in tools}
         kind_tools = [name for name in tool_names if name.startswith("kind_")]
-        assert len(kind_tools) == 32, f"Expected 32 kind tools, got {len(kind_tools)}: {kind_tools}"
+        assert len(kind_tools) == 29, f"Expected 29 kind tools, got {len(kind_tools)}: {kind_tools}"
 
     @pytest.mark.unit
     def test_kind_non_destructive_mode(self, mock_all_kubernetes_apis):
@@ -472,7 +411,7 @@ class TestKindToolsRegistration:
         from kubectl_mcp_tool.mcp_server import MCPServer
 
         with patch("kubectl_mcp_tool.mcp_server.MCPServer._check_dependencies", return_value=True):
-            server = MCPServer(name="test")
+            server = MCPServer(name="test", toolsets="all")
 
         tools = await server.server.list_tools()
         kind_tools = [t for t in tools if t.name.startswith("kind_")]
@@ -538,31 +477,6 @@ class TestKindNonDestructiveBlocking:
 
     @pytest.mark.unit
     @pytest.mark.asyncio
-    async def test_delete_all_blocked_in_non_destructive(self, mock_all_kubernetes_apis):
-        """Test that kind_delete_all_clusters_tool is blocked in non-destructive mode."""
-        from kubectl_mcp_tool.tools.kind import register_kind_tools
-        from kubectl_mcp_tool.safety import set_safety_mode, SafetyMode
-
-        try:
-            from fastmcp import FastMCP
-        except ImportError:
-            from mcp.server.fastmcp import FastMCP
-
-        set_safety_mode(SafetyMode.READ_ONLY)
-        try:
-            mcp = FastMCP(name="test")
-            register_kind_tools(mcp, non_destructive=True)
-
-            tool = await mcp.get_tool("kind_delete_all_clusters")
-            result = await tool.fn()
-            result_dict = json.loads(result)
-            assert result_dict["success"] is False
-            assert "blocked" in result_dict["error"].lower()
-        finally:
-            set_safety_mode(SafetyMode.NORMAL)
-
-    @pytest.mark.unit
-    @pytest.mark.asyncio
     async def test_load_image_blocked_in_non_destructive(self, mock_all_kubernetes_apis):
         """Test that kind_load_image_tool is blocked in non-destructive mode."""
         from kubectl_mcp_tool.tools.kind import register_kind_tools
@@ -600,12 +514,11 @@ class TestKindNonDestructiveBlocking:
         mcp = FastMCP(name="test")
         register_kind_tools(mcp, non_destructive=True)
 
-        tool = await mcp.get_tool("kind_detect")
+        tool = await mcp.get_tool("kind_list_clusters")
         with patch("subprocess.run") as mock_run:
             mock_run.side_effect = FileNotFoundError()
-            result = tool.fn()
-            result_dict = json.loads(result)
-            assert "installed" in result_dict
+            result_dict = json.loads(tool.fn())
+            assert "blocked" not in json.dumps(result_dict).lower()
 
 
 class TestKindClusterInfo:

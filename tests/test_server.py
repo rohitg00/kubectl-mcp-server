@@ -234,59 +234,6 @@ class TestNonDestructiveMode:
         assert result["success"] is False
 
 
-class TestSecretMasking:
-    """Tests for secret masking."""
-
-    @pytest.mark.unit
-    def test_mask_secrets_method_exists(self):
-        """Test that _mask_secrets method exists."""
-        from kubectl_mcp_tool.mcp_server import MCPServer
-
-        assert hasattr(MCPServer, '_mask_secrets')
-
-    @pytest.mark.unit
-    def test_masks_base64_secrets(self):
-        """Test that base64-encoded secrets are masked."""
-        from kubectl_mcp_tool.mcp_server import MCPServer
-
-        with patch("kubectl_mcp_tool.mcp_server.MCPServer._check_dependencies", return_value=True):
-            with patch("kubernetes.config.load_kube_config"):
-                server = MCPServer(name="test")
-
-        text = """
-        data:
-          password: c2VjcmV0UGFzc3dvcmQxMjM0NTY3ODkw
-        """
-        masked = server._mask_secrets(text)
-        assert "[MASKED]" in masked
-
-    @pytest.mark.unit
-    def test_masks_password_fields(self):
-        """Test that password fields are masked."""
-        from kubectl_mcp_tool.mcp_server import MCPServer
-
-        with patch("kubectl_mcp_tool.mcp_server.MCPServer._check_dependencies", return_value=True):
-            with patch("kubernetes.config.load_kube_config"):
-                server = MCPServer(name="test")
-
-        text = 'password: "supersecretpassword"'
-        masked = server._mask_secrets(text)
-        assert "[MASKED]" in masked
-
-    @pytest.mark.unit
-    def test_masks_token_fields(self):
-        """Test that token fields are masked."""
-        from kubectl_mcp_tool.mcp_server import MCPServer
-
-        with patch("kubectl_mcp_tool.mcp_server.MCPServer._check_dependencies", return_value=True):
-            with patch("kubernetes.config.load_kube_config"):
-                server = MCPServer(name="test")
-
-        text = 'token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.test"'
-        masked = server._mask_secrets(text)
-        assert "[MASKED]" in masked
-
-
 class TestTransportMethods:
     """Tests for transport methods."""
 

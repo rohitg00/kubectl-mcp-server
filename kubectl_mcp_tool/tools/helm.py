@@ -14,6 +14,9 @@ from kubectl_mcp_tool.structured import structured_response
 
 logger = logging.getLogger("mcp-server")
 
+HELM_GET_SUBCOMMANDS = ("values", "manifest", "notes", "hooks", "all")
+HELM_SHOW_SUBCOMMANDS = ("values", "chart", "readme", "crds", "all")
+
 
 def _get_helm_context_args(context: str) -> List[str]:
     """Get helm kube-context arguments if context is specified."""
@@ -327,7 +330,7 @@ def register_helm_tools(
                 cmd.append("--superseded")
 
             if not any([deployed, failed, pending, uninstalled, superseded]):
-                cmd.append("--all")
+                cmd += ["--deployed", "--failed", "--pending", "--superseded", "--uninstalled", "--uninstalling"]
 
             logger.debug(f"Running command: {' '.join(cmd)}")
             result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
@@ -447,444 +450,91 @@ def register_helm_tools(
 
     @server.tool(
         annotations=ToolAnnotations(
-            title="Helm Get Values",
+            title="Get Helm Release Details",
             readOnlyHint=True,
             destructiveHint=False,
             idempotentHint=True,
             openWorldHint=True,
         ),
     )
-    def helm_get_values(
+    def helm_get(
         release_name: str,
+        what: str = "values",
         namespace: str = "default",
+        revision: Optional[int] = None,
         all_values: bool = False,
-        revision: Optional[int] = None,
         context: str = ""
     ) -> Dict[str, Any]:
-        """Get the values used for a Helm release.
+        """Get details of a Helm release: values, manifest, notes, hooks, or all.
 
         Args:
             release_name: Name of the release
+            what: values (default), manifest, notes, hooks, or all
             namespace: Kubernetes namespace
-            all_values: Include computed (default + user) values
-            revision: Get values for a specific revision
+            revision: Specific revision (default: latest)
+            all_values: For values, include chart defaults, not just user-supplied values
             context: Kubernetes context to use (optional, uses current context if not specified)
         """
+        if what not in HELM_GET_SUBCOMMANDS:
+            return {"success": False, "error": f"what must be one of {', '.join(HELM_GET_SUBCOMMANDS)}"}
         if not check_helm_fn():
             return {"success": False, "error": "Helm is not available on this system"}
-
+        cmd = ["helm"] + _get_helm_context_args(context) + ["get", what, release_name, "-n", namespace]
+        if revision:
+            cmd += ["--revision", str(revision)]
+        if what == "values":
+            cmd += ["--output", "yaml"] + (["--all"] if all_values else [])
         try:
-            cmd = ["helm"] + _get_helm_context_args(context) + ["get", "values", release_name, "-n", namespace, "--output", "yaml"]
-
-            if all_values:
-                cmd.append("--all")
-            if revision:
-                cmd.extend(["--revision", str(revision)])
-
-            logger.debug(f"Running command: {' '.join(cmd)}")
             result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
-
-            if result.returncode == 0:
-                values = yaml.safe_load(result.stdout) if result.stdout.strip() else {}
-                return {"success": True, "context": context or "current", "values": values, "raw": result.stdout}
-            else:
-                return {"success": False, "error": result.stderr.strip()}
         except Exception as e:
-            logger.error(f"Error getting Helm values: {e}")
             return {"success": False, "error": str(e)}
+        if result.returncode != 0:
+            return {"success": False, "error": result.stderr.strip()}
+        return {"success": True, "context": context or "current", "release": release_name, what: result.stdout}
 
     @server.tool(
         annotations=ToolAnnotations(
-            title="Helm Get Manifest",
+            title="Show Helm Chart",
             readOnlyHint=True,
             destructiveHint=False,
             idempotentHint=True,
             openWorldHint=True,
         ),
     )
-    def helm_get_manifest(
-        release_name: str,
-        namespace: str = "default",
-        revision: Optional[int] = None,
-        context: str = ""
-    ) -> Dict[str, Any]:
-        """Get the manifest (rendered templates) of a Helm release.
-
-        Args:
-            release_name: Name of the release
-            namespace: Kubernetes namespace
-            revision: Get manifest for a specific revision
-            context: Kubernetes context to use (optional, uses current context if not specified)
-        """
-        if not check_helm_fn():
-            return {"success": False, "error": "Helm is not available on this system"}
-
-        try:
-            cmd = ["helm"] + _get_helm_context_args(context) + ["get", "manifest", release_name, "-n", namespace]
-
-            if revision:
-                cmd.extend(["--revision", str(revision)])
-
-            logger.debug(f"Running command: {' '.join(cmd)}")
-            result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
-
-            if result.returncode == 0:
-                return {"success": True, "context": context or "current", "manifest": result.stdout}
-            else:
-                return {"success": False, "error": result.stderr.strip()}
-        except Exception as e:
-            logger.error(f"Error getting Helm manifest: {e}")
-            return {"success": False, "error": str(e)}
-
-    @server.tool(
-        annotations=ToolAnnotations(
-            title="Helm Get Notes",
-            readOnlyHint=True,
-            destructiveHint=False,
-            idempotentHint=True,
-            openWorldHint=True,
-        ),
-    )
-    def helm_get_notes(
-        release_name: str,
-        namespace: str = "default",
-        revision: Optional[int] = None,
-        context: str = ""
-    ) -> Dict[str, Any]:
-        """Get the notes (post-install message) of a Helm release.
-
-        Args:
-            release_name: Name of the release
-            namespace: Kubernetes namespace
-            revision: Get notes for a specific revision
-            context: Kubernetes context to use (optional, uses current context if not specified)
-        """
-        if not check_helm_fn():
-            return {"success": False, "error": "Helm is not available on this system"}
-
-        try:
-            cmd = ["helm"] + _get_helm_context_args(context) + ["get", "notes", release_name, "-n", namespace]
-
-            if revision:
-                cmd.extend(["--revision", str(revision)])
-
-            logger.debug(f"Running command: {' '.join(cmd)}")
-            result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
-
-            if result.returncode == 0:
-                return {"success": True, "context": context or "current", "notes": result.stdout}
-            else:
-                return {"success": False, "error": result.stderr.strip()}
-        except Exception as e:
-            logger.error(f"Error getting Helm notes: {e}")
-            return {"success": False, "error": str(e)}
-
-    @server.tool(
-        annotations=ToolAnnotations(
-            title="Helm Get Hooks",
-            readOnlyHint=True,
-            destructiveHint=False,
-            idempotentHint=True,
-            openWorldHint=True,
-        ),
-    )
-    def helm_get_hooks(
-        release_name: str,
-        namespace: str = "default",
-        revision: Optional[int] = None,
-        context: str = ""
-    ) -> Dict[str, Any]:
-        """Get the hooks of a Helm release.
-
-        Args:
-            release_name: Name of the release
-            namespace: Kubernetes namespace
-            revision: Get hooks for a specific revision
-            context: Kubernetes context to use (optional, uses current context if not specified)
-        """
-        if not check_helm_fn():
-            return {"success": False, "error": "Helm is not available on this system"}
-
-        try:
-            cmd = ["helm"] + _get_helm_context_args(context) + ["get", "hooks", release_name, "-n", namespace]
-
-            if revision:
-                cmd.extend(["--revision", str(revision)])
-
-            logger.debug(f"Running command: {' '.join(cmd)}")
-            result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
-
-            if result.returncode == 0:
-                return {"success": True, "context": context or "current", "hooks": result.stdout}
-            else:
-                return {"success": False, "error": result.stderr.strip()}
-        except Exception as e:
-            logger.error(f"Error getting Helm hooks: {e}")
-            return {"success": False, "error": str(e)}
-
-    @server.tool(
-        annotations=ToolAnnotations(
-            title="Helm Get All",
-            readOnlyHint=True,
-            destructiveHint=False,
-            idempotentHint=True,
-            openWorldHint=True,
-        ),
-    )
-    def helm_get_all(
-        release_name: str,
-        namespace: str = "default",
-        revision: Optional[int] = None,
-        context: str = ""
-    ) -> Dict[str, Any]:
-        """Get all information about a Helm release (values, manifest, hooks, notes).
-
-        Args:
-            release_name: Name of the release
-            namespace: Kubernetes namespace
-            revision: Get info for a specific revision
-            context: Kubernetes context to use (optional, uses current context if not specified)
-        """
-        if not check_helm_fn():
-            return {"success": False, "error": "Helm is not available on this system"}
-
-        try:
-            cmd = ["helm"] + _get_helm_context_args(context) + ["get", "all", release_name, "-n", namespace]
-
-            if revision:
-                cmd.extend(["--revision", str(revision)])
-
-            logger.debug(f"Running command: {' '.join(cmd)}")
-            result = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
-
-            if result.returncode == 0:
-                return {"success": True, "context": context or "current", "release_info": result.stdout}
-            else:
-                return {"success": False, "error": result.stderr.strip()}
-        except Exception as e:
-            logger.error(f"Error getting all Helm info: {e}")
-            return {"success": False, "error": str(e)}
-
-    @server.tool(
-        annotations=ToolAnnotations(
-            title="Helm Show Chart",
-            readOnlyHint=True,
-            destructiveHint=False,
-            idempotentHint=True,
-            openWorldHint=True,
-        ),
-    )
-    def helm_show_chart(
+    def helm_show(
         chart: str,
-        repo: Optional[str] = None,
-        version: Optional[str] = None
-    ) -> Dict[str, Any]:
-        """Show the chart definition (Chart.yaml).
-
-        Args:
-            chart: Chart reference (e.g., 'nginx', 'bitnami/nginx', or local path)
-            repo: Repository URL (for OCI or HTTP repos)
-            version: Specific chart version
-        """
-        if not check_helm_fn():
-            return {"success": False, "error": "Helm is not available on this system"}
-
-        try:
-            cmd = ["helm", "show", "chart", chart]
-
-            if repo:
-                cmd.extend(["--repo", repo])
-            if version:
-                cmd.extend(["--version", version])
-
-            logger.debug(f"Running command: {' '.join(cmd)}")
-            result = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
-
-            if result.returncode == 0:
-                chart_info = yaml.safe_load(result.stdout) if result.stdout.strip() else {}
-                return {"success": True, "chart": chart_info, "raw": result.stdout}
-            else:
-                return {"success": False, "error": result.stderr.strip()}
-        except Exception as e:
-            logger.error(f"Error showing chart: {e}")
-            return {"success": False, "error": str(e)}
-
-    @server.tool(
-        annotations=ToolAnnotations(
-            title="Helm Show Values",
-            readOnlyHint=True,
-            destructiveHint=False,
-            idempotentHint=True,
-            openWorldHint=True,
-        ),
-    )
-    def helm_show_values(
-        chart: str,
+        what: str = "values",
         repo: Optional[str] = None,
         version: Optional[str] = None,
-        jsonpath: Optional[str] = None
+        jsonpath: Optional[str] = None,
     ) -> Dict[str, Any]:
-        """Show the chart's default values.yaml.
+        """Show chart information before installing: values, chart (Chart.yaml), readme, crds, or all.
 
         Args:
-            chart: Chart reference (e.g., 'nginx', 'bitnami/nginx', or local path)
-            repo: Repository URL
-            version: Specific chart version
-            jsonpath: JSONPath expression to filter values
+            chart: Chart reference (repo/chart, OCI URL, or local path)
+            what: values (default), chart, readme, crds, or all
+            repo: Chart repository URL
+            version: Chart version constraint
+            jsonpath: For values, a JSONPath expression to extract a subset
         """
+        if what not in HELM_SHOW_SUBCOMMANDS:
+            return {"success": False, "error": f"what must be one of {', '.join(HELM_SHOW_SUBCOMMANDS)}"}
         if not check_helm_fn():
             return {"success": False, "error": "Helm is not available on this system"}
-
+        cmd = ["helm", "show", what, chart]
+        if repo:
+            cmd += ["--repo", repo]
+        if version:
+            cmd += ["--version", version]
+        if jsonpath and what == "values":
+            cmd += ["--jsonpath", jsonpath]
         try:
-            cmd = ["helm", "show", "values", chart]
-
-            if repo:
-                cmd.extend(["--repo", repo])
-            if version:
-                cmd.extend(["--version", version])
-            if jsonpath:
-                cmd.extend(["--jsonpath", jsonpath])
-
-            logger.debug(f"Running command: {' '.join(cmd)}")
             result = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
-
-            if result.returncode == 0:
-                values = yaml.safe_load(result.stdout) if result.stdout.strip() and not jsonpath else result.stdout
-                return {"success": True, "values": values, "raw": result.stdout}
-            else:
-                return {"success": False, "error": result.stderr.strip()}
         except Exception as e:
-            logger.error(f"Error showing chart values: {e}")
             return {"success": False, "error": str(e)}
-
-    @server.tool(
-        annotations=ToolAnnotations(
-            title="Helm Show Readme",
-            readOnlyHint=True,
-            destructiveHint=False,
-            idempotentHint=True,
-            openWorldHint=True,
-        ),
-    )
-    def helm_show_readme(
-        chart: str,
-        repo: Optional[str] = None,
-        version: Optional[str] = None
-    ) -> Dict[str, Any]:
-        """Show the chart's README file.
-
-        Args:
-            chart: Chart reference (e.g., 'nginx', 'bitnami/nginx', or local path)
-            repo: Repository URL
-            version: Specific chart version
-        """
-        if not check_helm_fn():
-            return {"success": False, "error": "Helm is not available on this system"}
-
-        try:
-            cmd = ["helm", "show", "readme", chart]
-
-            if repo:
-                cmd.extend(["--repo", repo])
-            if version:
-                cmd.extend(["--version", version])
-
-            logger.debug(f"Running command: {' '.join(cmd)}")
-            result = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
-
-            if result.returncode == 0:
-                return {"success": True, "readme": result.stdout}
-            else:
-                return {"success": False, "error": result.stderr.strip()}
-        except Exception as e:
-            logger.error(f"Error showing chart readme: {e}")
-            return {"success": False, "error": str(e)}
-
-    @server.tool(
-        annotations=ToolAnnotations(
-            title="Helm Show CRDs",
-            readOnlyHint=True,
-            destructiveHint=False,
-            idempotentHint=True,
-            openWorldHint=True,
-        ),
-    )
-    def helm_show_crds(
-        chart: str,
-        repo: Optional[str] = None,
-        version: Optional[str] = None
-    ) -> Dict[str, Any]:
-        """Show the chart's Custom Resource Definitions (CRDs).
-
-        Args:
-            chart: Chart reference
-            repo: Repository URL
-            version: Specific chart version
-        """
-        if not check_helm_fn():
-            return {"success": False, "error": "Helm is not available on this system"}
-
-        try:
-            cmd = ["helm", "show", "crds", chart]
-
-            if repo:
-                cmd.extend(["--repo", repo])
-            if version:
-                cmd.extend(["--version", version])
-
-            logger.debug(f"Running command: {' '.join(cmd)}")
-            result = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
-
-            if result.returncode == 0:
-                return {"success": True, "crds": result.stdout}
-            else:
-                return {"success": False, "error": result.stderr.strip()}
-        except Exception as e:
-            logger.error(f"Error showing chart CRDs: {e}")
-            return {"success": False, "error": str(e)}
-
-    @server.tool(
-        annotations=ToolAnnotations(
-            title="Helm Show All",
-            readOnlyHint=True,
-            destructiveHint=False,
-            idempotentHint=True,
-            openWorldHint=True,
-        ),
-    )
-    def helm_show_all(
-        chart: str,
-        repo: Optional[str] = None,
-        version: Optional[str] = None
-    ) -> Dict[str, Any]:
-        """Show all chart information (chart.yaml, values, readme, crds).
-
-        Args:
-            chart: Chart reference
-            repo: Repository URL
-            version: Specific chart version
-        """
-        if not check_helm_fn():
-            return {"success": False, "error": "Helm is not available on this system"}
-
-        try:
-            cmd = ["helm", "show", "all", chart]
-
-            if repo:
-                cmd.extend(["--repo", repo])
-            if version:
-                cmd.extend(["--version", version])
-
-            logger.debug(f"Running command: {' '.join(cmd)}")
-            result = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
-
-            if result.returncode == 0:
-                return {"success": True, "chart_info": result.stdout}
-            else:
-                return {"success": False, "error": result.stderr.strip()}
-        except Exception as e:
-            logger.error(f"Error showing all chart info: {e}")
-            return {"success": False, "error": str(e)}
+        if result.returncode != 0:
+            return {"success": False, "error": result.stderr.strip()}
+        return {"success": True, "chart": chart, what: result.stdout}
 
     @server.tool(
         annotations=ToolAnnotations(
@@ -1608,74 +1258,6 @@ def register_helm_tools(
 
     @server.tool(
         annotations=ToolAnnotations(
-            title="Helm Version",
-            readOnlyHint=True,
-            destructiveHint=False,
-            idempotentHint=True,
-            openWorldHint=True,
-        ),
-    )
-    def helm_version() -> Dict[str, Any]:
-        """Get the Helm client version information."""
-        if not check_helm_fn():
-            return {"success": False, "error": "Helm is not available on this system"}
-
-        try:
-            cmd = ["helm", "version", "--short"]
-
-            logger.debug(f"Running command: {' '.join(cmd)}")
-            result = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
-
-            if result.returncode == 0:
-                return {
-                    "success": True,
-                    "version": result.stdout.strip()
-                }
-            else:
-                return {"success": False, "error": result.stderr.strip()}
-        except Exception as e:
-            logger.error(f"Error getting Helm version: {e}")
-            return {"success": False, "error": str(e)}
-
-    @server.tool(
-        annotations=ToolAnnotations(
-            title="Helm Environment",
-            readOnlyHint=True,
-            destructiveHint=False,
-            idempotentHint=True,
-            openWorldHint=True,
-        ),
-    )
-    def helm_env() -> Dict[str, Any]:
-        """Get Helm environment information (paths, settings)."""
-        if not check_helm_fn():
-            return {"success": False, "error": "Helm is not available on this system"}
-
-        try:
-            cmd = ["helm", "env"]
-
-            logger.debug(f"Running command: {' '.join(cmd)}")
-            result = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
-
-            if result.returncode == 0:
-                env_dict = {}
-                for line in result.stdout.strip().split('\n'):
-                    if '=' in line:
-                        key, value = line.split('=', 1)
-                        env_dict[key] = value.strip('"')
-                return {
-                    "success": True,
-                    "environment": env_dict,
-                    "raw": result.stdout.strip()
-                }
-            else:
-                return {"success": False, "error": result.stderr.strip()}
-        except Exception as e:
-            logger.error(f"Error getting Helm environment: {e}")
-            return {"success": False, "error": str(e)}
-
-    @server.tool(
-        annotations=ToolAnnotations(
             title="Helm Template",
             readOnlyHint=True,
             destructiveHint=False,
@@ -1716,52 +1298,3 @@ def register_helm_tools(
             logger.error(f"Error templating chart: {e}")
             return {"success": False, "error": str(e)}
 
-    @server.tool(
-        annotations=ToolAnnotations(
-            title="Helm Template Apply",
-            readOnlyHint=False,
-            destructiveHint=True,
-            idempotentHint=False,
-            openWorldHint=True,
-        ),
-    )
-    async def helm_template_apply(
-        chart: str,
-        name: str,
-        namespace: str = "default",
-        repo: Optional[str] = None,
-        values: Optional[str] = None,
-        context: str = "",
-        ctx: Context = None
-    ) -> Dict[str, Any]:
-        """Render and apply Helm chart (bypasses Tiller/auth issues).
-
-        Args:
-            chart: Chart reference
-            name: Release name for template
-            namespace: Target namespace
-            repo: Repository URL
-            values: Set values on command line
-            context: Kubernetes context to use (optional, uses current context if not specified)
-        """
-        blocked = await confirm_destructive(ctx, "Template and apply Helm chart", f"{chart} as {name}", namespace)
-        if blocked:
-            return blocked
-        try:
-            cmd = ["helm"] + _get_helm_context_args(context) + ["template", name, chart, "-n", namespace]
-            if repo:
-                cmd.extend(["--repo", repo])
-            if values:
-                cmd.extend(["--set", values])
-            template_result = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
-            if template_result.returncode != 0:
-                return {"success": False, "error": template_result.stderr.strip()}
-            apply_cmd = ["kubectl"] + _get_kubectl_context_args(context) + ["apply", "-f", "-", "-n", namespace]
-            apply_result = subprocess.run(apply_cmd, input=template_result.stdout, capture_output=True, text=True, timeout=60)
-            if apply_result.returncode == 0:
-                return {"success": True, "context": context or "current", "output": apply_result.stdout.strip()}
-            else:
-                return {"success": False, "error": apply_result.stderr.strip()}
-        except Exception as e:
-            logger.error(f"Error applying template: {e}")
-            return {"success": False, "error": str(e)}

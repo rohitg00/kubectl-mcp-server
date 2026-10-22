@@ -1,17 +1,19 @@
 ---
 name: k8s-capi
 description: Cluster API lifecycle management for provisioning, scaling, and upgrading Kubernetes clusters. Use when managing cluster infrastructure or multi-cluster operations.
-license: Apache-2.0
+license: MIT-0
 metadata:
   author: rohitg00
-  version: "1.0.0"
-  tools: 11
+  version: "2.0.0"
+  tools: 13
   category: infrastructure
 ---
 
 # Cluster API Lifecycle Management
 
 Manage Kubernetes clusters using kubectl-mcp-server's Cluster API tools (11 tools).
+
+> Requires the `capi` toolset: start kubectl-mcp-server with `--toolsets default,capi` (or `MCP_TOOLSETS=default,capi`).
 
 ## When to Apply
 
@@ -24,31 +26,31 @@ Use this skill when:
 
 | Priority | Rule | Impact | Tools |
 |----------|------|--------|-------|
-| 1 | Detect CAPI installation first | CRITICAL | `capi_detect_tool` |
-| 2 | Check cluster phase before operations | HIGH | `capi_cluster_get_tool` |
-| 3 | Monitor machines during scaling | HIGH | `capi_machines_list_tool` |
-| 4 | Get kubeconfig after provisioning | MEDIUM | `capi_cluster_kubeconfig_tool` |
+| 1 | Detect CAPI installation first | CRITICAL | `detect_ecosystem` |
+| 2 | Check cluster phase before operations | HIGH | `capi_get_cluster` |
+| 3 | Monitor machines during scaling | HIGH | `capi_list_machines` |
+| 4 | Get kubeconfig after provisioning | MEDIUM | `capi_get_cluster_kubeconfig` |
 
 ## Quick Reference
 
 | Task | Tool | Example |
 |------|------|---------|
-| Detect CAPI | `capi_detect_tool` | `capi_detect_tool()` |
-| List clusters | `capi_clusters_list_tool` | `capi_clusters_list_tool(namespace)` |
-| Get cluster kubeconfig | `capi_cluster_kubeconfig_tool` | `capi_cluster_kubeconfig_tool(name, namespace)` |
-| Scale workers | `capi_machinedeployment_scale_tool` | `capi_machinedeployment_scale_tool(name, namespace, replicas)` |
+| Detect CAPI | `detect_ecosystem` | `detect_ecosystem()` |
+| List clusters | `capi_list_clusters` | `capi_list_clusters(namespace)` |
+| Get cluster kubeconfig | `capi_get_cluster_kubeconfig` | `capi_get_cluster_kubeconfig(name, namespace)` |
+| Scale workers | `capi_scale_machinedeployment` | `capi_scale_machinedeployment(name, namespace, replicas)` |
 
 ## Check Installation
 
 ```python
-capi_detect_tool()
+detect_ecosystem()
 ```
 
 ## List Clusters
 
 ```python
 # List all CAPI clusters
-capi_clusters_list_tool(namespace="default")
+capi_list_clusters(namespace="default")
 
 # Shows:
 # - Cluster name
@@ -60,7 +62,7 @@ capi_clusters_list_tool(namespace="default")
 ## Get Cluster Details
 
 ```python
-capi_cluster_get_tool(name="my-cluster", namespace="default")
+capi_get_cluster(name="my-cluster", namespace="default")
 
 # Shows:
 # - Spec (control plane, infrastructure)
@@ -72,7 +74,7 @@ capi_cluster_get_tool(name="my-cluster", namespace="default")
 
 ```python
 # Get kubeconfig for workload cluster
-capi_cluster_kubeconfig_tool(name="my-cluster", namespace="default")
+capi_get_cluster_kubeconfig(name="my-cluster", namespace="default")
 
 # Returns kubeconfig to access the cluster
 ```
@@ -82,7 +84,7 @@ capi_cluster_kubeconfig_tool(name="my-cluster", namespace="default")
 ### List Machines
 
 ```python
-capi_machines_list_tool(namespace="default")
+capi_list_machines(namespace="default")
 
 # Shows:
 # - Machine name
@@ -95,7 +97,7 @@ capi_machines_list_tool(namespace="default")
 ### Get Machine Details
 
 ```python
-capi_machine_get_tool(name="my-cluster-md-0-xxx", namespace="default")
+capi_get_machine(name="my-cluster-md-0-xxx", namespace="default")
 ```
 
 ## Machine Deployments
@@ -103,7 +105,7 @@ capi_machine_get_tool(name="my-cluster-md-0-xxx", namespace="default")
 ### List Machine Deployments
 
 ```python
-capi_machinedeployments_list_tool(namespace="default")
+capi_list_machinedeployments(namespace="default")
 
 # Shows:
 # - Deployment name
@@ -116,7 +118,7 @@ capi_machinedeployments_list_tool(namespace="default")
 
 ```python
 # Scale worker nodes
-capi_machinedeployment_scale_tool(
+capi_scale_machinedeployment(
     name="my-cluster-md-0",
     namespace="default",
     replicas=5
@@ -126,13 +128,13 @@ capi_machinedeployment_scale_tool(
 ## Machine Sets
 
 ```python
-capi_machinesets_list_tool(namespace="default")
+capi_list_machinesets(namespace="default")
 ```
 
 ## Machine Health Checks
 
 ```python
-capi_machinehealthchecks_list_tool(namespace="default")
+capi_list_machinehealthchecks(namespace="default")
 
 # Health checks automatically remediate unhealthy machines
 ```
@@ -141,7 +143,7 @@ capi_machinehealthchecks_list_tool(namespace="default")
 
 ```python
 # List cluster templates
-capi_clusterclasses_list_tool(namespace="default")
+capi_list_clusterclasses(namespace="default")
 
 # ClusterClasses define reusable cluster configurations
 ```
@@ -210,22 +212,22 @@ spec:
 ### Provision New Cluster
 ```python
 1. kubectl_apply(cluster_manifest)
-2. capi_clusters_list_tool(namespace)  # Wait for Provisioned
-3. capi_cluster_kubeconfig_tool(name, namespace)  # Get access
+2. capi_list_clusters(namespace)  # Wait for Provisioned
+3. capi_get_cluster_kubeconfig(name, namespace)  # Get access
 ```
 
 ### Scale Workers
 ```python
-1. capi_machinedeployments_list_tool(namespace)
-2. capi_machinedeployment_scale_tool(name, namespace, replicas)
-3. capi_machines_list_tool(namespace)  # Monitor
+1. capi_list_machinedeployments(namespace)
+2. capi_scale_machinedeployment(name, namespace, replicas)
+3. capi_list_machines(namespace)  # Monitor
 ```
 
 ### Upgrade Cluster
 ```python
 1. # Update control plane version
 2. # Update machine deployment version
-3. capi_machines_list_tool(namespace)  # Monitor rollout
+3. capi_list_machines(namespace)  # Monitor rollout
 ```
 
 ## Troubleshooting
@@ -233,17 +235,17 @@ spec:
 ### Cluster Stuck Provisioning
 
 ```python
-1. capi_cluster_get_tool(name, namespace)  # Check conditions
-2. capi_machines_list_tool(namespace)  # Check machine status
-3. get_events(namespace)  # Check events
+1. capi_get_cluster(name, namespace)  # Check conditions
+2. capi_list_machines(namespace)  # Check machine status
+3. kubectl_get(resource_type="events", namespace)  # Check events
 4. # Check infrastructure provider logs
 ```
 
 ### Machine Failed
 
 ```python
-1. capi_machine_get_tool(name, namespace)
-2. get_events(namespace)
+1. capi_get_machine(name, namespace)
+2. kubectl_get(resource_type="events", namespace)
 3. # Common issues:
    # - Cloud provider quota
    # - Invalid machine template

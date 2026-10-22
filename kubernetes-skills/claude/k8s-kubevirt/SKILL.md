@@ -1,17 +1,19 @@
 ---
 name: k8s-kubevirt
 description: Virtual machine management with KubeVirt on Kubernetes. Use when creating, managing, or troubleshooting VMs running on Kubernetes clusters.
-license: Apache-2.0
+license: MIT-0
 metadata:
   author: rohitg00
-  version: "1.0.0"
-  tools: 13
+  version: "2.0.0"
+  tools: 15
   category: virtualization
 ---
 
 # KubeVirt VM Management
 
 Manage virtual machines on Kubernetes using kubectl-mcp-server's KubeVirt tools (13 tools).
+
+> Requires the `kubevirt` toolset: start kubectl-mcp-server with `--toolsets default,kubevirt` (or `MCP_TOOLSETS=default,kubevirt`).
 
 ## When to Apply
 
@@ -24,41 +26,41 @@ Use this skill when:
 
 | Priority | Rule | Impact | Tools |
 |----------|------|--------|-------|
-| 1 | Detect KubeVirt installation first | CRITICAL | `kubevirt_detect_tool` |
-| 2 | Check VM status before operations | HIGH | `kubevirt_vm_get_tool` |
-| 3 | List VMIs for running VMs | HIGH | `kubevirt_vmis_list_tool` |
-| 4 | Use instance types for consistency | MEDIUM | `kubevirt_instancetypes_list_tool` |
+| 1 | Detect KubeVirt installation first | CRITICAL | `detect_ecosystem` |
+| 2 | Check VM status before operations | HIGH | `kubevirt_vm_get` |
+| 3 | List VMIs for running VMs | HIGH | `kubevirt_vmis_list` |
+| 4 | Use instance types for consistency | MEDIUM | `kubevirt_instancetypes_list` |
 
 ## Quick Reference
 
 | Task | Tool | Example |
 |------|------|---------|
-| Detect KubeVirt | `kubevirt_detect_tool` | `kubevirt_detect_tool()` |
-| List VMs | `kubevirt_vms_list_tool` | `kubevirt_vms_list_tool(namespace)` |
-| Start VM | `kubevirt_vm_start_tool` | `kubevirt_vm_start_tool(name, namespace)` |
-| Live migrate VM | `kubevirt_vm_migrate_tool` | `kubevirt_vm_migrate_tool(name, namespace)` |
+| Detect KubeVirt | `detect_ecosystem` | `detect_ecosystem()` |
+| List VMs | `kubevirt_vms_list` | `kubevirt_vms_list(namespace)` |
+| Start VM | `kubevirt_vm_start` | `kubevirt_vm_start(name, namespace)` |
+| Live migrate VM | `kubevirt_vm_migrate` | `kubevirt_vm_migrate(name, namespace)` |
 
 ## Check Installation
 
 ```python
-kubevirt_detect_tool()
+detect_ecosystem()
 ```
 
 ## List VMs
 
 ```python
 # List VirtualMachines
-kubevirt_vms_list_tool(namespace="default")
+kubevirt_vms_list(namespace="default")
 
 # List VirtualMachineInstances (running VMs)
-kubevirt_vmis_list_tool(namespace="default")
+kubevirt_vmis_list(namespace="default")
 ```
 
 ## Get VM Details
 
 ```python
 # Get VM definition
-kubevirt_vm_get_tool(name="my-vm", namespace="default")
+kubevirt_vm_get(name="my-vm", namespace="default")
 
 # Shows:
 # - Spec (CPU, memory, disks)
@@ -71,39 +73,39 @@ kubevirt_vm_get_tool(name="my-vm", namespace="default")
 ### Start VM
 
 ```python
-kubevirt_vm_start_tool(name="my-vm", namespace="default")
+kubevirt_vm_start(name="my-vm", namespace="default")
 ```
 
 ### Stop VM
 
 ```python
-kubevirt_vm_stop_tool(name="my-vm", namespace="default")
+kubevirt_vm_stop(name="my-vm", namespace="default")
 ```
 
 ### Restart VM
 
 ```python
-kubevirt_vm_restart_tool(name="my-vm", namespace="default")
+kubevirt_vm_restart(name="my-vm", namespace="default")
 ```
 
 ### Pause/Unpause VM
 
 ```python
 # Pause (freeze CPU)
-kubevirt_vm_pause_tool(name="my-vm", namespace="default")
+kubevirt_vm_pause(name="my-vm", namespace="default")
 
 # Unpause
-kubevirt_vm_unpause_tool(name="my-vm", namespace="default")
+kubevirt_vm_unpause(name="my-vm", namespace="default")
 ```
 
 ## Live Migration
 
 ```python
 # Migrate VM to another node
-kubevirt_vm_migrate_tool(name="my-vm", namespace="default")
+kubevirt_vm_migrate(name="my-vm", namespace="default")
 
 # Check migration status
-kubevirt_vmis_list_tool(namespace="default")
+kubevirt_vmis_list(namespace="default")
 # Look for: migrationState
 ```
 
@@ -111,7 +113,7 @@ kubevirt_vmis_list_tool(namespace="default")
 
 ```python
 # List available instance types
-kubevirt_instancetypes_list_tool()
+kubevirt_instancetypes_list()
 
 # Instance types define:
 # - CPU count
@@ -123,10 +125,10 @@ kubevirt_instancetypes_list_tool()
 
 ```python
 # List data volumes (persistent VM disks)
-kubevirt_datavolumes_list_tool(namespace="default")
+kubevirt_datavolumes_list(namespace="default")
 
 # List data sources (golden images)
-kubevirt_datasources_list_tool(namespace="default")
+kubevirt_datasources_list(namespace="default")
 ```
 
 ## Create VM
@@ -219,17 +221,17 @@ spec:
 ### VM Not Starting
 
 ```python
-1. kubevirt_vm_get_tool(name, namespace)  # Check status/conditions
-2. kubevirt_vmis_list_tool(namespace)  # Check VMI exists
-3. get_events(namespace)  # Check events
-4. get_pods(namespace, label_selector="kubevirt.io/vm=<name>")  # Check virt-launcher
+1. kubevirt_vm_get(name, namespace)  # Check status/conditions
+2. kubevirt_vmis_list(namespace)  # Check VMI exists
+3. kubectl_get(resource_type="events", namespace)  # Check events
+4. kubectl_get(resource_type="pods", namespace, label_selector="kubevirt.io/vm=<name>")  # Check virt-launcher
 ```
 
 ### Migration Failed
 
 ```python
-1. kubevirt_vmis_list_tool(namespace)  # Check migrationState
-2. get_events(namespace)  # Check events
+1. kubevirt_vmis_list(namespace)  # Check migrationState
+2. kubectl_get(resource_type="events", namespace)  # Check events
 3. # Common issues:
    # - No suitable target node
    # - Insufficient resources

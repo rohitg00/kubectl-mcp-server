@@ -1,169 +1,109 @@
 # kubectl-mcp-server Helm Chart
 
-A Helm chart for deploying kubectl-mcp-server - a Model Context Protocol (MCP) server for Kubernetes with 220+ tools, 8 resources, and 8 prompts.
+Deploys kubectl-mcp-server, a stateless Model Context Protocol server for Kubernetes (MCP 2026-07-28, with automatic fallback for older clients). Streamable HTTP is served at `/mcp`; every request is self-contained, so replicas scale behind a plain Service without sticky sessions.
 
 ## Prerequisites
 
-- Kubernetes 1.19+
-- Helm 3.0+
+- Kubernetes 1.25+
+- Helm 3.8+
 
 ## Installation
 
+The chart refuses to render without an authentication decision, because the server acts with its ServiceAccount's permissions for anyone who can reach it.
+
 ```bash
-# Add the repository (if published to a Helm repository)
-helm repo add kubectl-mcp https://rohitg00.github.io/kubectl-mcp-server
+# With OAuth 2.1 (recommended)
+helm install kubectl-mcp ./charts/kubectl-mcp-server \
+  --set auth.enabled=true \
+  --set auth.issuer=https://idp.example.com \
+  --set auth.resourceUrl=https://kubectl-mcp.example.com/mcp
 
-# Install the chart
-helm install kubectl-mcp kubectl-mcp/kubectl-mcp-server
-
-# Or install from local directory
-helm install kubectl-mcp ./charts/kubectl-mcp-server
+# Without OAuth, when a NetworkPolicy or service mesh already restricts callers
+helm install kubectl-mcp ./charts/kubectl-mcp-server \
+  --set mcp.allowUnauthenticated=true
 ```
 
 ## Configuration
 
-### Common Parameters
+### MCP server
 
 | Parameter | Description | Default |
 |-----------|-------------|---------|
-| `replicaCount` | Number of replicas | `1` |
-| `image.repository` | Image repository | `rohitghumare64/kubectl-mcp-server` |
-| `image.tag` | Image tag | Chart appVersion |
-| `image.pullPolicy` | Image pull policy | `IfNotPresent` |
+| `mcp.transport` | `http` (stateless Streamable HTTP) or `sse` (deprecated) | `http` |
+| `mcp.port` | Container port | `8000` |
+| `mcp.toolsets` | Toolsets to register: `default` (core + helm, 26 tools), `all`, or a list such as `default,diagnostics,gitops`. Tools outside them are not registered | `default` |
+| `mcp.toolSearch` | List only default tools plus `search_tools`/`call_tool`; other enabled tools are discovered on demand | `false` |
+| `mcp.allowUnauthenticated` | Serve without OAuth | `false` |
+| `mcp.requestStateKeySecret` | Secret with key `request-state-key` (>= 32 bytes) shared by replicas; needed for `safety.mode=confirm` with more than one replica | `""` |
+| `mcp.debug` | Debug logging | `false` |
+| `mcp.logFile` | Log file path | `""` |
 
-### MCP Server Configuration
-
-| Parameter | Description | Default |
-|-----------|-------------|---------|
-| `mcp.transport` | Transport mode (streamable-http, stdio) | `streamable-http` |
-| `mcp.port` | Server port | `8000` |
-| `mcp.debug` | Enable debug logging | `false` |
-| `mcp.logFile` | Log to file path | `""` |
-
-### Safety Mode Configuration
+### Authentication
 
 | Parameter | Description | Default |
 |-----------|-------------|---------|
-| `safety.mode` | Safety mode (normal, read-only, disable-destructive) | `normal` |
+| `auth.enabled` | Validate OAuth 2.1 bearer tokens (JWT via JWKS) | `false` |
+| `auth.issuer` | Authorization server URL (required when enabled) | `""` |
+| `auth.jwksUri` | JWKS endpoint | derived from issuer |
+| `auth.audience` | Expected token audience | `kubectl-mcp-server` |
+| `auth.requiredScopes` | Comma-separated scopes every token must carry | `mcp:tools` |
+| `auth.resourceUrl` | Public URL advertised in RFC 9728 metadata | `""` |
 
-Safety modes:
-- `normal`: All operations allowed (default)
-- `read-only`: All write operations blocked
-- `disable-destructive`: Only delete operations blocked
+Tokens carrying `mcp:tools` or `mcp:admin` can call every tool. Set `auth.requiredScopes=mcp:read` to issue narrower tokens: read-only tools then need `mcp:read` and tools that change state need `mcp:write`.
 
-### RBAC Configuration
+### Safety and RBAC
 
 | Parameter | Description | Default |
 |-----------|-------------|---------|
+| `safety.mode` | `read-only`, `disable-destructive`, `confirm`, `normal` | `read-only` |
 | `rbac.create` | Create ClusterRole and ClusterRoleBinding | `true` |
-| `rbac.scope` | Permission scope (cluster, namespace) | `cluster` |
-| `rbac.namespaces` | Namespaces for namespace-scoped access | `[]` |
+| `rbac.secrets` | Grant Secret access (read; write/delete outside read-only mode) | `false` |
 
-### Browser Tools Configuration
+`safety.mode` drives both the server and the ClusterRole: `read-only` hides every tool that changes state and grants only read verbs; `disable-destructive` adds create/update/patch; `confirm` and `normal` add delete. In `confirm` mode the user approves each destructive call (multi round-trip on 2026-07-28 clients, elicitation on older ones).
 
-| Parameter | Description | Default |
-|-----------|-------------|---------|
-| `browser.enabled` | Enable browser automation tools | `false` |
-| `browser.provider` | Cloud provider (local, browserbase, browseruse) | `local` |
-| `browser.browserbase.apiKey` | Browserbase API key | `""` |
-| `browser.browserbase.projectId` | Browserbase project ID | `""` |
-| `browser.browseruse.apiKey` | Browser Use API key | `""` |
+Secret values in tool output are redacted regardless of RBAC. Set `extraEnv` with `MCP_MASK_SECRETS=false` to disable.
 
-### Metrics Configuration
+### Service, ingress, scaling
 
 | Parameter | Description | Default |
 |-----------|-------------|---------|
-| `metrics.enabled` | Enable Prometheus metrics | `false` |
-| `metrics.serviceMonitor.enabled` | Create ServiceMonitor | `false` |
-| `metrics.serviceMonitor.interval` | Scrape interval | `30s` |
+| `replicaCount` | Replicas (stateless, any count works) | `1` |
+| `autoscaling.enabled` | HorizontalPodAutoscaler | `false` |
+| `podDisruptionBudget.enabled` | PodDisruptionBudget | `false` |
+| `service.type` / `service.port` | Service | `ClusterIP` / `8000` |
+| `ingress.enabled` | Ingress | `false` |
+| `metrics.serviceMonitor.enabled` | Prometheus ServiceMonitor for `/metrics` | `false` |
+| `image.repository` / `image.tag` | Image | `rohitghumare64/kubectl-mcp-server` / appVersion |
 
-### Service Configuration
-
-| Parameter | Description | Default |
-|-----------|-------------|---------|
-| `service.type` | Service type | `ClusterIP` |
-| `service.port` | Service port | `8000` |
-
-### Ingress Configuration
-
-| Parameter | Description | Default |
-|-----------|-------------|---------|
-| `ingress.enabled` | Enable ingress | `false` |
-| `ingress.className` | Ingress class name | `""` |
-| `ingress.hosts` | Ingress hosts | See values.yaml |
-
-### Resources
-
-| Parameter | Description | Default |
-|-----------|-------------|---------|
-| `resources.limits.cpu` | CPU limit | `500m` |
-| `resources.limits.memory` | Memory limit | `512Mi` |
-| `resources.requests.cpu` | CPU request | `100m` |
-| `resources.requests.memory` | Memory request | `128Mi` |
-
-### Pod Disruption Budget
-
-| Parameter | Description | Default |
-|-----------|-------------|---------|
-| `podDisruptionBudget.enabled` | Enable PDB | `false` |
-| `podDisruptionBudget.minAvailable` | Minimum available pods | `1` |
+The pod runs as UID 10001 with a read-only root filesystem; `/tmp` and `/home/mcp` are `emptyDir` volumes.
 
 ## Examples
 
-### Read-Only Mode
+Write access with per-call confirmation, three replicas:
 
-Deploy in read-only mode for safe cluster exploration:
+```bash
+kubectl create secret generic kubectl-mcp-rsk --from-literal=request-state-key="$(openssl rand -hex 32)"
+helm install kubectl-mcp ./charts/kubectl-mcp-server \
+  --set auth.enabled=true --set auth.issuer=https://idp.example.com \
+  --set safety.mode=confirm \
+  --set replicaCount=3 --set mcp.requestStateKeySecret=kubectl-mcp-rsk
+```
+
+Extra toolsets (escape commas with `--set-string`, or use a values file):
 
 ```bash
 helm install kubectl-mcp ./charts/kubectl-mcp-server \
-  --set safety.mode=read-only
+  --set mcp.allowUnauthenticated=true \
+  --set-string mcp.toolsets='default\,diagnostics\,certs'
 ```
 
-### With Browser Tools
-
-Enable browser automation tools with Browserbase:
-
-```bash
-helm install kubectl-mcp ./charts/kubectl-mcp-server \
-  --set browser.enabled=true \
-  --set browser.provider=browserbase \
-  --set browser.browserbase.apiKey=YOUR_API_KEY \
-  --set browser.browserbase.projectId=YOUR_PROJECT_ID
-```
-
-### With Prometheus Metrics
-
-Enable metrics and ServiceMonitor:
-
-```bash
-helm install kubectl-mcp ./charts/kubectl-mcp-server \
-  --set metrics.enabled=true \
-  --set metrics.serviceMonitor.enabled=true
-```
-
-### High Availability
-
-Deploy with multiple replicas and PDB:
-
-```bash
-helm install kubectl-mcp ./charts/kubectl-mcp-server \
-  --set replicaCount=3 \
-  --set podDisruptionBudget.enabled=true \
-  --set podDisruptionBudget.minAvailable=2
-```
-
-## Connecting to the MCP Server
-
-After installation, use port-forward to access the server:
+## Connecting
 
 ```bash
 kubectl port-forward svc/kubectl-mcp-kubectl-mcp-server 8000:8000
 ```
 
-Configure your MCP client to connect to:
-```
-http://localhost:8000/mcp
-```
+MCP endpoint: `http://localhost:8000/mcp`. Health: `/health`. Metrics: `/metrics`.
 
 ## Uninstallation
 

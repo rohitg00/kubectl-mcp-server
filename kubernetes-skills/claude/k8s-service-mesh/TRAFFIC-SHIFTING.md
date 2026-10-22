@@ -40,10 +40,10 @@ spec:
 
 ```python
 # Apply weight change
-apply_manifest(virtualservice_yaml, namespace)
+kubectl_apply(virtualservice_yaml, namespace)
 
 # Verify
-istio_virtualservice_get_tool(name, namespace)
+istio_virtualservice_get(name, namespace)
 ```
 
 ## Header-Based Routing
@@ -198,19 +198,19 @@ spec:
 
 ```python
 # 1. Ensure DestinationRule exists
-istio_destinationrules_list_tool(namespace)
+istio_destinationrules_list(namespace)
 
 # 2. Check current VirtualService
-istio_virtualservice_get_tool(name, namespace)
+istio_virtualservice_get(name, namespace)
 
 # 3. Apply new weights
-apply_manifest(updated_vs, namespace)
+kubectl_apply(updated_vs, namespace)
 
 # 4. Verify change
-istio_virtualservice_get_tool(name, namespace)
+istio_virtualservice_get(name, namespace)
 
 # 5. Monitor (with Kiali or Prometheus)
-istio_analyze_tool(namespace)
+istio_analyze(namespace)
 ```
 
 ## Rollback
@@ -228,5 +228,5 @@ http:
 
 Apply immediately:
 ```python
-apply_manifest(rollback_vs, namespace)
+kubectl_apply(rollback_vs, namespace)
 ```

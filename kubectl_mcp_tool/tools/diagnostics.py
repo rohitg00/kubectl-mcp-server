@@ -1,10 +1,9 @@
 import logging
-import subprocess
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict
 
 from mcp.types import ToolAnnotations
 
-from ..k8s_config import get_k8s_client, get_apps_client, _get_kubectl_context_args
+from ..k8s_config import get_k8s_client, get_apps_client
 
 logger = logging.getLogger("mcp-server")
 
@@ -90,114 +89,3 @@ def register_diagnostics_tools(server: "FastMCP", non_destructive: bool):
             logger.error(f"Error comparing namespaces: {e}")
             return {"success": False, "error": str(e)}
 
-    @server.tool(
-        annotations=ToolAnnotations(
-            title="Get Pod Metrics",
-            readOnlyHint=True,
-            destructiveHint=False,
-            idempotentHint=True,
-            openWorldHint=True,
-        ),
-    )
-    def get_pod_metrics(namespace: Optional[str] = None, pod_name: Optional[str] = None, context: str = "") -> Dict[str, Any]:
-        """Get pod resource usage metrics (requires metrics-server).
-
-        Args:
-            namespace: Target namespace (optional, all namespaces if not specified)
-            pod_name: Filter by specific pod name (optional)
-            context: Kubernetes context to use (optional, uses current context if not specified)
-        """
-        try:
-            cmd = ["kubectl"] + _get_kubectl_context_args(context) + ["top", "pods", "--no-headers"]
-            if namespace:
-                cmd.extend(["-n", namespace])
-            else:
-                cmd.append("-A")
-
-            result = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
-
-            if result.returncode != 0:
-                return {"success": False, "error": result.stderr.strip() or "Metrics server not available"}
-
-            metrics = []
-            for line in result.stdout.strip().split("\n"):
-                if not line.strip():
-                    continue
-                parts = line.split()
-                if namespace and len(parts) >= 3:
-                    name, cpu, memory = parts[0], parts[1], parts[2]
-                    ns = namespace
-                elif len(parts) >= 4:
-                    ns, name, cpu, memory = parts[0], parts[1], parts[2], parts[3]
-                else:
-                    continue
-
-                if pod_name and name != pod_name:
-                    continue
-
-                metrics.append({
-                    "namespace": ns,
-                    "pod": name,
-                    "cpuUsage": cpu,
-                    "memoryUsage": memory
-                })
-
-            return {
-                "success": True,
-                "context": context or "current",
-                "count": len(metrics),
-                "metrics": metrics
-            }
-        except subprocess.TimeoutExpired:
-            return {"success": False, "error": "Metrics retrieval timed out"}
-        except Exception as e:
-            logger.error(f"Error getting pod metrics: {e}")
-            return {"success": False, "error": str(e)}
-
-    @server.tool(
-        annotations=ToolAnnotations(
-            title="Get Node Metrics",
-            readOnlyHint=True,
-            destructiveHint=False,
-            idempotentHint=True,
-            openWorldHint=True,
-        ),
-    )
-    def get_node_metrics(context: str = "") -> Dict[str, Any]:
-        """Get node resource usage metrics (requires metrics-server).
-
-        Args:
-            context: Kubernetes context to use (optional, uses current context if not specified)
-        """
-        try:
-            cmd = ["kubectl"] + _get_kubectl_context_args(context) + ["top", "nodes", "--no-headers"]
-            result = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
-
-            if result.returncode != 0:
-                return {"success": False, "error": result.stderr.strip() or "Metrics server not available"}
-
-            metrics = []
-            for line in result.stdout.strip().split("\n"):
-                if not line.strip():
-                    continue
-                parts = line.split()
-                if len(parts) >= 5:
-                    metrics.append({
-                        "node": parts[0],
-                        "cpuUsage": parts[1],
-                        "cpuPercent": parts[2],
-                        "memoryUsage": parts[3],
-                        "memoryPercent": parts[4]
-                    })
-
-            return {
-                "success": True,
-                "context": context or "current",
-                "count": len(metrics),
-                "metrics": metrics
-            }
-        except subprocess.TimeoutExpired:
-            return {"success": False, "error": "Metrics retrieval timed out"}
-        except Exception as e:
-            logger.error(f"Error getting node metrics: {e}")
-            return {"success": False, "error": str(e)}

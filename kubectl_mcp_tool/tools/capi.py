@@ -2,14 +2,10 @@
 
 import subprocess
 import json
-from typing import Dict, Any, List
+from typing import Dict, Any
 
-try:
-    from fastmcp import FastMCP
-    from fastmcp.tools import ToolAnnotations
-except ImportError:
-    from mcp.server.fastmcp import FastMCP
-    from mcp.types import ToolAnnotations
+from fastmcp import FastMCP
+from mcp.types import ToolAnnotations
 
 from ..crd_detector import crd_exists
 from .utils import run_kubectl, get_resources
@@ -552,31 +548,6 @@ def capi_cluster_kubeconfig(
     }
 
 
-def capi_detect(context: str = "") -> Dict[str, Any]:
-    """Detect if Cluster API is installed and its components.
-
-    Args:
-        context: Kubernetes context to use (optional)
-
-    Returns:
-        Detection results for Cluster API
-    """
-    return {
-        "context": context or "current",
-        "installed": crd_exists(CLUSTER_CRD, context),
-        "cli_available": _clusterctl_available(),
-        "crds": {
-            "clusters": crd_exists(CLUSTER_CRD, context),
-            "machines": crd_exists(MACHINE_CRD, context),
-            "machinedeployments": crd_exists(MACHINEDEPLOYMENT_CRD, context),
-            "machinesets": crd_exists(MACHINESET_CRD, context),
-            "machinepools": crd_exists(MACHINEPOOL_CRD, context),
-            "machinehealthchecks": crd_exists(MACHINEHEALTHCHECK_CRD, context),
-            "clusterclasses": crd_exists(CLUSTERCLASS_CRD, context),
-        },
-    }
-
-
 def register_capi_tools(mcp: FastMCP, non_destructive: bool = False):
     """Register Cluster API tools with the MCP server."""
     from fastmcp import Context
@@ -681,7 +652,3 @@ def register_capi_tools(mcp: FastMCP, non_destructive: bool = False):
         """Get kubeconfig secret info for a CAPI cluster."""
         return json.dumps(capi_cluster_kubeconfig(name, namespace, context), indent=2)
 
-    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
-    def detect_capi(context: str = "") -> str:
-        """Detect if Cluster API is installed and its components."""
-        return json.dumps(capi_detect(context), indent=2)

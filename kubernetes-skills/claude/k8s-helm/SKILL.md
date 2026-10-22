@@ -1,17 +1,19 @@
 ---
 name: k8s-helm
 description: Manage Helm charts, releases, and repositories. Use for Helm installations, upgrades, rollbacks, chart development, and release management.
-license: Apache-2.0
+license: MIT-0
 metadata:
   author: rohitg00
-  version: "1.0.0"
-  tools: 16
+  version: "2.0.0"
+  tools: 18
   category: workloads
 ---
 
 # Helm Chart Management
 
 Comprehensive Helm v3 operations using kubectl-mcp-server's 16 Helm tools.
+
+> Requires the `helm_dev` toolset: start kubectl-mcp-server with `--toolsets default,helm_dev` (or `MCP_TOOLSETS=default,helm_dev`).
 
 ## When to Apply
 
@@ -24,23 +26,23 @@ Use this skill when:
 
 | Priority | Rule | Impact | Tools |
 |----------|------|--------|-------|
-| 1 | Template before install (dry run) | CRITICAL | `template_helm_chart` |
-| 2 | Check existing releases first | CRITICAL | `list_helm_releases` |
-| 3 | Lint charts before packaging | HIGH | `lint_helm_chart` |
-| 4 | Note revision before upgrade | HIGH | `get_helm_history` |
-| 5 | Verify values after upgrade | MEDIUM | `get_helm_values` |
-| 6 | Update repos before search | LOW | `update_helm_repos` |
+| 1 | Template before install (dry run) | CRITICAL | `helm_template` |
+| 2 | Check existing releases first | CRITICAL | `helm_list` |
+| 3 | Lint charts before packaging | HIGH | `helm_lint` |
+| 4 | Note revision before upgrade | HIGH | `helm_history` |
+| 5 | Verify values after upgrade | MEDIUM | `helm_get` |
+| 6 | Update repos before search | LOW | `helm_repo_update` |
 
 ## Quick Reference
 
 | Task | Tool | Example |
 |------|------|---------|
 | Install chart | `install_helm_chart` | `install_helm_chart(name, chart, namespace)` |
-| Upgrade release | `upgrade_helm_release` | `upgrade_helm_release(name, chart, namespace, values)` |
-| Rollback | `rollback_helm_release` | `rollback_helm_release(name, namespace, revision)` |
-| List releases | `list_helm_releases` | `list_helm_releases(namespace)` |
-| Get values | `get_helm_values` | `get_helm_values(name, namespace)` |
-| Template (dry run) | `template_helm_chart` | `template_helm_chart(name, chart, namespace)` |
+| Upgrade release | `upgrade_helm_chart` | `upgrade_helm_chart(name, chart, namespace, values)` |
+| Rollback | `helm_rollback` | `helm_rollback(name, namespace, revision)` |
+| List releases | `helm_list` | `helm_list(namespace)` |
+| Get values | `helm_get` | `helm_get(name, namespace)` |
+| Template (dry run) | `helm_template` | `helm_template(name, chart, namespace)` |
 
 ## Install Chart
 
@@ -56,7 +58,7 @@ install_helm_chart(
 ## Upgrade Release
 
 ```python
-upgrade_helm_release(
+upgrade_helm_chart(
     name="my-release",
     chart="bitnami/nginx",
     namespace="web",
@@ -67,8 +69,8 @@ upgrade_helm_release(
 ## Rollback Release
 
 ```python
-rollback_helm_release(
-    name="my-release",
+helm_rollback(
+    release_name="my-release",
     namespace="web",
     revision=1
 )
@@ -85,33 +87,33 @@ uninstall_helm_chart(name="my-release", namespace="web")
 ### List Releases
 
 ```python
-list_helm_releases(namespace="web")
+helm_list(namespace="web")
 
-list_helm_releases()
+helm_list()
 ```
 
 ### Get Release Details
 
 ```python
-get_helm_release(name="my-release", namespace="web")
+helm_status(release_name="my-release", namespace="web")
 ```
 
 ### Release History
 
 ```python
-get_helm_history(name="my-release", namespace="web")
+helm_history(release_name="my-release", namespace="web")
 ```
 
 ### Get Release Values
 
 ```python
-get_helm_values(name="my-release", namespace="web")
+helm_get(release_name="my-release", namespace="web")
 ```
 
 ### Get Release Manifest
 
 ```python
-get_helm_manifest(name="my-release", namespace="web")
+helm_get(what="manifest", release_name="my-release", namespace="web")
 ```
 
 ## Repository Management
@@ -119,27 +121,27 @@ get_helm_manifest(name="my-release", namespace="web")
 ### Add Repository
 
 ```python
-add_helm_repo(name="bitnami", url="https://charts.bitnami.com/bitnami")
+helm_repo_add(name="bitnami", url="https://charts.bitnami.com/bitnami")
 ```
 
 ### List Repositories
 
 ```python
-list_helm_repos()
+helm_repo_list()
 ```
 
 ### Update Repositories
 
 ```python
-update_helm_repos()
+helm_repo_update()
 ```
 
 ### Search Charts
 
 ```python
-search_helm_charts(keyword="nginx")
+helm_search_repo(keyword="nginx")
 
-search_helm_charts(keyword="postgres", repo="bitnami")
+helm_search_repo(keyword="bitnami/postgres")
 ```
 
 ## Chart Development
@@ -147,7 +149,7 @@ search_helm_charts(keyword="postgres", repo="bitnami")
 ### Template Chart (Dry Run)
 
 ```python
-template_helm_chart(
+helm_template(
     name="my-release",
     chart="./my-chart",
     namespace="test",
@@ -158,13 +160,13 @@ template_helm_chart(
 ### Lint Chart
 
 ```python
-lint_helm_chart(chart="./my-chart")
+helm_lint(chart_path="./my-chart")
 ```
 
 ### Package Chart
 
 ```python
-package_helm_chart(chart="./my-chart", destination="./packages")
+helm_package(chart_path="./my-chart", destination="./packages")
 ```
 
 ## Common Workflows
@@ -172,25 +174,25 @@ package_helm_chart(chart="./my-chart", destination="./packages")
 ### New Application Deployment
 
 ```python
-add_helm_repo(name="bitnami", url="...")
+helm_repo_add(name="bitnami", url="...")
 
-search_helm_charts(keyword="postgresql")
+helm_search_repo(keyword="postgresql")
 
-template_helm_chart(...)
+helm_template(...)
 
 install_helm_chart(...)
 
-get_helm_release(...)
+helm_status(...)
 ```
 
 ### Upgrade with Rollback Safety
 
 ```python
-get_helm_history(name, namespace)
+helm_history(name, namespace)
 
-upgrade_helm_release(name, chart, namespace, values)
+upgrade_helm_chart(name, chart, namespace, values)
 
-rollback_helm_release(name, namespace, revision)
+helm_rollback(name, namespace, revision)
 ```
 
 ### Multi-Environment Deployment
@@ -232,17 +234,17 @@ See [TROUBLESHOOTING.md](TROUBLESHOOTING.md) for common issues.
 ### Release Stuck in Pending
 
 ```python
-get_helm_release(name, namespace)
+helm_status(name, namespace)
 
-get_pods(namespace, label_selector="app.kubernetes.io/instance=<release>")
+kubectl_get(resource_type="pods", namespace, label_selector="app.kubernetes.io/instance=<release>")
 ```
 
 ### Failed Installation
 
 ```python
-get_helm_history(name, namespace)
+helm_history(name, namespace)
 
-get_events(namespace)
+kubectl_get(resource_type="events", namespace)
 
 uninstall_helm_chart(name, namespace)
 ```
@@ -250,11 +252,11 @@ uninstall_helm_chart(name, namespace)
 ### Values Not Applied
 
 ```python
-get_helm_values(name, namespace)
+helm_get(name, namespace)
 
-template_helm_chart(...)
+helm_template(...)
 
-upgrade_helm_release(...)
+upgrade_helm_chart(...)
 ```
 
 ## Scripts
@@ -265,12 +267,12 @@ See [scripts/lint-chart.sh](scripts/lint-chart.sh) for automated chart validatio
 
 1. **Always Template First**
    ```python
-   template_helm_chart(name, chart, namespace, values)
+   helm_template(name, chart, namespace, values)
    ```
 
 2. **Use Semantic Versioning**
    ```python
-   install_helm_chart(..., version="1.2.3")
+   helm_show(chart="bitnami/nginx", what="chart", version="1.2.3")
    ```
 
 3. **Store Values in Git**

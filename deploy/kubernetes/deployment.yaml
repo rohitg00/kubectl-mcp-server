@@ -7,7 +7,7 @@ metadata:
   labels:
     app: kubectl-mcp-server
     app.kubernetes.io/name: kubectl-mcp-server
-    app.kubernetes.io/version: "1.13.0"
+    app.kubernetes.io/version: "2.0.0"
 spec:
   replicas: 1
   selector:
@@ -22,13 +22,14 @@ spec:
       serviceAccountName: kubectl-mcp-server
       containers:
         - name: kubectl-mcp-server
-          image: rohitghumare64/kubectl-mcp-server:latest
-          imagePullPolicy: Always
+          image: rohitghumare64/kubectl-mcp-server:2.0.0
+          imagePullPolicy: IfNotPresent
           args:
             - "--transport"
-            - "sse"
+            - "http"
             - "--port"
             - "8000"
+            - "--read-only"
           ports:
             - name: http
               containerPort: 8000
@@ -38,10 +39,12 @@ spec:
               value: "0"
             - name: MCP_K8S_PROVIDER
               value: "in-cluster"
-            - name: KUBERNETES_SERVICE_HOST
-              value: "kubernetes.default.svc"
-            - name: KUBERNETES_SERVICE_PORT
-              value: "443"
+            - name: MCP_SERVER_HOST
+              value: "0.0.0.0"
+            # Unauthenticated: restrict callers with a NetworkPolicy, or replace with
+            # MCP_AUTH_ENABLED=true + MCP_AUTH_ISSUER=<your IdP>.
+            - name: MCP_ALLOW_UNAUTHENTICATED
+              value: "true"
           resources:
             requests:
               memory: "128Mi"
@@ -63,5 +66,20 @@ spec:
             initialDelaySeconds: 5
             periodSeconds: 10
           securityContext:
-            runAsNonRoot: false  # kubectl needs root for some operations
-            readOnlyRootFilesystem: false
+            runAsNonRoot: true
+            runAsUser: 10001
+            runAsGroup: 10001
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+            - name: home
+              mountPath: /home/mcp
+      volumes:
+        - name: tmp
+          emptyDir: {}
+        - name: home
+          emptyDir: {}

@@ -1,17 +1,19 @@
 ---
 name: k8s-policy
 description: Kubernetes policy management with Kyverno and Gatekeeper. Use when enforcing security policies, validating resources, or auditing policy compliance.
-license: Apache-2.0
+license: MIT-0
 metadata:
   author: rohitg00
-  version: "1.0.0"
-  tools: 6
+  version: "2.0.0"
+  tools: 5
   category: security
 ---
 
 # Kubernetes Policy Management
 
 Manage policies using kubectl-mcp-server's Kyverno and Gatekeeper tools.
+
+> Requires the `policy` toolset: start kubectl-mcp-server with `--toolsets default,policy` (or `MCP_TOOLSETS=default,policy`). For deep work, the project-maintained MCP servers may fit better: Kyverno: https://github.com/nirmata/kyverno-mcp.
 
 ## When to Apply
 
@@ -24,49 +26,49 @@ Use this skill when:
 
 | Priority | Rule | Impact | Tools |
 |----------|------|--------|-------|
-| 1 | Detect policy engine first | CRITICAL | `kyverno_detect_tool`, `gatekeeper_detect_tool` |
+| 1 | Detect policy engine first | CRITICAL | `detect_ecosystem`, `detect_ecosystem` |
 | 2 | Use Audit mode before Enforce | HIGH | validationFailureAction |
-| 3 | Check policy reports for violations | HIGH | `kyverno_clusterpolicyreports_list_tool` |
-| 4 | Review constraint templates | MEDIUM | `gatekeeper_constrainttemplates_list_tool` |
+| 3 | Check policy reports for violations | HIGH | `get_policy_violations` |
+| 4 | Review constraint templates | MEDIUM | `get_policy_list` |
 
 ## Quick Reference
 
 | Task | Tool | Example |
 |------|------|---------|
-| List Kyverno cluster policies | `kyverno_clusterpolicies_list_tool` | `kyverno_clusterpolicies_list_tool()` |
-| Get Kyverno policy | `kyverno_clusterpolicy_get_tool` | `kyverno_clusterpolicy_get_tool(name)` |
-| List Gatekeeper constraints | `gatekeeper_constraints_list_tool` | `gatekeeper_constraints_list_tool()` |
-| Get constraint | `gatekeeper_constraint_get_tool` | `gatekeeper_constraint_get_tool(kind, name)` |
+| List Kyverno cluster policies | `get_policy_list` | `get_policy_list()` |
+| Get Kyverno policy | `get_policy` | `get_policy(name)` |
+| List Gatekeeper constraints | `get_policy_list` | `get_policy_list()` |
+| Get constraint | `get_policy` | `get_policy(kind, name)` |
 
 ## Kyverno
 
 ### Detect Installation
 
 ```python
-kyverno_detect_tool()
+detect_ecosystem()
 ```
 
 ### List Policies
 
 ```python
-kyverno_clusterpolicies_list_tool()
+get_policy_list()
 
-kyverno_policies_list_tool(namespace="default")
+get_policy_list(namespace="default")
 ```
 
 ### Get Policy Details
 
 ```python
-kyverno_clusterpolicy_get_tool(name="require-labels")
-kyverno_policy_get_tool(name="require-resources", namespace="default")
+get_policy(name="require-labels")
+get_policy(name="require-resources", namespace="default")
 ```
 
 ### Policy Reports
 
 ```python
-kyverno_clusterpolicyreports_list_tool()
+get_policy_violations()
 
-kyverno_policyreports_list_tool(namespace="default")
+get_policy_violations(namespace="default")
 ```
 
 ### Common Kyverno Policies
@@ -123,26 +125,26 @@ spec:
 ### Detect Installation
 
 ```python
-gatekeeper_detect_tool()
+detect_ecosystem()
 ```
 
 ### List Constraints
 
 ```python
-gatekeeper_constraints_list_tool()
+get_policy_list()
 
-gatekeeper_constrainttemplates_list_tool()
+get_policy_list()
 ```
 
 ### Get Constraint Details
 
 ```python
-gatekeeper_constraint_get_tool(
+get_policy(
     kind="K8sRequiredLabels",
     name="require-app-label"
 )
 
-gatekeeper_constrainttemplate_get_tool(name="k8srequiredlabels")
+get_policy(name="k8srequiredlabels")
 ```
 
 ### Common Gatekeeper Policies
@@ -197,9 +199,9 @@ spec:
 ## Policy Audit Workflow
 
 ```python
-kyverno_detect_tool()
-kyverno_clusterpolicies_list_tool()
-kyverno_clusterpolicyreports_list_tool()
+detect_ecosystem()
+get_policy_list()
+get_policy_violations()
 ```
 
 ## Prerequisites

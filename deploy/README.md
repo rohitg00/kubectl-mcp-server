@@ -108,22 +108,28 @@ deploy/
 |----------|---------|-------------|
 | `MCP_DEBUG` | `0` | Set to `1` for verbose logging |
 | `MCP_LOG_FILE` | - | Path to log file |
+| `MCP_ALLOW_UNAUTHENTICATED` | `false` | Required to listen on a pod IP without OAuth |
+| `MCP_AUTH_ENABLED` / `MCP_AUTH_ISSUER` | - | OAuth 2.1 token validation (preferred over the flag above) |
+| `MCP_SAFETY_MODE` | `normal` | `read-only`, `disable-destructive`, `confirm`, `normal` |
 
 ### Transport Modes
 
-The deployment uses SSE transport by default. Modify the args in deployment.yaml:
+The deployment serves stateless Streamable HTTP at `/mcp` in read-only mode. Every request is
+self-contained (MCP 2026-07-28), so you can scale replicas behind the Service without sticky
+sessions. `sse` still works but is deprecated by the MCP spec.
 
 ```yaml
 args:
   - "--transport"
-  - "sse"      # Options: stdio, sse, http, streamable-http
+  - "http"      # Options: stdio, http, streamable-http, sse (deprecated)
   - "--port"
   - "8000"
+  - "--read-only"
 ```
 
 ### RBAC Permissions
 
-The included RBAC configuration grants **read-only access** to most Kubernetes resources. For write operations (apply, delete, scale), you'll need to modify `rbac.yaml` to add write permissions.
+The included RBAC configuration grants **read-only access** to most Kubernetes resources and **no access to Secrets**. For write operations (apply, delete, scale), add write permissions to `rbac.yaml` and drop `--read-only`.
 
 ## Accessing the Server
 
@@ -132,10 +138,6 @@ The included RBAC configuration grants **read-only access** to most Kubernetes r
 ```bash
 kubectl port-forward -n kubectl-mcp svc/kubectl-mcp-server 8000:8000
 ```
-
-### NodePort (Testing)
-
-Access via `http://<node-ip>:30800`
 
 ### Ingress (Production)
 
@@ -157,7 +159,7 @@ curl http://localhost:8000/health
 
 ## Security Considerations
 
-1. **RBAC**: The default configuration uses read-only permissions
-2. **Non-destructive mode**: Add `--disable-destructive` to args for extra safety
-3. **Network Policies**: Consider adding NetworkPolicy to restrict access
-4. **Secrets**: Secrets are masked in output by default
+1. **Authentication**: the manifest sets `MCP_ALLOW_UNAUTHENTICATED=true`. Any pod that can reach the Service acts with this ServiceAccount, so either add a NetworkPolicy that only admits your agent, or configure OAuth (`MCP_AUTH_ENABLED`, `MCP_AUTH_ISSUER`) and remove the flag
+2. **RBAC**: read-only, without Secrets
+3. **Safety mode**: `--read-only` hides every tool that changes state; use `--disable-destructive` or `--confirm-destructive` if you grant write RBAC
+4. **Secrets**: Secret values in tool output are redacted (`MCP_MASK_SECRETS=false` disables)

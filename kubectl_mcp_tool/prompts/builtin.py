@@ -507,17 +507,17 @@ DEPLOYMENT_CHECKLIST = CustomPrompt(
 ## Verification Commands
 
 Run these checks before deployment:
-1. Verify namespace: `get_namespaces()`
-2. Check existing resources: `get_deployments(namespace="{{namespace}}")`
-3. Verify configmaps: `get_configmaps(namespace="{{namespace}}")`
-4. Check services: `get_services(namespace="{{namespace}}")`
+1. Verify namespace: `kubectl_get(resource_type="namespaces")`
+2. Check existing resources: `kubectl_get(resource_type="deployments", namespace="{{namespace}}")`
+3. Verify configmaps: `kubectl_get(resource_type="configmaps", namespace="{{namespace}}")`
+4. Check services: `kubectl_get(resource_type="services", namespace="{{namespace}}")`
 
 ## Post-Deployment Verification
 
 After deploying:
 1. Watch rollout: `kubectl_rollout_status("deployment", "{{app_name}}", "{{namespace}}")`
-2. Check pods: `get_pods(namespace="{{namespace}}")`
-3. Get logs: `get_logs(pod_name, "{{namespace}}")`
+2. Check pods: `kubectl_get(resource_type="pods", namespace="{{namespace}}")`
+3. Get logs: `kubectl_logs(pod_name, "{{namespace}}")`
 4. Verify endpoints: Check service has endpoints
 
 Start the deployment checklist verification now."""
@@ -566,7 +566,7 @@ INCIDENT_RESPONSE = CustomPrompt(
 
 ### Immediate Assessment
 1. Verify the issue:
-   - `get_pods(namespace="{{namespace}}")` - Check pod status
+   - `kubectl_get(resource_type="pods", namespace="{{namespace}}")` - Check pod status
    - `kubectl_describe("deployment", "{{affected_service}}", "{{namespace}}")` - Get details
 
 2. Determine blast radius:
@@ -585,9 +585,9 @@ INCIDENT_RESPONSE = CustomPrompt(
 
 {{#incident_type}}
 **Pod Crash Investigation:**
-- `get_pod_events("{{affected_service}}", "{{namespace}}")` - Recent events
-- `get_logs(pod_name, "{{namespace}}", tail=200)` - Current logs
-- `get_logs(pod_name, "{{namespace}}", previous=true)` - Previous container logs
+- `kubectl_get(resource_type="events", namespace="{{namespace}}", field_selector="involvedObject.name=" + "{{affected_service}}")` - Recent events
+- `kubectl_logs(pod_name, "{{namespace}}", tail=200)` - Current logs
+- `kubectl_logs(pod_name, "{{namespace}}", previous=true)` - Previous container logs
 - Check for OOMKilled, CrashLoopBackOff patterns
 
 **High Latency Investigation:**
@@ -638,7 +638,7 @@ kubectl_delete_pod(pod_name, "{{namespace}}", force=false)
 ## Phase 4: Verification
 
 1. Confirm mitigation worked:
-   - `get_pods(namespace="{{namespace}}")` - All pods healthy
+   - `kubectl_get(resource_type="pods", namespace="{{namespace}}")` - All pods healthy
    - Service is responding normally
    - Error rates decreased
 

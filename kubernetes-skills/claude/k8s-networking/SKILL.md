@@ -1,17 +1,19 @@
 ---
 name: k8s-networking
 description: Kubernetes networking management for services, ingresses, endpoints, and network policies. Use when configuring connectivity, load balancing, or network isolation.
-license: Apache-2.0
+license: MIT-0
 metadata:
   author: rohitg00
-  version: "1.0.0"
-  tools: 8
+  version: "2.0.0"
+  tools: 5
   category: networking
 ---
 
 # Kubernetes Networking
 
 Manage Kubernetes networking resources using kubectl-mcp-server's networking tools.
+
+> Requires the `security` toolset: start kubectl-mcp-server with `--toolsets default,security` (or `MCP_TOOLSETS=default,security`).
 
 ## When to Apply
 
@@ -24,55 +26,69 @@ Use this skill when:
 
 | Priority | Rule | Impact | Tools |
 |----------|------|--------|-------|
-| 1 | Check endpoints before troubleshooting services | CRITICAL | `get_endpoints` |
-| 2 | Verify service selector matches pod labels | HIGH | `get_services`, `get_pods` |
-| 3 | Review network policies for isolation | HIGH | `get_network_policies` |
-| 4 | Test DNS resolution from within pods | MEDIUM | `kubectl_exec` |
+| 1 | Check endpoints before troubleshooting services | CRITICAL | `kubectl_get` |
+| 2 | Verify service selector matches pod labels | HIGH | `kubectl_get`, `kubectl_get` |
+| 3 | Review network policies for isolation | HIGH | `analyze_network_policies` |
+| 4 | Test DNS resolution from within pods | MEDIUM | `exec_in_pod` |
 
 ## Quick Reference
 
 | Task | Tool | Example |
 |------|------|---------|
-| List services | `get_services` | `get_services(namespace)` |
-| Check backends | `get_endpoints` | `get_endpoints(namespace)` |
-| List ingresses | `get_ingresses` | `get_ingresses(namespace)` |
-| Network policies | `get_network_policies` | `get_network_policies(namespace)` |
+| List services | `kubectl_get` | `kubectl_get(resource_type="services", namespace)` |
+| Check backends | `kubectl_get` | `kubectl_get(resource_type="endpoints", namespace)` |
+| List ingresses | `kubectl_get` | `kubectl_get(resource_type="ingress", namespace)` |
+| Network policies | `analyze_network_policies` | `analyze_network_policies(namespace)` |
 
 ## Services
 
 ```python
-get_services(namespace="default")
+kubectl_get(resource_type="services", namespace="default")
 
-describe_service(name="my-service", namespace="default")
+kubectl_describe(resource_type="service", name="my-service", namespace="default")
 
-create_service(
-    name="my-service",
-    namespace="default",
-    selector={"app": "my-app"},
-    ports=[{"port": 80, "targetPort": 8080}]
-)
+kubectl_apply(manifest="""
+apiVersion: v1
+kind: Service
+metadata:
+  name: my-service
+  namespace: default
+spec:
+  selector:
+    app: my-app
+  ports:
+  - port: 80
+    targetPort: 8080
+""")
 
-create_service(
-    name="my-lb",
-    namespace="default",
-    type="LoadBalancer",
-    selector={"app": "my-app"},
-    ports=[{"port": 443, "targetPort": 8443}]
-)
+kubectl_apply(manifest="""
+apiVersion: v1
+kind: Service
+metadata:
+  name: my-lb
+  namespace: default
+spec:
+  type: LoadBalancer
+  selector:
+    app: my-app
+  ports:
+  - port: 443
+    targetPort: 8443
+""")
 ```
 
 ## Endpoints
 
 ```python
-get_endpoints(namespace="default")
+kubectl_get(resource_type="endpoints", namespace="default")
 ```
 
 ## Ingress
 
 ```python
-get_ingresses(namespace="default")
+kubectl_get(resource_type="ingress", namespace="default")
 
-describe_ingress(name="my-ingress", namespace="default")
+kubectl_describe(resource_type="ingress", name="my-ingress", namespace="default")
 
 kubectl_apply(manifest="""
 apiVersion: networking.k8s.io/v1
@@ -98,9 +114,9 @@ spec:
 ## Network Policies
 
 ```python
-get_network_policies(namespace="default")
+analyze_network_policies(namespace="default")
 
-describe_network_policy(name="deny-all", namespace="default")
+kubectl_describe(resource_type="networkpolicy", name="deny-all", namespace="default")
 
 kubectl_apply(manifest="""
 apiVersion: networking.k8s.io/v1
@@ -138,12 +154,12 @@ spec:
 ## Troubleshooting Connectivity
 
 ```python
-get_endpoints(namespace="default")
+kubectl_get(resource_type="endpoints", namespace="default")
 
-get_network_policies(namespace="default")
+analyze_network_policies(namespace="default")
 
-kubectl_exec(
-    pod="debug-pod",
+exec_in_pod(
+    pod_name="debug-pod",
     namespace="default",
     command="nslookup my-service.default.svc.cluster.local"
 )

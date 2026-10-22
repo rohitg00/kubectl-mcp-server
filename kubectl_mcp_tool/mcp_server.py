@@ -1,109 +1,71 @@
 #!/usr/bin/env python3
-"""
-MCP server implementation for kubectl-mcp-tool.
+"""MCP server for Kubernetes.
 
-Compatible with:
-- Claude Desktop
-- Cursor AI
-- Windsurf
-- Docker MCP Toolkit (https://docs.docker.com/ai/mcp-catalog-and-toolkit/toolkit/)
-
-FastMCP Migration Notes:
-------------------------
-Currently using: fastmcp (gofastmcp.com) - standalone package with extra features
-To revert to official Anthropic MCP SDK:
-  1. Change requirements.txt: fastmcp>=3.0.0 -> mcp>=1.8.0
-  2. Change import below: from fastmcp import FastMCP -> from mcp.server.fastmcp import FastMCP
-  3. Change ToolAnnotations import: from fastmcp.tools import ToolAnnotations -> from mcp.types import ToolAnnotations
+Serves the stateless MCP 2026-07-28 protocol and every earlier handshake-era
+revision from the same process, over stdio or Streamable HTTP.
 """
 
-import json
-import sys
-import logging
+import argparse
 import asyncio
+import ipaddress
+import logging
 import os
 import platform
-from typing import List, Optional, Any, Dict
+import subprocess
+import shutil
+import sys
+import warnings
+from typing import Any, List, Optional
 
 import kubectl_mcp_tool.k8s_config  # noqa: F401
 
-from kubectl_mcp_tool.safety import (
-    SafetyMode,
-    set_safety_mode,
-    get_safety_mode,
-    get_mode_info,
-)
-
-from kubectl_mcp_tool.observability import (
-    get_stats_collector,
-    get_metrics,
-    init_tracing,
-    shutdown_tracing,
-    is_prometheus_available,
-    is_tracing_available,
-    record_tool_call_metric,
-    record_tool_duration_metric,
-    record_tool_error_metric,
-)
-
-from kubectl_mcp_tool.config import (
-    load_config,
-    get_config,
-    register_reload_callback,
-    setup_sighup_handler,
-)
-
-from kubectl_mcp_tool.prompts import (
-    load_prompts_from_config,
-    get_builtin_prompts,
-)
-
 from kubectl_mcp_tool import __version__
-
-from kubectl_mcp_tool.tools import (
-    register_helm_tools,
-    register_pod_tools,
-    register_core_tools,
-    register_cluster_tools,
-    register_multicluster_tools,
-    register_deployment_tools,
-    register_security_tools,
-    register_networking_tools,
-    register_storage_tools,
-    register_operations_tools,
-    register_diagnostics_tools,
-    register_cost_tools,
-    register_browser_tools,
-    is_browser_available,
-    register_ui_tools,
-    is_ui_available,
-    register_gitops_tools,
-    register_certs_tools,
-    register_policy_tools,
-    register_backup_tools,
-    register_keda_tools,
-    register_cilium_tools,
-    register_rollouts_tools,
-    register_capi_tools,
-    register_kubevirt_tools,
-    register_istio_tools,
-    register_vind_tools,
-    register_kind_tools,
-    register_custom_resource_tools,
+from kubectl_mcp_tool.auth import create_auth_verifier, get_auth_config
+from kubectl_mcp_tool.config import load_config, register_reload_callback, setup_sighup_handler
+from kubectl_mcp_tool.middleware import ToolGuardMiddleware
+from kubectl_mcp_tool.observability import (
+    get_metrics,
+    get_stats_collector,
+    init_tracing,
+    is_prometheus_available,
 )
-from kubectl_mcp_tool.resources import register_resources
 from kubectl_mcp_tool.prompts import register_prompts
-from kubectl_mcp_tool.auth import get_auth_config, create_auth_verifier
+from kubectl_mcp_tool.resources import register_resources
+from kubectl_mcp_tool.safety import SafetyMode, get_mode_info, get_safety_mode, set_safety_mode
+from kubectl_mcp_tool.toolsets import DEFAULT_TOOLSETS, TOOL_TOOLSET, ToolsetServer, build_instructions, resolve_toolsets
+from kubectl_mcp_tool.tools import (
+    register_backup_tools,
+    register_capi_tools,
+    register_certs_tools,
+    register_cilium_tools,
+    register_cluster_tools,
+    register_cost_tools,
+    register_custom_resource_tools,
+    register_diagnostics_tools,
+    register_gitops_tools,
+    register_helm_tools,
+    register_istio_tools,
+    register_keda_tools,
+    register_kind_tools,
+    register_kubectl_tools,
+    register_kubevirt_tools,
+    register_multicluster_tools,
+    register_networking_tools,
+    register_operations_tools,
+    register_pod_tools,
+    register_policy_tools,
+    register_rollouts_tools,
+    register_security_tools,
+    register_vind_tools,
+)
+from kubectl_mcp_tool.utils.helpers import mask_secrets, secret_masking_enabled
+
+from fastmcp import FastMCP
 
 if platform.system() == "Windows":
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
-import warnings
-warnings.filterwarnings(
-    "ignore",
-    category=RuntimeWarning,
-    message=r".*found in sys.modules after import of package.*"
-)
+warnings.filterwarnings("ignore", category=RuntimeWarning, message=r".*found in sys.modules after import of package.*")
 
 _log_file = os.environ.get("MCP_LOG_FILE")
 _log_level = logging.DEBUG if os.environ.get("MCP_DEBUG", "").lower() in ("1", "true") else logging.INFO
@@ -118,28 +80,76 @@ if _log_file:
 else:
     _handlers.append(logging.StreamHandler(sys.stderr))
 
-logging.basicConfig(
-    level=_log_level,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-    handlers=_handlers
-)
+logging.basicConfig(level=_log_level, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", handlers=_handlers)
 logger = logging.getLogger("mcp-server")
 
 for handler in logging.root.handlers[:]:
     if isinstance(handler, logging.StreamHandler) and handler.stream == sys.stdout:
         logging.root.removeHandler(handler)
 
-try:
-    from fastmcp import FastMCP
-except ImportError as err:
-    raise ImportError(
-        "FastMCP is required but not installed. "
-        "Install with: pip install 'fastmcp>=3.0.0b1'"
-    ) from err
+MCP_PATH = "/mcp"
+TRUTHY = ("1", "true", "yes")
+
+SAFETY_MODE_ALIASES = {
+    "read-only": SafetyMode.READ_ONLY,
+    "read_only": SafetyMode.READ_ONLY,
+    "disable-destructive": SafetyMode.DISABLE_DESTRUCTIVE,
+    "disable_destructive": SafetyMode.DISABLE_DESTRUCTIVE,
+    "confirm": SafetyMode.CONFIRM,
+    "confirm-destructive": SafetyMode.CONFIRM,
+    "confirm_destructive": SafetyMode.CONFIRM,
+}
+
+
+class NetworkExposureError(RuntimeError):
+    """Raised when a network transport would expose the server without authentication."""
+
+
+def _env_flag(name: str) -> bool:
+    return os.environ.get(name, "").lower() in TRUTHY
+
+
+def _env_list(name: str) -> Optional[List[str]]:
+    values = [v.strip() for v in os.environ.get(name, "").split(",") if v.strip()]
+    return values or None
+
+
+def is_loopback_host(host: str) -> bool:
+    if host == "localhost":
+        return True
+    try:
+        return ipaddress.ip_address(host.strip("[]")).is_loopback
+    except ValueError:
+        return False
+
+
+def ensure_network_exposure_allowed(host: str, auth_enabled: bool, allow_unauthenticated: bool) -> None:
+    """Refuse to serve tools on a non-loopback address unless auth is on or the operator opted out."""
+    if auth_enabled or is_loopback_host(host):
+        return
+    if not allow_unauthenticated:
+        raise NetworkExposureError(
+            f"Refusing to listen on {host} without authentication: anyone who can reach this port "
+            "would get your Kubernetes credentials. Enable OAuth (MCP_AUTH_ENABLED=true and "
+            "MCP_AUTH_ISSUER=...), bind to 127.0.0.1, or, if the network is already protected, "
+            "pass --allow-unauthenticated (MCP_ALLOW_UNAUTHENTICATED=true)."
+        )
+    logger.warning(f"Serving on {host} WITHOUT authentication (--allow-unauthenticated). "
+                   "Every client that can reach this port can act with this server's Kubernetes credentials.")
+
+
+def _request_state_security() -> Optional[Any]:
+    key = os.environ.get("MCP_REQUEST_STATE_KEY")
+    if not key:
+        return None
+    if len(key.encode()) < 32:
+        raise ValueError("MCP_REQUEST_STATE_KEY must be at least 32 bytes")
+    from mcp.server.request_state import RequestStateSecurity
+    return RequestStateSecurity(keys=[key.encode()])
 
 
 class MCPServer:
-    """MCP server implementation."""
+    """Kubernetes MCP server."""
 
     def __init__(
         self,
@@ -148,149 +158,97 @@ class MCPServer:
         disable_destructive: bool = False,
         confirm_destructive: bool = False,
         config_file: Optional[str] = None,
+        toolsets: Optional[str] = None,
+        tool_search: Optional[bool] = None,
     ):
-        """Initialize the MCP server.
-
-        Args:
-            name: Server name for identification
-            read_only: If True, block all write operations (read-only mode)
-            disable_destructive: If True, block only destructive operations
-            config_file: Optional path to TOML config file
-
-        Environment Variables:
-            MCP_AUTH_ENABLED: Enable OAuth 2.1 authentication (default: false)
-            MCP_AUTH_ISSUER: OAuth 2.0 Authorization Server URL
-            MCP_AUTH_JWKS_URI: JWKS endpoint (optional, derived from issuer)
-            MCP_AUTH_AUDIENCE: Expected token audience (default: kubectl-mcp-server)
-            MCP_AUTH_REQUIRED_SCOPES: Required scopes (default: mcp:tools)
-        """
         self.name = name
         self._dependencies_checked = False
         self._dependencies_available = None
         self._stats = get_stats_collector()
 
-        # Persist CLI safety overrides for reloads
         self._cli_read_only = read_only
         self._cli_disable_destructive = disable_destructive
         self._cli_confirm_destructive = confirm_destructive
 
-        # Load configuration from file and environment
         self.config = self._load_configuration(config_file)
-
-        # Apply safety mode from config or parameters
-        self._apply_safety_mode(self._cli_read_only, self._cli_disable_destructive, self._cli_confirm_destructive)
-
-        # For backward compatibility, expose non_destructive
+        self._apply_safety_mode()
         self.non_destructive = get_safety_mode() != SafetyMode.NORMAL
-
-        # Initialize observability (tracing, metrics)
         self._init_observability()
 
-        # Register config reload callback and set up SIGHUP handler
         register_reload_callback(self._on_config_reload)
         setup_sighup_handler()
 
-        # Load authentication configuration
         self.auth_config = get_auth_config()
         auth_verifier = self._setup_auth()
 
-        # Initialize FastMCP with optional authentication
+        self.toolsets = resolve_toolsets(toolsets if toolsets is not None else os.environ.get("MCP_TOOLSETS"))
+        server_kwargs: dict = {"name": name, "version": __version__, "instructions": build_instructions(self.toolsets)}
         if auth_verifier:
-            logger.info("Initializing MCP server with authentication enabled")
-            self.server = FastMCP(name=name, auth=auth_verifier)
-        else:
-            self.server = FastMCP(name=name)
+            server_kwargs["auth"] = auth_verifier
+        request_state_security = _request_state_security()
+        if request_state_security:
+            server_kwargs["request_state_security"] = request_state_security
+        self.server = FastMCP(**server_kwargs)
+        self.server.add_middleware(ToolGuardMiddleware(
+            enforce_scopes=auth_verifier is not None,
+            mask=secret_masking_enabled(),
+        ))
 
         self.setup_tools()
+        self.tool_search = _env_flag("MCP_TOOL_SEARCH") if tool_search is None else tool_search
+        if self.tool_search:
+            self._enable_tool_search()
         self.setup_resources()
         self.setup_prompts()
+        self._setup_routes()
 
-        # Log startup info
         mode_info = get_mode_info()
-        logger.info(f"MCP Server initialized: {name}")
+        logger.info(f"MCP Server initialized: {name} v{__version__}")
         logger.info(f"Safety mode: {mode_info['mode']} - {mode_info['description']}")
 
     def _load_configuration(self, config_file: Optional[str]) -> Any:
-        """Load configuration from TOML file and environment."""
-        try:
-            config = load_config(config_file=config_file if config_file else None)
-            logger.debug(f"Configuration loaded successfully")
-            return config
-        except Exception as e:
-            logger.warning(f"Failed to load config file: {e}. Using defaults.")
-            return load_config(skip_env=False)
+        return load_config(config_file=config_file or None)
 
-    def _apply_safety_mode(self, read_only: bool, disable_destructive: bool, confirm_destructive: bool = False) -> None:
-        """Apply safety mode from config or CLI parameters.
-
-        CLI parameters take precedence over config file settings.
-        """
-        config_mode = getattr(self.config.safety, 'mode', 'normal') if hasattr(self.config, 'safety') else 'normal'
-
-        if read_only:
-            set_safety_mode(SafetyMode.READ_ONLY)
-        elif disable_destructive:
-            set_safety_mode(SafetyMode.DISABLE_DESTRUCTIVE)
-        elif confirm_destructive:
-            set_safety_mode(SafetyMode.CONFIRM)
-        elif config_mode == 'read-only' or config_mode == 'read_only':
-            set_safety_mode(SafetyMode.READ_ONLY)
-        elif config_mode == 'disable-destructive' or config_mode == 'disable_destructive':
-            set_safety_mode(SafetyMode.DISABLE_DESTRUCTIVE)
-        elif config_mode == 'confirm' or config_mode == 'confirm-destructive' or config_mode == 'confirm_destructive':
-            set_safety_mode(SafetyMode.CONFIRM)
+    def _apply_safety_mode(self) -> None:
+        """Apply safety mode; CLI flags take precedence over config file and MCP_SAFETY_MODE."""
+        if self._cli_read_only:
+            mode = SafetyMode.READ_ONLY
+        elif self._cli_disable_destructive:
+            mode = SafetyMode.DISABLE_DESTRUCTIVE
+        elif self._cli_confirm_destructive:
+            mode = SafetyMode.CONFIRM
         else:
-            set_safety_mode(SafetyMode.NORMAL)
+            configured = str(getattr(getattr(self.config, "safety", None), "mode", "normal")).lower()
+            mode = SAFETY_MODE_ALIASES.get(configured, SafetyMode.NORMAL)
+        set_safety_mode(mode)
 
     def _init_observability(self) -> None:
-        """Initialize observability components (tracing, metrics)."""
-        # Check if tracing is enabled in config
-        tracing_enabled = getattr(self.config.metrics, 'tracing_enabled', False) if hasattr(self.config, 'metrics') else False
-        otlp_endpoint = getattr(self.config.metrics, 'otlp_endpoint', None) if hasattr(self.config, 'metrics') else None
-
-        if tracing_enabled or otlp_endpoint or os.environ.get('OTEL_EXPORTER_OTLP_ENDPOINT'):
+        metrics = getattr(self.config, "metrics", None)
+        if getattr(metrics, "tracing_enabled", False) or getattr(metrics, "otlp_endpoint", None) or os.environ.get("OTEL_EXPORTER_OTLP_ENDPOINT"):
             try:
                 init_tracing()
                 logger.info("OpenTelemetry tracing initialized")
             except Exception as e:
                 logger.warning(f"Failed to initialize tracing: {e}")
 
-        if is_prometheus_available():
-            logger.debug("Prometheus metrics available")
-
     def _on_config_reload(self, new_config: Any) -> None:
-        """Handle configuration reload (called on SIGHUP)."""
         logger.info("Configuration reloaded")
         self.config = new_config
-
-        self._apply_safety_mode(self._cli_read_only, self._cli_disable_destructive, self._cli_confirm_destructive)
-
-        # Refresh non_destructive flag
+        self._apply_safety_mode()
         self.non_destructive = get_safety_mode() != SafetyMode.NORMAL
-
-        mode_info = get_mode_info()
-        logger.info(f"Safety mode after reload: {mode_info['mode']}")
+        logger.info(f"Safety mode after reload: {get_mode_info()['mode']}")
 
     def _setup_auth(self) -> Optional[Any]:
-        """Set up authentication if enabled."""
         if not self.auth_config.enabled:
-            logger.debug("Authentication disabled")
             return None
-
-        try:
-            verifier = create_auth_verifier(self.auth_config)
-            if verifier:
-                logger.info(f"Authentication configured with issuer: {self.auth_config.issuer_url}")
-            return verifier
-        except Exception as e:
-            logger.error(f"Failed to configure authentication: {e}")
-            if self.auth_config.enabled:
-                raise
-            return None
+        verifier = create_auth_verifier(self.auth_config)
+        if verifier is None:
+            raise RuntimeError("MCP_AUTH_ENABLED is set but no token verifier could be created")
+        logger.info(f"Authentication configured with issuer: {self.auth_config.issuer_url}")
+        return verifier
 
     @property
     def dependencies_available(self) -> bool:
-        """Lazy check for dependencies (only runs once, on first access)."""
         if not self._dependencies_checked:
             self._dependencies_available = self._check_dependencies()
             self._dependencies_checked = True
@@ -299,511 +257,213 @@ class MCPServer:
         return self._dependencies_available
 
     def setup_tools(self):
-        """Set up the tools for the MCP server by calling all registration functions."""
-        # Register all tool modules
-        register_helm_tools(self.server, self.non_destructive, self._check_helm_availability)
-        register_pod_tools(self.server, self.non_destructive)
-        register_core_tools(self.server, self.non_destructive)
-        register_cluster_tools(self.server, self.non_destructive)
-        register_multicluster_tools(self.server, self.non_destructive)
-        register_deployment_tools(self.server, self.non_destructive)
-        register_security_tools(self.server, self.non_destructive)
-        register_networking_tools(self.server, self.non_destructive)
-        register_storage_tools(self.server, self.non_destructive)
-        register_operations_tools(self.server, self.non_destructive)
-        register_diagnostics_tools(self.server, self.non_destructive)
-        register_cost_tools(self.server, self.non_destructive)
+        registrar = ToolsetServer(self.server, self.toolsets)
+        register_kubectl_tools(registrar, self.non_destructive)
+        register_helm_tools(registrar, self.non_destructive, self._check_helm_availability)
+        for register in (
+            register_operations_tools,
+            register_pod_tools,
+            register_cluster_tools,
+            register_multicluster_tools,
+            register_networking_tools,
+            register_diagnostics_tools,
+            register_security_tools,
+            register_cost_tools,
+            register_custom_resource_tools,
+            register_gitops_tools,
+            register_certs_tools,
+            register_policy_tools,
+            register_backup_tools,
+            register_keda_tools,
+            register_cilium_tools,
+            register_rollouts_tools,
+            register_capi_tools,
+            register_kubevirt_tools,
+            register_istio_tools,
+            register_kind_tools,
+            register_vind_tools,
+        ):
+            register(registrar, self.non_destructive)
+        self.registered_tools = registrar.registered
+        logger.info(f"Toolsets: {', '.join(sorted(self.toolsets))} ({len(self.registered_tools)} tools)")
 
-        # Register optional browser tools if enabled and available
-        if is_browser_available():
-            register_browser_tools(self.server, self.non_destructive)
-            logger.info("Browser automation tools enabled (MCP_BROWSER_ENABLED=true)")
-        else:
-            logger.debug("Browser tools disabled (set MCP_BROWSER_ENABLED=true to enable)")
+    def _enable_tool_search(self) -> None:
+        """List only default-toolset tools plus search_tools/call_tool; the rest is found on demand."""
+        from fastmcp.server.transforms.search import BM25SearchTransform
 
-        # Register MCP-UI tools for interactive dashboards (optional)
-        if is_ui_available():
-            register_ui_tools(self.server, self.non_destructive)
-            logger.info("MCP-UI tools enabled (mcp-ui-server installed)")
-        else:
-            logger.debug("MCP-UI tools disabled (install mcp-ui-server to enable)")
-
-        # Register ecosystem tools (GitOps, Cert-Manager, Policy, Backup)
-        # These tools auto-detect installed CRDs and gracefully handle missing components
-        register_gitops_tools(self.server, self.non_destructive)
-        register_certs_tools(self.server, self.non_destructive)
-        register_policy_tools(self.server, self.non_destructive)
-        register_backup_tools(self.server, self.non_destructive)
-        logger.debug("Ecosystem tools registered (GitOps, Certs, Policy, Backup)")
-
-        # Register advanced ecosystem tools (KEDA, Cilium, Rollouts, CAPI, KubeVirt, Istio)
-        register_keda_tools(self.server, self.non_destructive)
-        register_cilium_tools(self.server, self.non_destructive)
-        register_rollouts_tools(self.server, self.non_destructive)
-        register_capi_tools(self.server, self.non_destructive)
-        register_kubevirt_tools(self.server, self.non_destructive)
-        register_istio_tools(self.server, self.non_destructive)
-        register_vind_tools(self.server, self.non_destructive)
-        register_kind_tools(self.server, self.non_destructive)
-        logger.debug("Advanced ecosystem tools registered (KEDA, Cilium, Rollouts, CAPI, KubeVirt, Istio, vind, kind)")
-
-        register_custom_resource_tools(self.server, self.non_destructive)
-        logger.debug("Custom resource discovery tools registered (5 tools)")
+        pinned = [n for n in self.registered_tools if TOOL_TOOLSET[n] in DEFAULT_TOOLSETS]
+        self.server.add_transform(BM25SearchTransform(max_results=8, always_visible=pinned))
+        logger.info(f"Tool search enabled: {len(pinned)} tools pinned, {len(self.registered_tools) - len(pinned)} searchable")
 
     def setup_resources(self):
-        """Set up MCP resources for Kubernetes data exposure."""
         register_resources(self.server)
 
     def setup_prompts(self):
-        """Set up MCP prompts from built-in and custom config."""
-        # Get custom prompts path from config if specified
-        prompts_config_path = None
-        if hasattr(self.config, 'prompts') and hasattr(self.config.prompts, 'file'):
-            prompts_config_path = self.config.prompts.file
-        register_prompts(self.server, config_path=prompts_config_path)
+        prompts_config = getattr(self.config, "prompts", None)
+        register_prompts(self.server, config_path=getattr(prompts_config, "file", None))
+
+    def _setup_routes(self) -> None:
+        from starlette.responses import JSONResponse, PlainTextResponse
+
+        @self.server.custom_route("/health", methods=["GET"], include_in_schema=False)
+        async def health(request):
+            return JSONResponse({"status": "healthy", "server": self.name, "version": __version__})
+
+        @self.server.custom_route("/stats", methods=["GET"], include_in_schema=False)
+        async def stats(request):
+            return JSONResponse(self._stats.get_stats())
+
+        @self.server.custom_route("/metrics", methods=["GET"], include_in_schema=False)
+        async def metrics(request):
+            if is_prometheus_available():
+                return PlainTextResponse(get_metrics(), media_type="text/plain; version=0.0.4; charset=utf-8")
+            return PlainTextResponse("# Prometheus metrics not available\n", media_type="text/plain")
+
+        @self.server.custom_route("/safety", methods=["GET"], include_in_schema=False)
+        async def safety(request):
+            return JSONResponse(get_mode_info())
 
     def _check_dependencies(self) -> bool:
-        """Check if required dependencies are available."""
         kubectl_ok = self._check_kubectl_availability()
         if not kubectl_ok:
             logger.warning("kubectl is not available in PATH")
         return kubectl_ok
 
     def _check_tool_availability(self, tool: str) -> bool:
-        """Check if a tool (kubectl, helm) is available and working."""
+        if shutil.which(tool) is None:
+            return False
+        version_args = {"kubectl": ["version", "--client", "--output=json"], "helm": ["version", "--short"]}
         try:
-            import subprocess
-            import shutil
-            if shutil.which(tool) is None:
-                return False
-            if tool == "kubectl":
-                subprocess.check_output(
-                    [tool, "version", "--client", "--output=json"],
-                    stderr=subprocess.PIPE,
-                    timeout=2
-                )
-            elif tool == "helm":
-                subprocess.check_output(
-                    [tool, "version", "--short"],
-                    stderr=subprocess.PIPE,
-                    timeout=2
-                )
+            subprocess.check_output([tool, *version_args.get(tool, ["version"])], stderr=subprocess.PIPE, timeout=2)
             return True
-        except (subprocess.SubprocessError, subprocess.TimeoutExpired, FileNotFoundError):
+        except (subprocess.SubprocessError, OSError):
             return False
 
     def _check_kubectl_availability(self) -> bool:
-        """Check if kubectl is available."""
         return self._check_tool_availability("kubectl")
 
     def _check_helm_availability(self) -> bool:
-        """Check if helm is available."""
         return self._check_tool_availability("helm")
 
     def _check_destructive(self):
-        """Check if destructive operations are allowed.
-
-        Returns None if allowed, error dict if blocked.
-        """
+        """Return None if destructive operations are allowed, an error dict otherwise."""
         if self.non_destructive:
             return {"success": False, "error": "Operation blocked: non-destructive mode enabled"}
         return None
 
     def _mask_secrets(self, text: str) -> str:
-        """Mask sensitive data in text output.
-
-        Masks base64-encoded secrets, passwords, tokens, and API keys.
-        """
-        import re
-
-        # Mask base64-encoded data (common in Kubernetes secrets)
-        # Match data fields with base64 values (at least 16 chars)
-        text = re.sub(
-            r'(data:\s*\n(?:\s+\w+:\s*)[A-Za-z0-9+/=]{16,})',
-            lambda m: re.sub(r':\s*[A-Za-z0-9+/=]{16,}', ': [MASKED]', m.group(0)),
-            text
-        )
-
-        # Mask password fields
-        text = re.sub(
-            r'(password|passwd|secret|credential)(\s*[=:]\s*)["\']?[^"\'\s]+["\']?',
-            r'\1\2[MASKED]',
-            text,
-            flags=re.IGNORECASE
-        )
-
-        # Mask token fields
-        text = re.sub(
-            r'(token|api[_-]?key|auth[_-]?key)(\s*[=:]\s*)["\']?[^"\'\s]+["\']?',
-            r'\1\2[MASKED]',
-            text,
-            flags=re.IGNORECASE
-        )
-
-        # Mask Bearer tokens
-        text = re.sub(
-            r'(Bearer\s+)[A-Za-z0-9._-]+',
-            r'\1[MASKED]',
-            text
-        )
-
-        # Mask JWT tokens (three base64 sections separated by dots)
-        text = re.sub(
-            r'eyJ[A-Za-z0-9_-]*\.eyJ[A-Za-z0-9_-]*\.[A-Za-z0-9_-]*',
-            '[MASKED]',
-            text
-        )
-
-        return text
+        return mask_secrets(text)
 
     async def serve_stdio(self):
-        """Serve the MCP server over stdio transport."""
-        if os.environ.get("MCP_DEBUG", "").lower() in ("1", "true"):
-            logger.debug("Starting MCP server with stdio transport")
+        if _env_flag("MCP_DEBUG"):
             logger.debug(f"Working directory: {os.getcwd()}")
-            kube_config = os.environ.get('KUBECONFIG', '~/.kube/config')
-            expanded_path = os.path.expanduser(kube_config)
-            logger.debug(f"KUBECONFIG: {expanded_path}")
+            logger.debug(f"KUBECONFIG: {os.path.expanduser(os.environ.get('KUBECONFIG', '~/.kube/config'))}")
             logger.debug(f"Dependencies: {'available' if self.dependencies_available else 'missing'}")
+        await self.server.run_stdio_async(show_banner=False)
 
-        await self.server.run_stdio_async()
-
-    async def serve_sse(self, host: str = "0.0.0.0", port: int = 8000):
-        """Serve the MCP server over SSE transport.
-
-        Uses FastMCP 3's create_sse_app() to create a Starlette ASGI application
-        that handles Server-Sent Events for MCP communication.
-
-        SSE Endpoints:
-            - GET /sse: SSE connection endpoint for receiving server events
-            - POST /messages/: Endpoint for sending messages to the server
-        """
-        logger.info(f"Starting MCP server with SSE transport on {host}:{port}")
-
-        try:
-            import uvicorn
-        except ImportError:
-            logger.error("SSE transport requires 'uvicorn'. Install with: pip install uvicorn")
-            raise ImportError("Missing dependency for SSE transport. Run: pip install uvicorn")
-
-        try:
-            # FastMCP 3 uses create_sse_app() to create a Starlette ASGI app
-            from fastmcp.server.http import create_sse_app
-            from starlette.applications import Starlette
-            from starlette.responses import JSONResponse, PlainTextResponse
-            from starlette.routing import Route, Mount
-
-            # Create observability endpoints
-            async def health_check(request):
-                return JSONResponse({"status": "healthy", "server": self.name})
-
-            async def stats_endpoint(request):
-                stats = self._stats.get_stats()
-                return JSONResponse(stats)
-
-            async def metrics_endpoint(request):
-                if is_prometheus_available():
-                    metrics_text = get_metrics()
-                    return PlainTextResponse(metrics_text, media_type="text/plain; version=0.0.4; charset=utf-8")
-                else:
-                    return PlainTextResponse("# Prometheus metrics not available\n", media_type="text/plain")
-
-            async def safety_mode_endpoint(request):
-                mode_info = get_mode_info()
-                return JSONResponse(mode_info)
-
-            # Create the SSE Starlette application
-            # message_path: POST endpoint for client messages
-            # sse_path: GET endpoint for SSE event stream
-            sse_app = create_sse_app(
-                self.server,
-                message_path="/messages/",
-                sse_path="/sse"
-            )
-
-            # Create combined app with SSE and observability endpoints
-            app = Starlette(
-                routes=[
-                    Route("/health", health_check, methods=["GET"]),
-                    Route("/stats", stats_endpoint, methods=["GET"]),
-                    Route("/metrics", metrics_endpoint, methods=["GET"]),
-                    Route("/safety", safety_mode_endpoint, methods=["GET"]),
-                    Mount("/", app=sse_app),  # Mount SSE app at root
-                ]
-            )
-
-            logger.info(f"SSE endpoints: GET /sse (events), POST /messages/ (messages)")
-            logger.info(f"Observability endpoints: GET /health, /stats, /metrics, /safety")
-
-            # Run with uvicorn
-            config = uvicorn.Config(app, host=host, port=port, log_level="info")
-            server = uvicorn.Server(config)
-            await server.serve()
-
-        except ImportError as e:
-            # Fallback for older FastMCP versions that might have run_sse_async
-            logger.warning(f"create_sse_app not available: {e}. Trying legacy API...")
-            try:
-                await self.server.run_sse_async(host=host, port=port)
-            except (TypeError, AttributeError):
-                try:
-                    await self.server.run_sse_async(port=port)
-                except (TypeError, AttributeError):
-                    await self.server.run_sse_async()
-
-    async def serve_http(self, host: str = "0.0.0.0", port: int = 8000):
-        """
-        Serve the MCP server over HTTP transport (streamable HTTP).
-        This is an alternative to SSE that some clients prefer.
-        """
-        logger.info(f"Starting MCP server with HTTP transport on {host}:{port}")
-
-        try:
-            # Check if FastMCP supports streamable HTTP
-            if hasattr(self.server, 'run_http_async'):
-                await self.server.run_http_async(host=host, port=port)
-            elif hasattr(self.server, 'run_streamable_http_async'):
-                await self.server.run_streamable_http_async(host=host, port=port)
-            else:
-                # Fall back to implementing HTTP transport manually using ASGI
-                logger.info("FastMCP does not have built-in HTTP support, using custom implementation")
-                await self._serve_http_custom(host=host, port=port)
-        except TypeError as e:
-            logger.warning(f"HTTP transport parameter issue: {e}. Trying alternative signatures...")
-            # Try without parameters
-            if hasattr(self.server, 'run_http_async'):
-                await self.server.run_http_async()
-            elif hasattr(self.server, 'run_streamable_http_async'):
-                await self.server.run_streamable_http_async()
-            else:
-                await self._serve_http_custom(host=host, port=port)
-
-    async def _serve_http_custom(self, host: str = "0.0.0.0", port: int = 8000):
-        """
-        Custom HTTP server implementation using uvicorn and Starlette.
-        Provides HTTP/JSON-RPC transport for MCP.
-        """
-        try:
-            from starlette.applications import Starlette
-            from starlette.responses import JSONResponse
-            from starlette.routing import Route
-            import uvicorn
-        except ImportError:
-            logger.error("HTTP transport requires 'starlette' and 'uvicorn'. Install with: pip install starlette uvicorn")
-            raise ImportError("Missing dependencies for HTTP transport. Run: pip install starlette uvicorn")
-
-        async def handle_mcp_request(request):
-            """Handle incoming MCP JSON-RPC requests."""
-            try:
-                body = await request.json()
-                logger.debug(f"Received MCP request: {body}")
-
-                # Get the method and params from the JSON-RPC request
-                method = body.get("method", "")
-                params = body.get("params", {})
-                request_id = body.get("id")
-
-                # Handle different MCP methods
-                if method == "initialize":
-                    result = {
-                        "protocolVersion": "2024-11-05",
-                        "capabilities": {
-                            "tools": {"listChanged": True},
-                            "resources": {"subscribe": False, "listChanged": True}
-                        },
-                        "serverInfo": {
-                            "name": self.name,
-                            "version": __version__
-                        }
-                    }
-                elif method == "tools/list":
-                    # Get list of tools from FastMCP
-                    tools = []
-                    if hasattr(self.server, '_tool_manager') and hasattr(self.server._tool_manager, 'tools'):
-                        for name, tool in self.server._tool_manager.tools.items():
-                            tools.append({
-                                "name": name,
-                                "description": tool.description if hasattr(tool, 'description') else "",
-                                "inputSchema": tool.parameters if hasattr(tool, 'parameters') else {}
-                            })
-                    result = {"tools": tools}
-                elif method == "tools/call":
-                    tool_name = params.get("name", "")
-                    tool_args = params.get("arguments", {})
-
-                    # Execute the tool
-                    if hasattr(self.server, '_tool_manager'):
-                        try:
-                            tool_result = await self.server._tool_manager.call_tool(tool_name, tool_args)
-                            result = {"content": [{"type": "text", "text": json.dumps(tool_result)}]}
-                        except Exception as e:
-                            result = {"content": [{"type": "text", "text": f"Error: {str(e)}"}], "isError": True}
-                    else:
-                        result = {"content": [{"type": "text", "text": "Tool manager not available"}], "isError": True}
-                elif method == "ping":
-                    result = {}
-                else:
-                    result = {"error": f"Unknown method: {method}"}
-
-                response = {
-                    "jsonrpc": "2.0",
-                    "id": request_id,
-                    "result": result
-                }
-                return JSONResponse(response)
-            except Exception as e:
-                logger.error(f"Error handling MCP request: {e}")
-                return JSONResponse({
-                    "jsonrpc": "2.0",
-                    "id": None,
-                    "error": {"code": -32603, "message": str(e)}
-                }, status_code=500)
-
-        async def health_check(request):
-            """Health check endpoint."""
-            return JSONResponse({"status": "healthy", "server": self.name})
-
-        async def stats_endpoint(request):
-            """Return runtime statistics."""
-            stats = self._stats.get_stats()
-            return JSONResponse(stats)
-
-        async def metrics_endpoint(request):
-            """Return Prometheus-format metrics."""
-            from starlette.responses import PlainTextResponse
-            if is_prometheus_available():
-                metrics_text = get_metrics()
-                return PlainTextResponse(metrics_text, media_type="text/plain; version=0.0.4; charset=utf-8")
-            else:
-                return PlainTextResponse("# Prometheus metrics not available\n", media_type="text/plain")
-
-        async def safety_mode_endpoint(request):
-            """Return current safety mode information."""
-            mode_info = get_mode_info()
-            return JSONResponse(mode_info)
-
-        app = Starlette(
-            routes=[
-                Route("/", handle_mcp_request, methods=["POST"]),
-                Route("/mcp", handle_mcp_request, methods=["POST"]),
-                Route("/health", health_check, methods=["GET"]),
-                Route("/stats", stats_endpoint, methods=["GET"]),
-                Route("/metrics", metrics_endpoint, methods=["GET"]),
-                Route("/safety", safety_mode_endpoint, methods=["GET"]),
-            ]
+    async def serve_http(self, host: str = "127.0.0.1", port: int = 8000, allow_unauthenticated: bool = False):
+        """Serve Streamable HTTP at /mcp. Stateless: any replica can answer any request."""
+        ensure_network_exposure_allowed(host, self.auth_config.enabled, allow_unauthenticated)
+        logger.info(f"Streamable HTTP (stateless) on http://{host}:{port}{MCP_PATH}; health at /health")
+        await self.server.run_http_async(
+            transport="http",
+            host=host,
+            port=port,
+            path=MCP_PATH,
+            stateless_http=True,
+            show_banner=False,
+            allowed_hosts=_env_list("MCP_ALLOWED_HOSTS"),
+            allowed_origins=_env_list("MCP_ALLOWED_ORIGINS"),
         )
 
-        config = uvicorn.Config(app, host=host, port=port, log_level="info")
-        server = uvicorn.Server(config)
-        await server.serve()
+    async def serve_sse(self, host: str = "127.0.0.1", port: int = 8000, allow_unauthenticated: bool = False):
+        """Serve the legacy HTTP+SSE transport (deprecated by the MCP spec; use --transport http)."""
+        ensure_network_exposure_allowed(host, self.auth_config.enabled, allow_unauthenticated)
+        logger.warning("The SSE transport is deprecated (SEP-2596) and session-bound; prefer --transport http.")
+        await self.server.run_http_async(
+            transport="sse",
+            host=host,
+            port=port,
+            show_banner=False,
+            allowed_hosts=_env_list("MCP_ALLOWED_HOSTS"),
+            allowed_origins=_env_list("MCP_ALLOWED_ORIGINS"),
+        )
 
 
-if __name__ == "__main__":
-    import argparse
-    import signal
-
-    parser = argparse.ArgumentParser(description="Run the Kubectl MCP Server.")
+def add_serve_arguments(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
     parser.add_argument(
         "--transport",
-        type=str,
-        choices=["stdio", "sse", "http", "streamable-http"],
-        default="stdio",
-        help="Communication transport to use (stdio, sse, http, or streamable-http). Default: stdio.",
+        choices=["stdio", "http", "streamable-http", "sse"],
+        default=os.environ.get("MCP_SERVER_TRANSPORT", "stdio"),
+        help="stdio (default), http/streamable-http (stateless), or sse (deprecated). Env: MCP_SERVER_TRANSPORT",
     )
-    parser.add_argument(
-        "--port",
-        type=int,
-        default=8000,
-        help="Port to use for SSE/HTTP transport. Default: 8000.",
-    )
-    parser.add_argument(
-        "--host",
-        type=str,
-        default="0.0.0.0",
-        help="Host to bind to for SSE/HTTP transport. Default: 0.0.0.0.",
-    )
-    parser.add_argument(
-        "--config",
-        type=str,
-        default=None,
-        help="Path to TOML configuration file.",
-    )
-    parser.add_argument(
-        "--read-only",
-        action="store_true",
-        help="Enable read-only mode (block all write operations).",
-    )
-    parser.add_argument(
-        "--disable-destructive",
-        "--non-destructive",
-        action="store_true",
-        help="Disable destructive operations (allow create/update, block delete).",
-    )
-    parser.add_argument(
-        "--confirm-destructive",
-        action="store_true",
-        help="Require user confirmation for destructive operations via elicitation. Block if client doesn't support it.",
-    )
-    parser.add_argument(
-        "--stateless",
-        action="store_true",
-        help="Enable stateless mode (don't cache API clients, reload config each request). Useful for serverless environments.",
-    )
-    parser.add_argument(
-        "--watch-kubeconfig",
-        action="store_true",
-        help="Watch kubeconfig files for changes and auto-reload. Useful when credentials are refreshed externally.",
-    )
-    parser.add_argument(
-        "--watch-interval",
-        type=float,
-        default=5.0,
-        help="Interval in seconds for kubeconfig watch checks. Default: 5.0.",
-    )
-    args = parser.parse_args()
+    parser.add_argument("--host", default=os.environ.get("MCP_SERVER_HOST", "127.0.0.1"),
+                        help="Bind address for network transports (default: 127.0.0.1). Env: MCP_SERVER_HOST")
+    parser.add_argument("--port", type=int, default=int(os.environ.get("MCP_SERVER_PORT", "8000")),
+                        help="Port for network transports (default: 8000). Env: MCP_SERVER_PORT")
+    parser.add_argument("--allow-unauthenticated", action="store_true", default=_env_flag("MCP_ALLOW_UNAUTHENTICATED"),
+                        help="Allow binding a non-loopback address without OAuth. Env: MCP_ALLOW_UNAUTHENTICATED")
+    parser.add_argument("--read-only", action="store_true", help="Hide and block every tool that modifies state")
+    parser.add_argument("--disable-destructive", "--non-destructive", action="store_true",
+                        help="Allow create/update, block delete operations")
+    parser.add_argument("--confirm-destructive", action="store_true",
+                        help="Ask the user to confirm destructive operations (blocked if the client cannot ask)")
+    parser.add_argument("--toolsets", default=os.environ.get("MCP_TOOLSETS"),
+                        help="Comma-separated toolsets: default (core,helm), all, or names such as gitops,certs. Env: MCP_TOOLSETS")
+    parser.add_argument("--tool-search", action="store_true", default=_env_flag("MCP_TOOL_SEARCH"),
+                        help="List only default tools plus search_tools/call_tool for on-demand discovery. Env: MCP_TOOL_SEARCH")
+    parser.add_argument("--config", default=None, help="Path to TOML configuration file")
+    parser.add_argument("--stateless", action="store_true",
+                        help="Do not cache Kubernetes API clients; reload kubeconfig on every request. Env: MCP_STATELESS_MODE")
+    parser.add_argument("--watch-kubeconfig", action="store_true",
+                        help="Reload kubeconfig automatically when the file changes. Env: MCP_KUBECONFIG_WATCH")
+    parser.add_argument("--watch-interval", type=float, default=5.0, help="Kubeconfig watch interval in seconds (default: 5.0)")
+    return parser
 
-    # Configure stateless mode if requested
-    if args.stateless or os.environ.get("MCP_STATELESS_MODE", "").lower() in ("true", "1", "yes"):
+
+def run_server(args: argparse.Namespace, name: str = "kubernetes") -> int:
+    if args.stateless or _env_flag("MCP_STATELESS_MODE"):
         from kubectl_mcp_tool.k8s_config import set_stateless_mode
         set_stateless_mode(True)
-        logger.info("Stateless mode enabled via CLI flag")
 
-    # Configure kubeconfig watching if requested
-    if args.watch_kubeconfig or os.environ.get("MCP_KUBECONFIG_WATCH", "").lower() in ("true", "1", "yes"):
+    if args.watch_kubeconfig or _env_flag("MCP_KUBECONFIG_WATCH"):
         from kubectl_mcp_tool.k8s_config import enable_kubeconfig_watch
         enable_kubeconfig_watch(check_interval=args.watch_interval)
-        logger.info(f"Kubeconfig watching enabled (interval: {args.watch_interval}s)")
 
-    server_name = "kubectl_mcp_server"
-    mcp_server = MCPServer(
-        name=server_name,
+    server = MCPServer(
+        name=name,
         read_only=args.read_only,
         disable_destructive=args.disable_destructive,
         confirm_destructive=args.confirm_destructive,
         config_file=args.config,
+        toolsets=args.toolsets,
+        tool_search=args.tool_search,
     )
-
-    # Handle signals gracefully with immediate exit
-    def signal_handler(sig, frame):
-        print("\nShutting down server...", file=sys.stderr)
-        os._exit(0)
-
-    signal.signal(signal.SIGINT, signal_handler)
-    signal.signal(signal.SIGTERM, signal_handler)
 
     try:
         if args.transport == "stdio":
-            logger.info(f"Starting {server_name} with stdio transport.")
-            asyncio.run(mcp_server.serve_stdio())
+            asyncio.run(server.serve_stdio())
         elif args.transport == "sse":
-            logger.info(f"Starting {server_name} with SSE transport on {args.host}:{args.port}.")
-            asyncio.run(mcp_server.serve_sse(host=args.host, port=args.port))
-        elif args.transport in ("http", "streamable-http"):
-            logger.info(f"Starting {server_name} with HTTP transport on {args.host}:{args.port}.")
-            asyncio.run(mcp_server.serve_http(host=args.host, port=args.port))
+            asyncio.run(server.serve_sse(host=args.host, port=args.port, allow_unauthenticated=args.allow_unauthenticated))
+        else:
+            asyncio.run(server.serve_http(host=args.host, port=args.port, allow_unauthenticated=args.allow_unauthenticated))
+    except NetworkExposureError as e:
+        logger.error(str(e))
+        return 2
     except KeyboardInterrupt:
-        print("\nShutting down server...", file=sys.stderr)
-    except SystemExit:
-        pass  # Clean exit
-    except Exception as e:
-        logger.error(f"Server exited with error: {e}", exc_info=True)
+        pass
+    return 0
+
+
+def main(argv: Optional[List[str]] = None) -> int:
+    argv = list(sys.argv[1:] if argv is None else argv)
+    if argv[:1] == ["serve"]:
+        argv = argv[1:]
+    parser = argparse.ArgumentParser(prog="kubectl-mcp-server", description="MCP server for Kubernetes")
+    parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
+    add_serve_arguments(parser)
+    return run_server(parser.parse_args(argv))
+
+
+if __name__ == "__main__":
+    sys.exit(main())

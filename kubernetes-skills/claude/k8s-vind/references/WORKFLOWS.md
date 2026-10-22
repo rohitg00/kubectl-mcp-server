@@ -7,9 +7,9 @@ Common vCluster patterns and workflows.
 ### Quick Development Environment
 
 ```python
-vind_create_cluster_tool(name="dev", connect=True)
+vind_create_cluster(name="dev", connect=True)
 
-vind_connect_tool(name="dev")
+vind_connect(name="dev")
 
 kubectl_apply(manifest="""
 apiVersion: apps/v1
@@ -36,12 +36,12 @@ spec:
 ### Feature Branch Environment
 
 ```python
-vind_create_cluster_tool(
+vind_create_cluster(
     name=f"feature-{branch_name}",
     namespace=f"feature-{branch_name}"
 )
 
-vind_delete_cluster_tool(
+vind_delete_cluster(
     name=f"feature-{branch_name}",
     delete_namespace=True
 )
@@ -55,20 +55,20 @@ vind_delete_cluster_tool(
 teams = ["frontend", "backend", "platform"]
 
 for team in teams:
-    vind_create_cluster_tool(
+    vind_create_cluster(
         name=f"{team}-dev",
         namespace=f"{team}-vcluster"
     )
 
-vind_list_clusters_tool()
+vind_list_clusters()
 ```
 
 ### Per-Environment Isolation
 
 ```python
-vind_create_cluster_tool(name="staging", namespace="staging-vcluster")
-vind_create_cluster_tool(name="qa", namespace="qa-vcluster")
-vind_create_cluster_tool(name="integration", namespace="integration-vcluster")
+vind_create_cluster(name="staging", namespace="staging-vcluster")
+vind_create_cluster(name="qa", namespace="qa-vcluster")
+vind_create_cluster(name="integration", namespace="integration-vcluster")
 ```
 
 ## Resource Management
@@ -76,9 +76,9 @@ vind_create_cluster_tool(name="integration", namespace="integration-vcluster")
 ### Cost-Saving Workflow
 
 ```python
-vind_pause_tool(name="dev-cluster")
+vind_pause(name="dev-cluster")
 
-vind_resume_tool(name="dev-cluster")
+vind_resume(name="dev-cluster")
 ```
 
 ### Scheduled Pause (Nights/Weekends)
@@ -87,10 +87,10 @@ vind_resume_tool(name="dev-cluster")
 clusters = ["dev", "staging", "qa"]
 
 for cluster in clusters:
-    vind_pause_tool(name=cluster)
+    vind_pause(name=cluster)
 
 for cluster in clusters:
-    vind_resume_tool(name=cluster)
+    vind_resume(name=cluster)
 ```
 
 ## CI/CD Integration
@@ -99,26 +99,26 @@ for cluster in clusters:
 
 ```python
 test_cluster = f"ci-test-{build_id}"
-vind_create_cluster_tool(name=test_cluster, connect=True)
+vind_create_cluster(name=test_cluster, connect=True)
 
 kubectl_apply(manifest=test_manifests)
 
-vind_delete_cluster_tool(name=test_cluster, delete_namespace=True)
+vind_delete_cluster(name=test_cluster, delete_namespace=True)
 ```
 
 ### PR Preview Environments
 
 ```python
 def create_preview(pr_number):
-    vind_create_cluster_tool(
+    vind_create_cluster(
         name=f"pr-{pr_number}",
         namespace=f"pr-{pr_number}",
         connect=True
     )
-    return vind_get_kubeconfig_tool(name=f"pr-{pr_number}")
+    return vind_get_kubeconfig(name=f"pr-{pr_number}")
 
 def cleanup_preview(pr_number):
-    vind_delete_cluster_tool(
+    vind_delete_cluster(
         name=f"pr-{pr_number}",
         delete_namespace=True
     )
@@ -129,28 +129,28 @@ def cleanup_preview(pr_number):
 ### Rolling Upgrade
 
 ```python
-vind_status_tool(name="prod-vcluster")
+vind_status(name="prod-vcluster")
 
-vind_upgrade_tool(
+vind_upgrade(
     name="prod-vcluster",
     kubernetes_version="v1.30.0"
 )
 
-vind_status_tool(name="prod-vcluster")
+vind_status(name="prod-vcluster")
 ```
 
 ### Blue-Green Upgrade
 
 ```python
-vind_create_cluster_tool(
+vind_create_cluster(
     name="new-prod",
     kubernetes_version="v1.30.0"
 )
 
-vind_connect_tool(name="new-prod")
+vind_connect(name="new-prod")
 kubectl_apply(manifest=production_workloads)
 
-vind_delete_cluster_tool(name="old-prod")
+vind_delete_cluster(name="old-prod")
 ```
 
 ## Troubleshooting Workflows
@@ -158,29 +158,29 @@ vind_delete_cluster_tool(name="old-prod")
 ### Cluster Not Starting
 
 ```python
-vind_detect_tool()
+detect_ecosystem()
 
-vind_logs_tool(name="my-cluster", tail=200)
+vind_describe(name="my-cluster")
 
-vind_status_tool(name="my-cluster")
+vind_status(name="my-cluster")
 
-get_events(namespace="my-cluster-vcluster")
+kubectl_get(resource_type="events", namespace="my-cluster-vcluster")
 ```
 
 ### Connection Issues
 
 ```python
-vind_disconnect_tool()
+vind_disconnect()
 
-vind_connect_tool(name="my-cluster")
+vind_connect(name="my-cluster")
 
-kubeconfig = vind_get_kubeconfig_tool(name="my-cluster")
+kubeconfig = vind_get_kubeconfig(name="my-cluster")
 ```
 
 ### Describe for Details
 
 ```python
-vind_describe_tool(name="my-cluster")
+vind_describe(name="my-cluster")
 ```
 
 ## Configuration Patterns
@@ -188,7 +188,7 @@ vind_describe_tool(name="my-cluster")
 ### Sync Resources to Host
 
 ```python
-vind_create_cluster_tool(
+vind_create_cluster(
     name="sync-cluster",
     set_values="sync.toHost.pods.enabled=true,sync.toHost.services.enabled=true"
 )
@@ -197,7 +197,7 @@ vind_create_cluster_tool(
 ### Custom K8s Version
 
 ```python
-vind_create_cluster_tool(
+vind_create_cluster(
     name="k8s-129",
     kubernetes_version="v1.29.0"
 )
@@ -206,20 +206,10 @@ vind_create_cluster_tool(
 ### With Specific Distro
 
 ```python
-vind_create_cluster_tool(
+vind_create_cluster(
     name="k3s-cluster",
     set_values="controlPlane.distro=k3s"
 )
-```
-
-## Platform UI
-
-### Start UI for Management
-
-```python
-vind_platform_start_tool()
-
-vind_platform_start_tool(host="0.0.0.0", port=9898)
 ```
 
 ## Comparison: vCluster vs Host Resources

@@ -1,8 +1,8 @@
 import logging
 import subprocess
 import re
-from datetime import datetime
-from typing import Any, Dict, List, Optional
+from datetime import datetime, timezone
+from typing import Any, Dict, Optional
 
 from mcp.types import ToolAnnotations
 
@@ -562,7 +562,7 @@ def register_cost_tools(server: "FastMCP", non_destructive: bool):
             return {
                 "success": True,
                 "context": context or "current",
-                "timestamp": datetime.utcnow().isoformat() + "Z",
+                "timestamp": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
                 "resourceType": resource_type,
                 "summary": {
                     "totalCpuMillicores": total_cpu,

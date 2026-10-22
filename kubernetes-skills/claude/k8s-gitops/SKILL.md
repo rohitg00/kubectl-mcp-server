@@ -1,10 +1,10 @@
 ---
 name: k8s-gitops
 description: Manage GitOps workflows with Flux and ArgoCD. Use for sync status, reconciliation, app management, source management, and GitOps troubleshooting.
-license: Apache-2.0
+license: MIT-0
 metadata:
   author: rohitg00
-  version: "1.0.0"
+  version: "2.0.0"
   tools: 7
   category: gitops
 ---
@@ -12,6 +12,8 @@ metadata:
 # Kubernetes GitOps
 
 GitOps workflows using Flux and ArgoCD with kubectl-mcp-server tools.
+
+> Requires the `gitops` toolset: start kubectl-mcp-server with `--toolsets default,gitops` (or `MCP_TOOLSETS=default,gitops`). For deep work, the project-maintained MCP servers may fit better: Argo CD: https://github.com/argoproj-labs/mcp-for-argocd; Flux: https://fluxoperator.dev/mcp-server/.
 
 ## When to Apply
 
@@ -24,40 +26,40 @@ Use this skill when:
 
 | Priority | Rule | Impact | Tools |
 |----------|------|--------|-------|
-| 1 | Check source readiness before troubleshooting | CRITICAL | `flux_sources_list_tool` |
-| 2 | Verify sync status before deployments | HIGH | `argocd_app_get_tool` |
-| 3 | Reconcile after git changes | MEDIUM | `flux_reconcile_tool` |
-| 4 | Suspend before manual changes | LOW | `flux_suspend_tool` |
+| 1 | Check source readiness before troubleshooting | CRITICAL | `gitops_sources_list` |
+| 2 | Verify sync status before deployments | HIGH | `gitops_app_get` |
+| 3 | Reconcile after git changes | MEDIUM | `gitops_app_sync` |
+| 4 | Suspend before manual changes | LOW | `kubectl_patch` |
 
 ## Quick Reference
 
 | Task | Tool | Example |
 |------|------|---------|
-| List Flux kustomizations | `flux_kustomizations_list_tool` | `flux_kustomizations_list_tool(namespace)` |
-| Reconcile Flux | `flux_reconcile_tool` | `flux_reconcile_tool(kind, name, namespace)` |
-| List ArgoCD apps | `argocd_apps_list_tool` | `argocd_apps_list_tool(namespace)` |
-| Sync ArgoCD | `argocd_sync_tool` | `argocd_sync_tool(name, namespace)` |
+| List Flux kustomizations | `gitops_apps_list` | `gitops_apps_list(namespace)` |
+| Reconcile Flux | `gitops_app_sync` | `gitops_app_sync(kind, name, namespace)` |
+| List ArgoCD apps | `gitops_apps_list` | `gitops_apps_list(namespace)` |
+| Sync ArgoCD | `gitops_app_sync` | `gitops_app_sync(name, namespace)` |
 
 ## Flux CD
 
 ### Check Flux Status
 
 ```python
-flux_kustomizations_list_tool(namespace="flux-system")
-flux_helmreleases_list_tool(namespace)
-flux_sources_list_tool(namespace="flux-system")
+gitops_apps_list(namespace="flux-system")
+gitops_apps_list(namespace)
+gitops_sources_list(namespace="flux-system")
 ```
 
 ### Reconcile Resources
 
 ```python
-flux_reconcile_tool(
+gitops_app_sync(
     kind="kustomization",
     name="my-app",
     namespace="flux-system"
 )
 
-flux_reconcile_tool(
+gitops_app_sync(
     kind="helmrelease",
     name="my-chart",
     namespace="default"
@@ -67,9 +69,9 @@ flux_reconcile_tool(
 ### Suspend/Resume
 
 ```python
-flux_suspend_tool(kind="kustomization", name="my-app", namespace="flux-system")
+kubectl_patch(resource_type="kustomization", name="my-app", namespace="flux-system", patch={"spec": {"suspend": true}}, patch_type="merge")
 
-flux_resume_tool(kind="kustomization", name="my-app", namespace="flux-system")
+kubectl_patch(resource_type="kustomization", name="my-app", namespace="flux-system", patch={"spec": {"suspend": false}}, patch_type="merge")
 ```
 
 See [FLUX.md](FLUX.md) for detailed Flux workflows.
@@ -79,25 +81,25 @@ See [FLUX.md](FLUX.md) for detailed Flux workflows.
 ### List Applications
 
 ```python
-argocd_apps_list_tool(namespace="argocd")
+gitops_apps_list(namespace="argocd")
 ```
 
 ### Get App Status
 
 ```python
-argocd_app_get_tool(name="my-app", namespace="argocd")
+gitops_app_get(kind="application", name="my-app", namespace="argocd")
 ```
 
 ### Sync Application
 
 ```python
-argocd_sync_tool(name="my-app", namespace="argocd")
+gitops_app_sync(kind="application", name="my-app", namespace="argocd")
 ```
 
 ### Refresh App
 
 ```python
-argocd_refresh_tool(name="my-app", namespace="argocd")
+gitops_app_sync(kind="application", name="my-app", namespace="argocd")
 ```
 
 See [ARGOCD.md](ARGOCD.md) for detailed ArgoCD workflows.
@@ -108,36 +110,36 @@ See [ARGOCD.md](ARGOCD.md) for detailed ArgoCD workflows.
 
 | Symptom | Check | Resolution |
 |---------|-------|------------|
-| Source not ready | `flux_sources_list_tool()` | Check git credentials |
-| Kustomization failed | `flux_kustomizations_list_tool()` | Check manifest errors |
-| HelmRelease failed | `flux_helmreleases_list_tool()` | Check values, chart version |
+| Source not ready | `gitops_sources_list()` | Check git credentials |
+| Kustomization failed | `gitops_apps_list()` | Check manifest errors |
+| HelmRelease failed | `gitops_apps_list()` | Check values, chart version |
 
 ### ArgoCD Out of Sync
 
 | Symptom | Check | Resolution |
 |---------|-------|------------|
-| OutOfSync | `argocd_app_get_tool()` | Manual sync or check auto-sync |
+| OutOfSync | `gitops_app_get()` | Manual sync or check auto-sync |
 | Degraded | Check health status | Fix unhealthy resources |
-| Unknown | Refresh app | `argocd_refresh_tool()` |
+| Unknown | Refresh app | `gitops_app_sync()` |
 
 ## Environment Promotion
 
 ### With Flux Kustomizations
 
 ```python
-flux_reconcile_tool(kind="kustomization", name="staging", namespace="flux-system")
+gitops_app_sync(kind="kustomization", name="staging", namespace="flux-system")
 
-flux_reconcile_tool(kind="kustomization", name="production", namespace="flux-system")
+gitops_app_sync(kind="kustomization", name="production", namespace="flux-system")
 ```
 
 ### With ArgoCD
 
 ```python
-argocd_sync_tool(name="app-staging", namespace="argocd")
+gitops_app_sync(kind="application", name="app-staging", namespace="argocd")
 
-argocd_app_get_tool(name="app-staging", namespace="argocd")
+gitops_app_get(kind="application", name="app-staging", namespace="argocd")
 
-argocd_sync_tool(name="app-production", namespace="argocd")
+gitops_app_sync(kind="application", name="app-production", namespace="argocd")
 ```
 
 ## Multi-Cluster GitOps
@@ -145,10 +147,10 @@ argocd_sync_tool(name="app-production", namespace="argocd")
 Manage GitOps across clusters:
 
 ```python
-flux_kustomizations_list_tool(namespace="flux-system", context="cluster-1")
-flux_kustomizations_list_tool(namespace="flux-system", context="cluster-2")
+gitops_apps_list(namespace="flux-system", context="cluster-1")
+gitops_apps_list(namespace="flux-system", context="cluster-2")
 
-flux_reconcile_tool(
+gitops_app_sync(
     kind="kustomization",
     name="apps",
     namespace="flux-system",
@@ -161,9 +163,9 @@ flux_reconcile_tool(
 Compare live state with desired:
 
 ```python
-argocd_app_get_tool(name="my-app", namespace="argocd")
+gitops_app_get(kind="application", name="my-app", namespace="argocd")
 
-flux_kustomizations_list_tool(namespace="flux-system")
+gitops_apps_list(namespace="flux-system")
 ```
 
 ## Prerequisites

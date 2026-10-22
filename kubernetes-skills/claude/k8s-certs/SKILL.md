@@ -1,17 +1,19 @@
 ---
 name: k8s-certs
 description: Kubernetes certificate management with cert-manager. Use when managing TLS certificates, configuring issuers, or troubleshooting certificate issues.
-license: Apache-2.0
+license: MIT-0
 metadata:
   author: rohitg00
-  version: "1.0.0"
-  tools: 9
+  version: "2.0.0"
+  tools: 8
   category: security
 ---
 
 # Certificate Management with cert-manager
 
 Manage TLS certificates using kubectl-mcp-server's cert-manager tools.
+
+> Requires the `certs` toolset: start kubectl-mcp-server with `--toolsets default,certs` (or `MCP_TOOLSETS=default,certs`).
 
 ## When to Apply
 
@@ -24,24 +26,24 @@ Use this skill when:
 
 | Priority | Rule | Impact | Tools |
 |----------|------|--------|-------|
-| 1 | Detect cert-manager first | CRITICAL | `certmanager_detect_tool` |
+| 1 | Detect cert-manager first | CRITICAL | `detect_ecosystem` |
 | 2 | Use staging issuer for testing | HIGH | Test with letsencrypt-staging |
-| 3 | Check issuer before cert | HIGH | `certmanager_clusterissuers_list_tool` |
-| 4 | Monitor certificate expiry | MEDIUM | `certmanager_certificate_get_tool` |
+| 3 | Check issuer before cert | HIGH | `list_cert_issuers` |
+| 4 | Monitor certificate expiry | MEDIUM | `get_cert` |
 
 ## Quick Reference
 
 | Task | Tool | Example |
 |------|------|---------|
-| Detect cert-manager | `certmanager_detect_tool` | `certmanager_detect_tool()` |
-| List certificates | `certmanager_certificates_list_tool` | `certmanager_certificates_list_tool(namespace)` |
-| Get certificate | `certmanager_certificate_get_tool` | `certmanager_certificate_get_tool(name, namespace)` |
-| List issuers | `certmanager_clusterissuers_list_tool` | `certmanager_clusterissuers_list_tool()` |
+| Detect cert-manager | `detect_ecosystem` | `detect_ecosystem()` |
+| List certificates | `list_certs` | `list_certs(namespace)` |
+| Get certificate | `get_cert` | `get_cert(name, namespace)` |
+| List issuers | `list_cert_issuers` | `list_cert_issuers()` |
 
 ## Check Installation
 
 ```python
-certmanager_detect_tool()
+detect_ecosystem()
 ```
 
 ## Certificates
@@ -49,13 +51,13 @@ certmanager_detect_tool()
 ### List Certificates
 
 ```python
-certmanager_certificates_list_tool(namespace="default")
+list_certs(namespace="default")
 ```
 
 ### Get Certificate Details
 
 ```python
-certmanager_certificate_get_tool(
+get_cert(
     name="my-tls",
     namespace="default"
 )
@@ -86,16 +88,16 @@ spec:
 ### List Issuers
 
 ```python
-certmanager_issuers_list_tool(namespace="default")
+list_cert_issuers(namespace="default")
 
-certmanager_clusterissuers_list_tool()
+list_cert_issuers()
 ```
 
 ### Get Issuer Details
 
 ```python
-certmanager_issuer_get_tool(name="my-issuer", namespace="default")
-certmanager_clusterissuer_get_tool(name="letsencrypt-prod")
+get_cert_issuer(name="my-issuer", namespace="default")
+get_cert_issuer(name="letsencrypt-prod")
 ```
 
 ### Create Let's Encrypt Issuer
@@ -152,11 +154,11 @@ spec:
 ## Certificate Requests
 
 ```python
-certmanager_certificaterequests_list_tool(namespace="default")
+list_cert_requests(namespace="default")
 
-certmanager_certificaterequest_get_tool(
-    name="my-tls-xxxxx",
-    namespace="default"
+list_cert_requests(
+    namespace="default",
+    label_selector="app=my-app"
 )
 ```
 
@@ -165,16 +167,16 @@ certmanager_certificaterequest_get_tool(
 ### Certificate Not Ready
 
 ```python
-certmanager_certificate_get_tool(name, namespace)
-certmanager_certificaterequests_list_tool(namespace)
-get_events(namespace)
+get_cert(name, namespace)
+list_cert_requests(namespace)
+kubectl_get(resource_type="events", namespace)
 ```
 
 ### Issuer Not Ready
 
 ```python
-certmanager_clusterissuer_get_tool(name)
-get_events(namespace="cert-manager")
+get_cert_issuer(name)
+kubectl_get(resource_type="events", namespace="cert-manager")
 ```
 
 ## Ingress Integration

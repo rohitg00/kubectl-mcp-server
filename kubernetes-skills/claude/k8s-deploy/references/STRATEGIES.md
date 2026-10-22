@@ -196,7 +196,7 @@ Need instant rollback?
 
 | Strategy | Primary Tools |
 |----------|--------------|
-| Rolling | `set_deployment_image`, `rollout_status` |
-| Recreate | `kubectl_apply`, `get_pods` |
-| Blue-Green | `rollout_promote_tool`, `rollout_abort_tool` |
-| Canary | `rollout_status_tool`, `rollout_promote_tool`, `analysis_runs_list_tool` |
+| Rolling | `kubectl_patch`, `kubectl_rollout` |
+| Recreate | `kubectl_apply`, `kubectl_get` |
+| Blue-Green | `promote_rollout`, `abort_rollout` |
+| Canary | `get_rollout_status`, `promote_rollout`, `get_analysis_runs` |

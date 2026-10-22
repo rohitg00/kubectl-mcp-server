@@ -23,7 +23,7 @@ subjects:
 
 **Detection:**
 ```
-get_cluster_role_bindings()
+kubectl_get(resource_type="clusterroles")
 # Look for cluster-admin bindings to groups/users
 ```
 
@@ -39,8 +39,8 @@ rules:
 
 **Detection:**
 ```
-get_cluster_roles()
-get_roles(namespace)
+kubectl_get(resource_type="clusterroles")
+kubectl_get(resource_type="roles", namespace)
 # Check for * in verbs
 ```
 
@@ -56,7 +56,7 @@ rules:
 
 **Detection:**
 ```
-get_cluster_roles()
+kubectl_get(resource_type="clusterroles")
 # Check for secrets access
 ```
 
@@ -151,21 +151,21 @@ subjects:
 
 ```python
 # 1. Check cluster-admin bindings
-get_cluster_role_bindings()
+kubectl_get(resource_type="clusterroles")
 # Flag: Any non-system bindings to cluster-admin
 
 # 2. Review cluster roles
-get_cluster_roles()
+kubectl_get(resource_type="clusterroles")
 # Flag: Custom roles with wildcard access
 
 # 3. Check namespace roles
 for ns in namespaces:
-    get_roles(namespace=ns)
-    get_role_bindings(namespace=ns)
+    kubectl_get(resource_type="roles", namespace=ns)
+    kubectl_get(resource_type="roles", namespace=ns)
 # Flag: Overly permissive custom roles
 
 # 4. Review service accounts
-get_service_accounts(namespace)
+kubectl_get(resource_type="serviceaccounts", namespace)
 # Flag: Default SA used by workloads
 ```
 
