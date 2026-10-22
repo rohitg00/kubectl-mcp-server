@@ -25,7 +25,7 @@ Use this skill when:
 | Priority | Rule | Impact | Tools |
 |----------|------|--------|-------|
 | 1 | Verify storage class exists before PVC | CRITICAL | `get_storage_classes` |
-| 2 | Check PVC status before pod deployment | HIGH | `describe_pvc` |
+| 2 | Check PVC status before pod deployment | HIGH | `kubectl_describe` |
 | 3 | Review access modes for multi-pod access | MEDIUM | `get_pvcs` |
 | 4 | Monitor PV reclaim policy | LOW | `get_persistent_volumes` |
 
@@ -34,7 +34,7 @@ Use this skill when:
 | Task | Tool | Example |
 |------|------|---------|
 | List PVCs | `get_pvcs` | `get_pvcs(namespace)` |
-| PVC details | `describe_pvc` | `describe_pvc(name, namespace)` |
+| PVC details | `kubectl_describe` | `kubectl_describe(name, namespace)` |
 | Storage classes | `get_storage_classes` | `get_storage_classes()` |
 | List PVs | `get_persistent_volumes` | `get_persistent_volumes()` |
 
@@ -43,7 +43,7 @@ Use this skill when:
 ```python
 get_pvcs(namespace="default")
 
-describe_pvc(name="my-pvc", namespace="default")
+kubectl_describe(name="my-pvc", namespace="default")
 
 kubectl_apply(manifest="""
 apiVersion: v1
@@ -60,7 +60,7 @@ spec:
   storageClassName: standard
 """)
 
-kubectl_delete(resource_type="pvc", name="my-pvc", namespace="default")
+delete_resource(resource_type="pvc", name="my-pvc", namespace="default")
 ```
 
 ## Storage Classes
@@ -125,10 +125,10 @@ spec:
 ## Troubleshooting Storage
 
 ```python
-describe_pvc(name="my-pvc", namespace="default")
+kubectl_describe(name="my-pvc", namespace="default")
 
 get_events(namespace="default")
-describe_pod(name="my-pod", namespace="default")
+kubectl_describe(name="my-pod", namespace="default")
 ```
 
 ## Related Skills

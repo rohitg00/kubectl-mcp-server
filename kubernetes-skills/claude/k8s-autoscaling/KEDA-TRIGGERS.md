@@ -236,19 +236,19 @@ spec:
 
 ```python
 # List ScaledObjects
-keda_scaledobjects_list_tool(namespace)
+keda_scaledobjects_list(namespace)
 
 # Get ScaledObject details
-keda_scaledobject_get_tool(name, namespace)
+keda_scaledobject_get(name, namespace)
 
 # List TriggerAuthentications
-keda_triggerauths_list_tool(namespace)
+keda_triggerauths_list(namespace)
 
 # Get TriggerAuthentication
-keda_triggerauth_get_tool(name, namespace)
+keda_triggerauth_get(name, namespace)
 
 # List KEDA-managed HPAs
-keda_hpa_list_tool(namespace)
+keda_hpa_list(namespace)
 ```
 
 ## Troubleshooting
@@ -256,7 +256,7 @@ keda_hpa_list_tool(namespace)
 ### ScaledObject Not Scaling
 
 ```python
-keda_scaledobject_get_tool(name, namespace)
+keda_scaledobject_get(name, namespace)
 # Check status conditions
 get_events(namespace)
 ```

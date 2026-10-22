@@ -25,7 +25,7 @@ Use this skill when:
 | Priority | Rule | Impact | Tools |
 |----------|------|--------|-------|
 | 1 | Check namespace exists before operations | CRITICAL | `get_namespaces` |
-| 2 | Never expose secrets in plain text | CRITICAL | Handle `get_secret` output carefully |
+| 2 | Never expose secrets in plain text | CRITICAL | Handle `get_secrets` output carefully |
 | 3 | Use labels for filtering | HIGH | `label_selector` parameter |
 | 4 | Check events after changes | MEDIUM | `get_events` |
 
@@ -34,10 +34,10 @@ Use this skill when:
 | Task | Tool | Example |
 |------|------|---------|
 | List pods | `get_pods` | `get_pods(namespace="default")` |
-| Describe pod | `describe_pod` | `describe_pod(name, namespace)` |
-| Get logs | `get_pod_logs` | `get_pod_logs(name, namespace)` |
+| Describe pod | `kubectl_describe` | `kubectl_describe(name, namespace)` |
+| Get logs | `get_logs` | `get_logs(name, namespace)` |
 | List namespaces | `get_namespaces` | `get_namespaces()` |
-| Get configmap | `get_configmap` | `get_configmap(name, namespace)` |
+| Get configmap | `get_configmaps` | `get_configmaps(name, namespace)` |
 | List nodes | `get_nodes` | `get_nodes()` |
 
 ## Pods
@@ -46,10 +46,10 @@ Use this skill when:
 get_pods(namespace="default")
 get_pods(namespace="kube-system", label_selector="app=nginx")
 
-describe_pod(name="my-pod", namespace="default")
+kubectl_describe(name="my-pod", namespace="default")
 
-get_pod_logs(name="my-pod", namespace="default")
-get_pod_logs(name="my-pod", namespace="default", previous=True)
+get_logs(name="my-pod", namespace="default")
+get_logs(name="my-pod", namespace="default", previous=True)
 
 delete_pod(name="my-pod", namespace="default")
 ```
@@ -69,7 +69,7 @@ delete_namespace(name="my-namespace")
 ```python
 get_configmaps(namespace="default")
 
-get_configmap(name="my-config", namespace="default")
+get_configmaps(name="my-config", namespace="default")
 
 create_configmap(
     name="app-config",
@@ -83,7 +83,7 @@ create_configmap(
 ```python
 get_secrets(namespace="default")
 
-get_secret(name="my-secret", namespace="default")
+get_secrets(name="my-secret", namespace="default")
 
 create_secret(
     name="db-credentials",
@@ -97,7 +97,7 @@ create_secret(
 ```python
 get_nodes()
 
-describe_node(name="node-1")
+kubectl_describe(name="node-1")
 
 get_nodes_summary()
 

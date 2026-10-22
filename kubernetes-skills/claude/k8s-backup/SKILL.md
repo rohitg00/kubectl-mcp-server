@@ -24,49 +24,49 @@ Use this skill when:
 
 | Priority | Rule | Impact | Tools |
 |----------|------|--------|-------|
-| 1 | Verify Velero installation first | CRITICAL | `velero_detect_tool` |
-| 2 | Check backup location before create | HIGH | `velero_backup_locations_list_tool` |
-| 3 | Wait for backup completion | HIGH | `velero_backup_get_tool` |
-| 4 | Test restores to non-prod first | MEDIUM | `velero_restore_create_tool` |
+| 1 | Verify Velero installation first | CRITICAL | `detect_backup` |
+| 2 | Check backup location before create | HIGH | `list_backup_locations` |
+| 3 | Wait for backup completion | HIGH | `get_backup` |
+| 4 | Test restores to non-prod first | MEDIUM | `create_restore` |
 
 ## Quick Reference
 
 | Task | Tool | Example |
 |------|------|---------|
-| Detect Velero | `velero_detect_tool` | `velero_detect_tool()` |
-| List backups | `velero_backups_list_tool` | `velero_backups_list_tool()` |
-| Create backup | `velero_backup_create_tool` | `velero_backup_create_tool(name, namespaces)` |
-| Restore | `velero_restore_create_tool` | `velero_restore_create_tool(name, backup_name)` |
+| Detect Velero | `detect_backup` | `detect_backup()` |
+| List backups | `list_backups` | `list_backups()` |
+| Create backup | `create_backup` | `create_backup(name, namespaces)` |
+| Restore | `create_restore` | `create_restore(name, backup_name)` |
 
 ## Check Velero Installation
 
 ```python
-velero_detect_tool()
+detect_backup()
 
-velero_backup_locations_list_tool()
+list_backup_locations()
 ```
 
 ## Create Backups
 
 ```python
-velero_backup_create_tool(
+create_backup(
     name="my-backup",
     namespaces=["default", "app-namespace"]
 )
 
-velero_backup_create_tool(
+create_backup(
     name="app-backup",
     namespaces=["default"],
     label_selector="app=my-app"
 )
 
-velero_backup_create_tool(
+create_backup(
     name="config-backup",
     namespaces=["default"],
     exclude_resources=["pods", "replicasets"]
 )
 
-velero_backup_create_tool(
+create_backup(
     name="daily-backup",
     namespaces=["production"],
     ttl="720h"
@@ -76,32 +76,32 @@ velero_backup_create_tool(
 ## List and Describe Backups
 
 ```python
-velero_backups_list_tool()
+list_backups()
 
-velero_backup_get_tool(name="my-backup")
+get_backup(name="my-backup")
 ```
 
 ## Restore from Backup
 
 ```python
-velero_restore_create_tool(
+create_restore(
     name="my-restore",
     backup_name="my-backup"
 )
 
-velero_restore_create_tool(
+create_restore(
     name="my-restore",
     backup_name="my-backup",
     namespace_mappings={"old-ns": "new-ns"}
 )
 
-velero_restore_create_tool(
+create_restore(
     name="config-restore",
     backup_name="my-backup",
     include_resources=["configmaps", "secrets"]
 )
 
-velero_restore_create_tool(
+create_restore(
     name="partial-restore",
     backup_name="my-backup",
     exclude_resources=["persistentvolumeclaims"]
@@ -111,17 +111,17 @@ velero_restore_create_tool(
 ## List and Monitor Restores
 
 ```python
-velero_restores_list_tool()
+list_restores()
 
-velero_restore_get_tool(name="my-restore")
+get_restore(name="my-restore")
 ```
 
 ## Scheduled Backups
 
 ```python
-velero_schedules_list_tool()
+list_backup_schedules()
 
-velero_schedule_get_tool(name="daily-backup")
+list_backup_schedules(name="daily-backup")
 
 kubectl_apply(manifest="""
 apiVersion: velero.io/v1
@@ -145,23 +145,23 @@ spec:
 ```python
 from datetime import datetime
 
-velero_backup_create_tool(
+create_backup(
     name=f"dr-backup-{datetime.now().strftime('%Y%m%d-%H%M%S')}",
     namespaces=["production"]
 )
-velero_backup_get_tool(name="dr-backup-20260130-120000")
+get_backup(name="dr-backup-20260130-120000")
 ```
 
 ### Restore to New Cluster
 
 ```python
-velero_detect_tool()
-velero_backups_list_tool()
-velero_restore_create_tool(
+detect_backup()
+list_backups()
+create_restore(
     name="dr-restore",
     backup_name="dr-backup-..."
 )
-velero_restore_get_tool(name="dr-restore")
+get_restore(name="dr-restore")
 ```
 
 ## Prerequisites

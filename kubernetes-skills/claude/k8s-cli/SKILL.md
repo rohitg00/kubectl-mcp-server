@@ -127,10 +127,10 @@ kubectl-mcp-server call get_namespaces '{}'
 kubectl-mcp-server call get_pods '{"namespace": "default"}'
 
 # Describe pod
-kubectl-mcp-server call describe_pod '{"name": "nginx-xxx", "namespace": "default"}'
+kubectl-mcp-server call kubectl_describe '{"name": "nginx-xxx", "namespace": "default"}'
 
 # Get logs
-kubectl-mcp-server call get_pod_logs '{"name": "nginx-xxx", "namespace": "default"}'
+kubectl-mcp-server call get_logs '{"name": "nginx-xxx", "namespace": "default"}'
 
 # Scale deployment
 kubectl-mcp-server call scale_deployment '{"name": "nginx", "namespace": "default", "replicas": 3}'
@@ -153,7 +153,7 @@ kubectl-mcp-server context
 kubectl-mcp-server context production
 
 # List available contexts
-kubectl-mcp-server call list_contexts_tool '{}'
+kubectl-mcp-server call list_contexts '{}'
 ```
 
 ## Server Info
@@ -211,10 +211,9 @@ export MCP_DEBUG=true           # Enable debug logging
 export MCP_LOG_FILE=/var/log/mcp.log  # Log to file
 export NO_COLOR=1               # Disable colors
 
-# Browser (optional)
-export MCP_BROWSER_ENABLED=true
-export MCP_BROWSER_PROVIDER=browserbase
-export BROWSERBASE_API_KEY=bb_...
+# Safety
+export MCP_SAFETY_MODE=read-only   # read-only | disable-destructive | confirm | normal
+export MCP_MASK_SECRETS=true       # Redact Secret values in tool output (default)
 ```
 
 ## Claude Desktop Configuration

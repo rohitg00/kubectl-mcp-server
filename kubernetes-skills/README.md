@@ -52,7 +52,6 @@ kubernetes-skills/
 │   ├── k8s-kind/           # kind local clusters
 │   │   ├── SKILL.md
 │   │   └── references/     # Configuration examples
-│   ├── k8s-browser/        # Browser automation
 │   └── k8s-cli/            # MCP server CLI
 ```
 
@@ -85,7 +84,7 @@ Use this skill when:
 |----------|------|--------|-------|
 | 1 | Check pod status first | CRITICAL | `get_pods` |
 | 2 | View recent events | CRITICAL | `get_events` |
-| 3 | Inspect logs | HIGH | `get_pod_logs` |
+| 3 | Inspect logs | HIGH | `get_logs` |
 
 ## Quick Reference
 | Task | Tool | Example |
@@ -154,37 +153,35 @@ Convert manually by copying the content to your agent's format:
 | **Multi-Cluster** | k8s-multicluster, k8s-capi, k8s-kubevirt |
 | **Networking** | k8s-service-mesh, k8s-cilium |
 | **Development** | k8s-vind, k8s-kind |
-| **Tools** | k8s-browser, k8s-cli |
+| **Tools** | k8s-cli |
 
 ## MCP Server Features
 
-### Tool Categories (270+ tools)
+### Tool Categories (280+ tools)
 
 | Category | Tools | Examples |
 |----------|-------|----------|
 | **Core** | 17 | `get_pods`, `get_namespaces`, `get_configmaps`, `get_secrets` |
-| **Deployments** | 10 | `scale_deployment`, `rollback_deployment`, `set_deployment_image` |
-| **Networking** | 8 | `get_services`, `get_ingresses`, `get_network_policies` |
+| **Deployments** | 10 | `scale_deployment`, `kubectl_rollout`, `kubectl_patch` |
+| **Networking** | 8 | `get_services`, `get_ingress`, `analyze_network_policies` |
 | **Storage** | 3 | `get_pvcs`, `get_storage_classes`, `get_persistent_volumes` |
-| **Security** | 10 | `get_cluster_roles`, `get_role_bindings`, `get_service_accounts` |
-| **Helm** | 16 | `install_helm_chart`, `upgrade_helm_release`, `rollback_helm_release` |
-| **Operations** | 14 | `kubectl_apply`, `kubectl_delete`, `kubectl_patch`, `kubectl_exec` |
-| **Diagnostics** | 3 | `compare_namespaces`, `get_resource_metrics`, `cluster_health_check` |
-| **Cost** | 8 | `get_resource_quotas`, `find_overprovisioned`, `unused_resources` |
-| **GitOps** | 7 | `flux_reconcile_tool`, `argocd_sync_tool`, `argocd_app_status` |
-| **Cert-Manager** | 9 | `certmanager_certificates_list`, `certmanager_issuers_list` |
-| **Policy** | 6 | `kyverno_clusterpolicies_list`, `gatekeeper_constraints_list` |
-| **Backup** | 11 | `velero_backups_list`, `velero_backup_create`, `velero_restore_create` |
+| **Security** | 10 | `get_cluster_roles`, `get_rbac_roles`, `get_service_accounts` |
+| **Helm** | 16 | `install_helm_chart`, `upgrade_helm_chart`, `helm_rollback` |
+| **Operations** | 14 | `kubectl_apply`, `delete_resource`, `kubectl_patch`, `exec_in_pod` |
+| **Diagnostics** | 3 | `compare_namespaces`, `get_pod_metrics`, `cluster_health_check` |
+| **Cost** | 8 | `get_resource_quotas`, `get_overprovisioned_resources`, `get_idle_resources` |
+| **GitOps** | 7 | `gitops_apps_list`, `gitops_app_sync`, `gitops_app_status` |
+| **Cert-Manager** | 9 | `list_certs`, `list_cert_issuers` |
+| **Policy** | 6 | `get_policy_list`, `get_policy_violations` |
+| **Backup** | 11 | `list_backups`, `create_backup`, `create_restore` |
 | **KEDA** | 7 | `keda_scaledobjects_list`, `keda_scaledjobs_list` |
-| **Cilium** | 8 | `cilium_policies_list`, `hubble_flows_query` |
-| **Rollouts** | 11 | `rollout_promote`, `rollout_abort`, `flagger_canaries_list` |
-| **Cluster API** | 11 | `capi_clusters_list`, `capi_machines_list` |
+| **Cilium** | 8 | `cilium_list_policies`, `get_hubble_flows` |
+| **Rollouts** | 11 | `promote_rollout`, `abort_rollout`, `get_flagger_canaries` |
+| **Cluster API** | 11 | `capi_list_clusters`, `capi_list_machines` |
 | **KubeVirt** | 13 | `kubevirt_vms_list`, `kubevirt_vm_start`, `kubevirt_vm_migrate` |
 | **Istio** | 10 | `istio_virtualservices_list`, `istio_analyze`, `istio_proxy_status` |
 | **vCluster (vind)** | 14 | `vind_create_cluster`, `vind_connect`, `vind_pause` |
 | **kind** | 32 | `kind_create_cluster`, `kind_load_image`, `kind_get_kubeconfig` |
-| **Browser** | 26 | `browser_open`, `browser_screenshot`, `browser_click` (optional) |
-| **UI** | 6 | `ui_dashboard`, `ui_pod_table`, `ui_deployment_chart` |
 
 ### MCP Resources (8)
 
@@ -235,29 +232,11 @@ kubectl-mcp-server context
 kubectl-mcp-server context production
 ```
 
-### Browser Automation (Optional)
-
-Enable with `MCP_BROWSER_ENABLED=true`:
-
-```bash
-# Cloud providers
-export MCP_BROWSER_PROVIDER=browserbase  # or browseruse
-export BROWSERBASE_API_KEY=bb_...
-
-# Local browser
-browser_open "https://kubernetes.io/docs/"
-browser_screenshot "k8s-docs.png"
-browser_click "text=Documentation"
-```
-
 ## MCP Server Setup
 
 ```bash
 # Install
 pip install kubectl-mcp-server
-
-# Install with UI tools
-pip install kubectl-mcp-server[ui]
 
 # Run (HTTP transport)
 kubectl-mcp-server serve --transport streamable-http --port 8000

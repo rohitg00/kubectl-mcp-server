@@ -24,24 +24,24 @@ Use this skill when:
 
 | Priority | Rule | Impact | Tools |
 |----------|------|--------|-------|
-| 1 | Detect cert-manager first | CRITICAL | `certmanager_detect_tool` |
+| 1 | Detect cert-manager first | CRITICAL | `detect_certs` |
 | 2 | Use staging issuer for testing | HIGH | Test with letsencrypt-staging |
-| 3 | Check issuer before cert | HIGH | `certmanager_clusterissuers_list_tool` |
-| 4 | Monitor certificate expiry | MEDIUM | `certmanager_certificate_get_tool` |
+| 3 | Check issuer before cert | HIGH | `list_cert_issuers` |
+| 4 | Monitor certificate expiry | MEDIUM | `get_cert` |
 
 ## Quick Reference
 
 | Task | Tool | Example |
 |------|------|---------|
-| Detect cert-manager | `certmanager_detect_tool` | `certmanager_detect_tool()` |
-| List certificates | `certmanager_certificates_list_tool` | `certmanager_certificates_list_tool(namespace)` |
-| Get certificate | `certmanager_certificate_get_tool` | `certmanager_certificate_get_tool(name, namespace)` |
-| List issuers | `certmanager_clusterissuers_list_tool` | `certmanager_clusterissuers_list_tool()` |
+| Detect cert-manager | `detect_certs` | `detect_certs()` |
+| List certificates | `list_certs` | `list_certs(namespace)` |
+| Get certificate | `get_cert` | `get_cert(name, namespace)` |
+| List issuers | `list_cert_issuers` | `list_cert_issuers()` |
 
 ## Check Installation
 
 ```python
-certmanager_detect_tool()
+detect_certs()
 ```
 
 ## Certificates
@@ -49,13 +49,13 @@ certmanager_detect_tool()
 ### List Certificates
 
 ```python
-certmanager_certificates_list_tool(namespace="default")
+list_certs(namespace="default")
 ```
 
 ### Get Certificate Details
 
 ```python
-certmanager_certificate_get_tool(
+get_cert(
     name="my-tls",
     namespace="default"
 )
@@ -86,16 +86,16 @@ spec:
 ### List Issuers
 
 ```python
-certmanager_issuers_list_tool(namespace="default")
+list_cert_issuers(namespace="default")
 
-certmanager_clusterissuers_list_tool()
+list_cert_issuers()
 ```
 
 ### Get Issuer Details
 
 ```python
-certmanager_issuer_get_tool(name="my-issuer", namespace="default")
-certmanager_clusterissuer_get_tool(name="letsencrypt-prod")
+get_cert_issuer(name="my-issuer", namespace="default")
+get_cert_issuer(name="letsencrypt-prod")
 ```
 
 ### Create Let's Encrypt Issuer
@@ -152,9 +152,9 @@ spec:
 ## Certificate Requests
 
 ```python
-certmanager_certificaterequests_list_tool(namespace="default")
+list_cert_requests(namespace="default")
 
-certmanager_certificaterequest_get_tool(
+list_cert_requests(
     name="my-tls-xxxxx",
     namespace="default"
 )
@@ -165,15 +165,15 @@ certmanager_certificaterequest_get_tool(
 ### Certificate Not Ready
 
 ```python
-certmanager_certificate_get_tool(name, namespace)
-certmanager_certificaterequests_list_tool(namespace)
+get_cert(name, namespace)
+list_cert_requests(namespace)
 get_events(namespace)
 ```
 
 ### Issuer Not Ready
 
 ```python
-certmanager_clusterissuer_get_tool(name)
+get_cert_issuer(name)
 get_events(namespace="cert-manager")
 ```
 

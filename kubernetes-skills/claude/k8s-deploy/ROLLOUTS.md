@@ -70,26 +70,26 @@ spec:
 
 ```python
 # List all rollouts
-rollouts_list_tool(namespace="production")
+get_rollouts_list(namespace="production")
 
 # Get rollout details and status
-rollout_get_tool(name="my-app", namespace="production")
-rollout_status_tool(name="my-app", namespace="production")
+get_rollout(name="my-app", namespace="production")
+get_rollout_status(name="my-app", namespace="production")
 
 # Promote (advance canary)
-rollout_promote_tool(name="my-app", namespace="production")
+promote_rollout(name="my-app", namespace="production")
 
 # Abort (rollback)
-rollout_abort_tool(name="my-app", namespace="production")
+abort_rollout(name="my-app", namespace="production")
 
 # Retry failed rollout
-rollout_retry_tool(name="my-app", namespace="production")
+retry_rollout(name="my-app", namespace="production")
 
 # Restart rollout (new ReplicaSet)
-rollout_restart_tool(name="my-app", namespace="production")
+restart_rollout(name="my-app", namespace="production")
 
 # Check analysis runs
-analysis_runs_list_tool(namespace="production")
+get_analysis_runs(namespace="production")
 ```
 
 ## Common Workflows
@@ -97,25 +97,25 @@ analysis_runs_list_tool(namespace="production")
 ### Safe Canary Release
 
 ```
-1. rollout_status_tool(name, namespace)  # Check current state
+1. get_rollout_status(name, namespace)  # Check current state
 2. # Update image in rollout manifest
-3. apply_manifest(rollout_yaml, namespace)
-4. rollout_status_tool(name, namespace)  # Watch progress
-5. # If analysis fails: rollout_abort_tool(name, namespace)
-6. # If manual gate: rollout_promote_tool(name, namespace)
+3. kubectl_apply(rollout_yaml, namespace)
+4. get_rollout_status(name, namespace)  # Watch progress
+5. # If analysis fails: abort_rollout(name, namespace)
+6. # If manual gate: promote_rollout(name, namespace)
 ```
 
 ### Emergency Rollback
 
 ```
-rollout_abort_tool(name, namespace)
+abort_rollout(name, namespace)
 # Immediately reverts to stable version
 ```
 
 ### Force Full Promotion
 
 ```
-rollout_promote_tool(name, namespace, full=True)
+promote_rollout(name, namespace, full=True)
 # Skips remaining steps
 ```
 
@@ -124,15 +124,15 @@ rollout_promote_tool(name, namespace, full=True)
 ### Rollout Stuck
 
 ```
-rollout_status_tool(name, namespace)
-analysis_runs_list_tool(namespace)
+get_rollout_status(name, namespace)
+get_analysis_runs(namespace)
 get_events(namespace)
 ```
 
 ### Analysis Failing
 
 ```
-analysis_runs_list_tool(namespace)
+get_analysis_runs(namespace)
 # Check Prometheus query in AnalysisTemplate
 # Verify metrics are being collected
 ```

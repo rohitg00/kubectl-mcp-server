@@ -25,23 +25,23 @@ Use this skill when:
 
 | Priority | Rule | Impact | Tools |
 |----------|------|--------|-------|
-| 1 | Preview with template before apply | CRITICAL | `template_helm_chart` |
-| 2 | Check existing state first | CRITICAL | `get_pods`, `list_helm_releases` |
+| 1 | Preview with template before apply | CRITICAL | `helm_template` |
+| 2 | Check existing state first | CRITICAL | `get_pods`, `helm_list` |
 | 3 | Use progressive delivery for prod | HIGH | `rollout_*` tools |
 | 4 | Verify health after deployment | HIGH | `get_pod_metrics`, `get_endpoints` |
-| 5 | Keep rollback revision noted | MEDIUM | `get_helm_history` |
+| 5 | Keep rollback revision noted | MEDIUM | `helm_history` |
 | 6 | Scale incrementally | LOW | `scale_deployment` |
 
 ## Quick Reference
 
 | Task | Tool | Example |
 |------|------|---------|
-| Deploy from manifest | `kubectl_apply` | `apply_manifest(yaml, namespace)` |
+| Deploy from manifest | `kubectl_apply` | `kubectl_apply(yaml, namespace)` |
 | Deploy with Helm | `install_helm_chart` | `install_helm_chart(name, chart, namespace)` |
-| Update image | `set_deployment_image` | `set_deployment_image(name, ns, container, image)` |
+| Update image | `kubectl_patch` | `kubectl_patch(name, ns, container, image)` |
 | Scale replicas | `scale_deployment` | `scale_deployment(name, ns, replicas=5)` |
-| Rollback | `rollback_deployment` | `rollback_deployment(name, ns, revision=0)` |
-| Canary promote | `rollout_promote_tool` | `rollout_promote_tool(name, ns)` |
+| Rollback | `kubectl_rollout` | `kubectl_rollout(name, ns, revision=0)` |
+| Canary promote | `promote_rollout` | `promote_rollout(name, ns)` |
 
 ## Standard Deployments
 
@@ -71,9 +71,9 @@ scale_deployment(name, namespace, replicas=5)
 ### Rolling Update
 
 ```python
-set_deployment_image(name, namespace, container="app", image="myapp:v2")
+kubectl_patch(name, namespace, container="app", image="myapp:v2")
 
-rollout_status(name, namespace, resource_type="deployment")
+kubectl_rollout(name, namespace, resource_type="deployment")
 ```
 
 ## Progressive Delivery
@@ -84,24 +84,24 @@ For canary and blue-green deployments with analysis.
 
 **List Rollouts**
 ```python
-rollouts_list_tool(namespace)
+get_rollouts_list(namespace)
 ```
 
 **Canary Promotion**
 ```python
-rollout_status_tool(name, namespace)
+get_rollout_status(name, namespace)
 
-rollout_promote_tool(name, namespace)
+promote_rollout(name, namespace)
 ```
 
 **Abort Bad Release**
 ```python
-rollout_abort_tool(name, namespace)
+abort_rollout(name, namespace)
 ```
 
 **Retry Failed Rollout**
 ```python
-rollout_retry_tool(name, namespace)
+retry_rollout(name, namespace)
 ```
 
 See [ROLLOUTS.md](ROLLOUTS.md) for detailed Argo Rollouts workflows.
@@ -111,15 +111,15 @@ See [ROLLOUTS.md](ROLLOUTS.md) for detailed Argo Rollouts workflows.
 For service mesh-integrated canary releases:
 
 ```python
-flagger_canaries_list_tool(namespace)
-flagger_canary_get_tool(name, namespace)
+get_flagger_canaries(namespace)
+get_flagger_canary(name, namespace)
 ```
 
 ## Deployment Strategies
 
 | Strategy | Use Case | Tools |
 |----------|----------|-------|
-| Rolling | Standard updates | `set_deployment_image`, `rollout_status` |
+| Rolling | Standard updates | `kubectl_patch`, `kubectl_rollout` |
 | Recreate | Stateful apps | Set strategy in manifest |
 | Canary | Risk mitigation | `rollout_*` tools |
 | Blue-Green | Zero downtime | `rollout_*` with blue-green |
@@ -131,21 +131,21 @@ See [references/STRATEGIES.md](references/STRATEGIES.md) for detailed strategy c
 ### Native Kubernetes
 
 ```python
-rollback_deployment(name, namespace, revision=0)
+kubectl_rollout(name, namespace, revision=0)
 
-rollback_deployment(name, namespace, revision=2)
+kubectl_rollout(name, namespace, revision=2)
 ```
 
 ### Helm Rollback
 
 ```python
-rollback_helm_release(name, namespace, revision=1)
+helm_rollback(name, namespace, revision=1)
 ```
 
 ### Argo Rollouts Rollback
 
 ```python
-rollout_abort_tool(name, namespace)
+abort_rollout(name, namespace)
 ```
 
 ## Health Verification

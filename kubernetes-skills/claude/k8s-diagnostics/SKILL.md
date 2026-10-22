@@ -24,7 +24,7 @@ Use this skill when:
 
 | Priority | Rule | Impact | Tools |
 |----------|------|--------|-------|
-| 1 | Check metrics-server before using metrics | CRITICAL | `get_resource_metrics` |
+| 1 | Check metrics-server before using metrics | CRITICAL | `get_pod_metrics` |
 | 2 | Run health check before deployments | HIGH | `cluster_health_check` |
 | 3 | Compare staging vs prod before release | MEDIUM | `compare_namespaces` |
 | 4 | Document baseline metrics | LOW | `get_nodes_summary` |
@@ -34,7 +34,7 @@ Use this skill when:
 | Task | Tool | Example |
 |------|------|---------|
 | Cluster health | `cluster_health_check` | `cluster_health_check()` |
-| Pod metrics | `get_resource_metrics` | `get_resource_metrics(namespace)` |
+| Pod metrics | `get_pod_metrics` | `get_pod_metrics(namespace)` |
 | Node summary | `get_nodes_summary` | `get_nodes_summary()` |
 | Compare envs | `compare_namespaces` | `compare_namespaces(ns1, ns2, type)` |
 | List CRDs | `list_crds` | `list_crds()` |
@@ -42,7 +42,7 @@ Use this skill when:
 ## Resource Metrics
 
 ```python
-get_resource_metrics(namespace="default")
+get_pod_metrics(namespace="default")
 
 get_node_metrics()
 
@@ -94,7 +94,7 @@ get_nodes_summary()
 
 kubeconfig_view()
 
-list_contexts_tool()
+list_contexts()
 ```
 
 ## Diagnostic Workflows
@@ -111,7 +111,7 @@ list_crds()
 ### Pre-deployment Check
 
 ```python
-get_resource_metrics(namespace="production")
+get_pod_metrics(namespace="production")
 get_nodes_summary()
 compare_namespaces(namespace1="staging", namespace2="prod", resource_type="deployment")
 ```
@@ -120,9 +120,9 @@ compare_namespaces(namespace1="staging", namespace2="prod", resource_type="deplo
 
 ```python
 get_events(namespace)
-get_pod_logs(name, namespace, previous=True)
-get_resource_metrics(namespace)
-describe_node(name)
+get_logs(name, namespace, previous=True)
+get_pod_metrics(namespace)
+kubectl_describe(name)
 ```
 
 ## Related Skills

@@ -23,7 +23,7 @@ subjects:
 
 **Detection:**
 ```
-get_cluster_role_bindings()
+get_cluster_roles()
 # Look for cluster-admin bindings to groups/users
 ```
 
@@ -40,7 +40,7 @@ rules:
 **Detection:**
 ```
 get_cluster_roles()
-get_roles(namespace)
+get_rbac_roles(namespace)
 # Check for * in verbs
 ```
 
@@ -151,7 +151,7 @@ subjects:
 
 ```python
 # 1. Check cluster-admin bindings
-get_cluster_role_bindings()
+get_cluster_roles()
 # Flag: Any non-system bindings to cluster-admin
 
 # 2. Review cluster roles
@@ -160,8 +160,8 @@ get_cluster_roles()
 
 # 3. Check namespace roles
 for ns in namespaces:
-    get_roles(namespace=ns)
-    get_role_bindings(namespace=ns)
+    get_rbac_roles(namespace=ns)
+    get_rbac_roles(namespace=ns)
 # Flag: Overly permissive custom roles
 
 # 4. Review service accounts

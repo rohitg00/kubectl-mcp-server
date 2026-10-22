@@ -17,7 +17,7 @@ Pod Status?
 │       └── Check scheduler pods in kube-system
 │
 ├── CrashLoopBackOff
-│   ├── get_pod_logs(previous=True)
+│   ├── get_logs(previous=True)
 │   ├── Exit Code 137 (OOMKilled)
 │   │   └── Increase memory limits
 │   ├── Exit Code 1 (App Error)
@@ -62,7 +62,7 @@ Service unreachable?
 │   │       └── Update service spec
 │   └── No (endpoints exist)
 │       ├── Check NetworkPolicy
-│       │   └── get_network_policies(namespace)
+│       │   └── analyze_network_policies(namespace)
 │       ├── Check Service type
 │       │   ├── ClusterIP → Only internal access
 │       │   ├── NodePort → Access via node:port
@@ -75,7 +75,7 @@ Service unreachable?
 
 ```
 Node Not Ready?
-├── describe_node(name)
+├── kubectl_describe(name)
 ├── Conditions show:
 │   ├── MemoryPressure
 │   │   └── Eviction happening, free memory
@@ -95,7 +95,7 @@ Node Not Ready?
 
 ```
 PVC Pending?
-├── describe_pvc(name, namespace)
+├── kubectl_describe(name, namespace)
 ├── Events show:
 │   ├── "no persistent volumes available"
 │   │   ├── Dynamic provisioning enabled?
@@ -112,7 +112,7 @@ PVC Pending?
 
 ```
 Deployment stuck?
-├── rollout_status(name, namespace)
+├── kubectl_rollout(name, namespace)
 ├── Shows "waiting for rollout to finish"
 │   ├── New pods starting?
 │   │   ├── No → Check pod issues above
@@ -129,9 +129,9 @@ Deployment stuck?
 
 | Issue | First Command |
 |-------|--------------|
-| Pod not starting | `describe_pod(name, namespace)` |
-| Logs needed | `get_pod_logs(name, namespace, previous=True)` |
+| Pod not starting | `kubectl_describe(name, namespace)` |
+| Logs needed | `get_logs(name, namespace, previous=True)` |
 | Events check | `get_events(namespace)` |
-| Node issues | `describe_node(name)` |
+| Node issues | `kubectl_describe(name)` |
 | Service debug | `get_endpoints(namespace)` |
-| Storage issues | `describe_pvc(name, namespace)` |
+| Storage issues | `kubectl_describe(name, namespace)` |

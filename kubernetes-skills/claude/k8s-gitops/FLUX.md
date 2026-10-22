@@ -69,30 +69,30 @@ spec:
 
 ```python
 # List sources (GitRepository, HelmRepository, etc.)
-flux_sources_list_tool(namespace="flux-system")
+gitops_sources_list(namespace="flux-system")
 
 # List Kustomizations
-flux_kustomizations_list_tool(namespace="flux-system")
+gitops_apps_list(namespace="flux-system")
 
 # List HelmReleases
-flux_helmreleases_list_tool(namespace="production")
+gitops_apps_list(namespace="production")
 
 # Force reconciliation
-flux_reconcile_tool(
+gitops_app_sync(
     kind="kustomization",
     name="my-app",
     namespace="flux-system"
 )
 
 # Suspend reconciliation
-flux_suspend_tool(
+kubectl_patch(
     kind="kustomization",
     name="my-app",
     namespace="flux-system"
 )
 
 # Resume reconciliation
-flux_resume_tool(
+kubectl_patch(
     kind="kustomization",
     name="my-app",
     namespace="flux-system"
@@ -104,24 +104,24 @@ flux_resume_tool(
 ### Check Sync Status
 
 ```
-1. flux_sources_list_tool(namespace="flux-system")  # Source ready?
-2. flux_kustomizations_list_tool(namespace="flux-system")  # Applied?
-3. flux_helmreleases_list_tool(namespace="production")  # Helm ready?
+1. gitops_sources_list(namespace="flux-system")  # Source ready?
+2. gitops_apps_list(namespace="flux-system")  # Applied?
+3. gitops_apps_list(namespace="production")  # Helm ready?
 ```
 
 ### Force Sync
 
 ```
-flux_reconcile_tool(kind="gitrepository", name="my-app", namespace="flux-system")
-flux_reconcile_tool(kind="kustomization", name="my-app", namespace="flux-system")
+gitops_app_sync(kind="gitrepository", name="my-app", namespace="flux-system")
+gitops_app_sync(kind="kustomization", name="my-app", namespace="flux-system")
 ```
 
 ### Pause for Maintenance
 
 ```
-flux_suspend_tool(kind="kustomization", name="production", namespace="flux-system")
+kubectl_patch(kind="kustomization", name="production", namespace="flux-system")
 # Do maintenance
-flux_resume_tool(kind="kustomization", name="production", namespace="flux-system")
+kubectl_patch(kind="kustomization", name="production", namespace="flux-system")
 ```
 
 ## Troubleshooting
@@ -129,7 +129,7 @@ flux_resume_tool(kind="kustomization", name="production", namespace="flux-system
 ### Source Not Ready
 
 ```
-flux_sources_list_tool(namespace="flux-system")
+gitops_sources_list(namespace="flux-system")
 # Check:
 # - Git URL correct
 # - Secret exists and has valid credentials
@@ -139,7 +139,7 @@ flux_sources_list_tool(namespace="flux-system")
 ### Kustomization Failed
 
 ```
-flux_kustomizations_list_tool(namespace="flux-system")
+gitops_apps_list(namespace="flux-system")
 get_events(namespace="flux-system")
 # Check:
 # - Path exists in repo
@@ -150,7 +150,7 @@ get_events(namespace="flux-system")
 ### HelmRelease Failed
 
 ```
-flux_helmreleases_list_tool(namespace)
+gitops_apps_list(namespace)
 get_events(namespace)
 # Check:
 # - Chart exists in repo

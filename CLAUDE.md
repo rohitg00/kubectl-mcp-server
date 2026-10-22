@@ -2,14 +2,26 @@
 
 ## Project Overview
 - **Name**: kubectl-mcp-server
-- **Version**: 1.22.0
-- **Description**: A Model Context Protocol (MCP) server for Kubernetes with 270+ tools, 8 resources, and 8 prompts
-- **Framework**: FastMCP 3.0.0b1 (Python)
+- **Version**: 2.0.0
+- **Description**: Stateless MCP (2026-07-28) server for Kubernetes: 281 tools, 8 resources + 6 templates, 14 prompts
+- **Framework**: FastMCP 4.x (`fastmcp>=4.1,<5`) on MCP Python SDK v2, Python >= 3.10
 - **Repository**: https://github.com/rohitg00/kubectl-mcp-server
 
-## Current State (as of 2026-02-02)
+## Current State (as of 2026-10-22)
 
-### Latest Release: v1.22.0
+### v2.0.0 (stateless MCP + security hardening)
+- **Why**: published 1.24.0 crashed on import on fresh installs (unbounded `fastmcp>=3.0.0b1` resolved FastMCP 4 / mcp 2); root cause of issue #88.
+- **Protocol**: FastMCP 4 serves 2026-07-28 (no initialize, no Mcp-Session-Id, `server/discover`) and 2025-era clients from one process. HTTP runs `stateless_http=True` at `/mcp`. SSE kept, deprecated.
+- **Confirmation**: `elicit.confirm_destructive` returns an MRTR `InputRequiredResult` on 2026-07-28 (approval bound to an operation digest in sealed `request_state`), `ctx.elicit(response_type=bool)` on legacy. Multi-replica needs `MCP_REQUEST_STATE_KEY`.
+- **middleware.py** `ToolGuardMiddleware`: read-only hides/blocks every tool with `read_only_hint` false; rejects identifier args starting with `-` (FREE_TEXT_PARAMS exempt); scope tiers when auth on (mcp:tools/admin = all, mcp:read, mcp:write); Secret redaction on results; stats/Prometheus recording.
+- **Network**: default host 127.0.0.1; non-loopback bind requires OAuth or `--allow-unauthenticated` (`NetworkExposureError`, exit 2). Chart `fail`s without `auth.enabled` or `mcp.allowUnauthenticated`.
+- **Entrypoints**: one parser in `mcp_server.add_serve_arguments` + `run_server`; `main()` accepts a leading `serve`. Env defaults `MCP_SERVER_TRANSPORT/HOST/PORT`.
+- **Removed**: browser tools, MCP-UI tools (`ui.py`), `kubectl-mcp-app/`, k8s-browser skill, hand-rolled JSON-RPC HTTP fallback.
+- **Docker**: multi-stage, python:3.13-slim, UID 10001, kubectl v1.37.1 + helm v3.22.1 with sha256 verification, ENTRYPOINT `kubectl-mcp`, `.dockerignore` allowlist.
+- **Verify**: `pytest` (541), conformance `npx -y @hasmcp/mcp-spec-test@0.1.1 -c "python -m kubectl_mcp_tool.mcp_server"` (2025-11-25 conformant; its 2026-07-28 probe omits `_meta`, which mcp 2.3 routes to the legacy era).
+- **Tool names**: README table generated from the live registry; skills had 935 stale/phantom names fixed.
+
+### Release v1.22.0
 - **Changes**: Added kubectl-mcp-app - 8 interactive UI dashboards for Kubernetes management
 - **Tool Count**: 270 core tools
 - **Skills**: 26 Agent Skills covering all tools

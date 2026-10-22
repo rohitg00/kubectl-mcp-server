@@ -24,19 +24,19 @@ Use this skill when:
 
 | Priority | Rule | Impact | Tools |
 |----------|------|--------|-------|
-| 1 | Verify metrics-server for HPA | CRITICAL | `get_resource_metrics` |
-| 2 | Set resource requests before HPA | CRITICAL | `describe_pod` |
-| 3 | Use KEDA for scale-to-zero | HIGH | `keda_scaledobjects_list_tool` |
+| 1 | Verify metrics-server for HPA | CRITICAL | `get_pod_metrics` |
+| 2 | Set resource requests before HPA | CRITICAL | `kubectl_describe` |
+| 3 | Use KEDA for scale-to-zero | HIGH | `keda_scaledobjects_list` |
 | 4 | Check VPA recommendations | MEDIUM | `get_resource_recommendations` |
 
 ## Quick Reference
 
 | Task | Tool | Example |
 |------|------|---------|
-| List KEDA ScaledObjects | `keda_scaledobjects_list_tool` | `keda_scaledobjects_list_tool(namespace)` |
-| Get ScaledObject | `keda_scaledobject_get_tool` | `keda_scaledobject_get_tool(name, namespace)` |
-| List ScaledJobs | `keda_scaledjobs_list_tool` | `keda_scaledjobs_list_tool(namespace)` |
-| Check KEDA | `keda_detect_tool` | `keda_detect_tool()` |
+| List KEDA ScaledObjects | `keda_scaledobjects_list` | `keda_scaledobjects_list(namespace)` |
+| Get ScaledObject | `keda_scaledobject_get` | `keda_scaledobject_get(name, namespace)` |
+| List ScaledJobs | `keda_scaledjobs_list` | `keda_scaledjobs_list(namespace)` |
+| Check KEDA | `keda_detect` | `keda_detect()` |
 
 ## HPA (Horizontal Pod Autoscaler)
 
@@ -93,33 +93,33 @@ spec:
 ### Detect KEDA Installation
 
 ```python
-keda_detect_tool()
+keda_detect()
 ```
 
 ### List ScaledObjects
 
 ```python
-keda_scaledobjects_list_tool(namespace)
-keda_scaledobject_get_tool(name, namespace)
+keda_scaledobjects_list(namespace)
+keda_scaledobject_get(name, namespace)
 ```
 
 ### List ScaledJobs
 
 ```python
-keda_scaledjobs_list_tool(namespace)
+keda_scaledjobs_list(namespace)
 ```
 
 ### Trigger Authentication
 
 ```python
-keda_triggerauths_list_tool(namespace)
-keda_triggerauth_get_tool(name, namespace)
+keda_triggerauths_list(namespace)
+keda_triggerauth_get(name, namespace)
 ```
 
 ### KEDA-Managed HPAs
 
 ```python
-keda_hpa_list_tool(namespace)
+keda_hpa_list(namespace)
 ```
 
 See [KEDA-TRIGGERS.md](KEDA-TRIGGERS.md) for trigger configurations.
@@ -186,7 +186,7 @@ triggers:
 Reduce costs for idle workloads:
 
 ```python
-keda_scaledobjects_list_tool(namespace)
+keda_scaledobjects_list(namespace)
 ```
 
 ### Right-Size with VPA
@@ -204,13 +204,13 @@ get_resource_recommendations(namespace)
 ```python
 get_hpa(namespace)
 get_pod_metrics(name, namespace)
-describe_pod(name, namespace)
+kubectl_describe(name, namespace)
 ```
 
 ### KEDA Not Triggering
 
 ```python
-keda_scaledobject_get_tool(name, namespace)
+keda_scaledobject_get(name, namespace)
 get_events(namespace)
 ```
 

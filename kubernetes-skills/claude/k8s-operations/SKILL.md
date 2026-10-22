@@ -26,8 +26,8 @@ Use this skill when:
 |----------|------|--------|-------|
 | 1 | Dry run before apply in production | CRITICAL | `kubectl_apply(dry_run=True)` |
 | 2 | Check current state before patching | HIGH | `describe_*` tools |
-| 3 | Avoid force delete unless necessary | HIGH | `kubectl_delete` |
-| 4 | Verify rollout status after changes | MEDIUM | `kubectl_rollout_status` |
+| 3 | Avoid force delete unless necessary | HIGH | `delete_resource` |
+| 4 | Verify rollout status after changes | MEDIUM | `kubectl_rollout` |
 
 ## Quick Reference
 
@@ -35,8 +35,8 @@ Use this skill when:
 |------|------|---------|
 | Apply manifest | `kubectl_apply` | `kubectl_apply(manifest=yaml)` |
 | Patch resource | `kubectl_patch` | `kubectl_patch(type, name, namespace, patch)` |
-| Delete resource | `kubectl_delete` | `kubectl_delete(type, name, namespace)` |
-| Exec command | `kubectl_exec` | `kubectl_exec(pod, namespace, command)` |
+| Delete resource | `delete_resource` | `delete_resource(type, name, namespace)` |
+| Exec command | `exec_in_pod` | `exec_in_pod(pod, namespace, command)` |
 | Scale deployment | `scale_deployment` | `scale_deployment(name, namespace, replicas)` |
 
 ## Apply Resources
@@ -98,15 +98,15 @@ kubectl_patch(
 ## Delete Resources
 
 ```python
-kubectl_delete(resource_type="pod", name="my-pod", namespace="default")
+delete_resource(resource_type="pod", name="my-pod", namespace="default")
 
-kubectl_delete(
+delete_resource(
     resource_type="pods",
     namespace="default",
     label_selector="app=test"
 )
 
-kubectl_delete(
+delete_resource(
     resource_type="pod",
     name="stuck-pod",
     namespace="default",
@@ -118,20 +118,20 @@ kubectl_delete(
 ## Execute Commands
 
 ```python
-kubectl_exec(
+exec_in_pod(
     pod="my-pod",
     namespace="default",
     command="ls -la /app"
 )
 
-kubectl_exec(
+exec_in_pod(
     pod="my-pod",
     namespace="default",
     container="sidecar",
     command="cat /etc/config/settings.yaml"
 )
 
-kubectl_exec(
+exec_in_pod(
     pod="my-pod",
     namespace="default",
     command="sh -c 'curl -s localhost:8080/health'"
@@ -156,7 +156,7 @@ kubectl_scale(
 ## Rollout Management
 
 ```python
-kubectl_rollout_status(
+kubectl_rollout(
     resource_type="deployment",
     name="nginx",
     namespace="default"
@@ -174,7 +174,7 @@ kubectl_rollout_restart(
     namespace="default"
 )
 
-rollback_deployment(name="nginx", namespace="default", revision=1)
+kubectl_rollout(name="nginx", namespace="default", revision=1)
 ```
 
 ## Labels and Annotations

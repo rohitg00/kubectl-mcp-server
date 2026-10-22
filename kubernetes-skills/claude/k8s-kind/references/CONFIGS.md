@@ -223,4 +223,4 @@ containerdConfigPatches:
 | v1.28.0 | `kindest/node:v1.28.0` |
 | v1.27.0 | `kindest/node:v1.27.0` |
 
-Use `kind_available_images_tool()` to list all available images.
+Use `kind_available_images()` to list all available images.

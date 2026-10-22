@@ -25,7 +25,7 @@ Use this skill when:
 | Priority | Rule | Impact | Tools |
 |----------|------|--------|-------|
 | 1 | Always specify context for prod | CRITICAL | `context` parameter |
-| 2 | List contexts before switching | HIGH | `list_contexts_tool` |
+| 2 | List contexts before switching | HIGH | `list_contexts` |
 | 3 | Compare before promoting | MEDIUM | `compare_namespaces` |
 | 4 | Use naming conventions | LOW | `prod-*`, `staging-*` |
 
@@ -33,17 +33,17 @@ Use this skill when:
 
 | Task | Tool | Example |
 |------|------|---------|
-| List contexts | `list_contexts_tool` | `list_contexts_tool()` |
+| List contexts | `list_contexts` | `list_contexts()` |
 | View kubeconfig | `kubeconfig_view` | `kubeconfig_view()` |
-| List CAPI clusters | `capi_clusters_list_tool` | `capi_clusters_list_tool(namespace)` |
-| Get CAPI kubeconfig | `capi_cluster_kubeconfig_tool` | `capi_cluster_kubeconfig_tool(name, namespace)` |
+| List CAPI clusters | `capi_list_clusters` | `capi_list_clusters(namespace)` |
+| Get CAPI kubeconfig | `capi_get_cluster_kubeconfig` | `capi_get_cluster_kubeconfig(name, namespace)` |
 
 ## Context Management
 
 ### List Available Contexts
 
 ```python
-list_contexts_tool()
+list_contexts()
 ```
 
 ### View Current Context
@@ -105,32 +105,32 @@ For managing cluster lifecycle:
 ### List Managed Clusters
 
 ```python
-capi_clusters_list_tool(namespace="capi-system")
+capi_list_clusters(namespace="capi-system")
 ```
 
 ### Get Cluster Details
 
 ```python
-capi_cluster_get_tool(name="prod-cluster", namespace="capi-system")
+capi_get_cluster(name="prod-cluster", namespace="capi-system")
 ```
 
 ### Get Workload Cluster Kubeconfig
 
 ```python
-capi_cluster_kubeconfig_tool(name="prod-cluster", namespace="capi-system")
+capi_get_cluster_kubeconfig(name="prod-cluster", namespace="capi-system")
 ```
 
 ### Machine Management
 
 ```python
-capi_machines_list_tool(namespace="capi-system")
-capi_machinedeployments_list_tool(namespace="capi-system")
+capi_list_machines(namespace="capi-system")
+capi_list_machinedeployments(namespace="capi-system")
 ```
 
 ### Scale Cluster
 
 ```python
-capi_machinedeployment_scale_tool(
+capi_scale_machinedeployment(
     name="prod-cluster-md-0",
     namespace="capi-system",
     replicas=5
@@ -151,7 +151,7 @@ install_helm_chart(
     context="production-cluster"
 )
 
-list_helm_releases(
+helm_list(
     namespace="web",
     context="staging-cluster"
 )
@@ -162,12 +162,12 @@ list_helm_releases(
 ### Flux Across Clusters
 
 ```python
-flux_kustomizations_list_tool(
+gitops_apps_list(
     namespace="flux-system",
     context="cluster-1"
 )
 
-flux_reconcile_tool(
+gitops_app_sync(
     kind="kustomization",
     name="apps",
     namespace="flux-system",
@@ -178,7 +178,7 @@ flux_reconcile_tool(
 ### ArgoCD Across Clusters
 
 ```python
-argocd_apps_list_tool(namespace="argocd", context="management-cluster")
+gitops_apps_list(namespace="argocd", context="management-cluster")
 ```
 
 ## Federation Patterns
@@ -196,8 +196,8 @@ kubectl_apply(secret_manifest, namespace="app", context="target-cluster")
 With Cilium ClusterMesh or Istio multi-cluster:
 
 ```python
-cilium_nodes_list_tool(context="cluster-1")
-istio_proxy_status_tool(context="cluster-2")
+cilium_list_nodes(context="cluster-1")
+istio_proxy_status(context="cluster-2")
 ```
 
 ## Best Practices

@@ -24,24 +24,24 @@ Use this skill when:
 
 | Priority | Rule | Impact | Tools |
 |----------|------|--------|-------|
-| 1 | Detect Argo Rollouts installation first | CRITICAL | `rollouts_detect_tool` |
-| 2 | Check rollout status before promoting | HIGH | `rollout_status_tool` |
-| 3 | Monitor analysis runs for failures | HIGH | `analysis_runs_list_tool` |
-| 4 | Abort immediately on critical failures | CRITICAL | `rollout_abort_tool` |
+| 1 | Detect Argo Rollouts installation first | CRITICAL | `detect_rollouts` |
+| 2 | Check rollout status before promoting | HIGH | `get_rollout_status` |
+| 3 | Monitor analysis runs for failures | HIGH | `get_analysis_runs` |
+| 4 | Abort immediately on critical failures | CRITICAL | `abort_rollout` |
 
 ## Quick Reference
 
 | Task | Tool | Example |
 |------|------|---------|
-| Detect Argo Rollouts | `rollouts_detect_tool` | `rollouts_detect_tool()` |
-| List rollouts | `rollouts_list_tool` | `rollouts_list_tool(namespace)` |
-| Get rollout status | `rollout_status_tool` | `rollout_status_tool(name, namespace)` |
-| Promote rollout | `rollout_promote_tool` | `rollout_promote_tool(name, namespace)` |
+| Detect Argo Rollouts | `detect_rollouts` | `detect_rollouts()` |
+| List rollouts | `get_rollouts_list` | `get_rollouts_list(namespace)` |
+| Get rollout status | `get_rollout_status` | `get_rollout_status(name, namespace)` |
+| Promote rollout | `promote_rollout` | `promote_rollout(name, namespace)` |
 
 ## Check Installation
 
 ```python
-rollouts_detect_tool()
+detect_rollouts()
 ```
 
 ## Argo Rollouts
@@ -49,7 +49,7 @@ rollouts_detect_tool()
 ### List Rollouts
 
 ```python
-rollouts_list_tool(namespace="default")
+get_rollouts_list(namespace="default")
 
 # Shows:
 # - Rollout name
@@ -61,7 +61,7 @@ rollouts_list_tool(namespace="default")
 ### Get Rollout Details
 
 ```python
-rollout_get_tool(name="my-rollout", namespace="default")
+get_rollout(name="my-rollout", namespace="default")
 
 # Shows:
 # - Spec (strategy, steps)
@@ -72,7 +72,7 @@ rollout_get_tool(name="my-rollout", namespace="default")
 ### Check Rollout Status
 
 ```python
-rollout_status_tool(name="my-rollout", namespace="default")
+get_rollout_status(name="my-rollout", namespace="default")
 
 # Returns detailed status with:
 # - Current step index
@@ -84,30 +84,30 @@ rollout_status_tool(name="my-rollout", namespace="default")
 
 ```python
 # Promote to next step
-rollout_promote_tool(name="my-rollout", namespace="default")
+promote_rollout(name="my-rollout", namespace="default")
 
 # Full promote (skip remaining steps)
-rollout_promote_tool(name="my-rollout", namespace="default", full=True)
+promote_rollout(name="my-rollout", namespace="default", full=True)
 ```
 
 ### Abort Rollout
 
 ```python
-rollout_abort_tool(name="my-rollout", namespace="default")
+abort_rollout(name="my-rollout", namespace="default")
 # Reverts to stable version
 ```
 
 ### Retry Rollout
 
 ```python
-rollout_retry_tool(name="my-rollout", namespace="default")
+retry_rollout(name="my-rollout", namespace="default")
 # Retry failed rollout
 ```
 
 ### Restart Rollout
 
 ```python
-rollout_restart_tool(name="my-rollout", namespace="default")
+restart_rollout(name="my-rollout", namespace="default")
 # Triggers new rollout with same spec
 ```
 
@@ -115,7 +115,7 @@ rollout_restart_tool(name="my-rollout", namespace="default")
 
 ```python
 # List analysis runs
-analysis_runs_list_tool(namespace="default")
+get_analysis_runs(namespace="default")
 
 # Analysis runs verify rollout health:
 # - Prometheus metrics
@@ -196,7 +196,7 @@ spec:
 ### List Canaries
 
 ```python
-flagger_canaries_list_tool(namespace="default")
+get_flagger_canaries(namespace="default")
 
 # Shows:
 # - Canary name
@@ -207,7 +207,7 @@ flagger_canaries_list_tool(namespace="default")
 ### Get Canary Details
 
 ```python
-flagger_canary_get_tool(name="my-canary", namespace="default")
+get_flagger_canary(name="my-canary", namespace="default")
 ```
 
 ## Create Flagger Canary
@@ -245,20 +245,20 @@ spec:
 
 ### Canary Deployment
 ```python
-1. rollouts_list_tool(namespace)
+1. get_rollouts_list(namespace)
 2. # Update image in rollout
-3. rollout_status_tool(name, namespace)  # Monitor progress
-4. rollout_promote_tool(name, namespace)  # Promote when ready
-5. # Or: rollout_abort_tool(name, namespace) if issues
+3. get_rollout_status(name, namespace)  # Monitor progress
+4. promote_rollout(name, namespace)  # Promote when ready
+5. # Or: abort_rollout(name, namespace) if issues
 ```
 
 ### Blue-Green Deployment
 ```python
-1. rollout_get_tool(name, namespace)  # Check current state
+1. get_rollout(name, namespace)  # Check current state
 2. # Update image
-3. rollout_status_tool(name, namespace)  # Wait for preview ready
+3. get_rollout_status(name, namespace)  # Wait for preview ready
 4. # Test preview service
-5. rollout_promote_tool(name, namespace)  # Switch traffic
+5. promote_rollout(name, namespace)  # Switch traffic
 ```
 
 ## Troubleshooting
@@ -266,20 +266,20 @@ spec:
 ### Rollout Stuck
 
 ```python
-1. rollout_status_tool(name, namespace)  # Check current step
-2. analysis_runs_list_tool(namespace)  # Check analysis
+1. get_rollout_status(name, namespace)  # Check current step
+2. get_analysis_runs(namespace)  # Check analysis
 3. get_events(namespace)  # Check events
 4. # If analysis failing:
-   rollout_abort_tool(name, namespace)
+   abort_rollout(name, namespace)
 ```
 
 ### Canary Failing Analysis
 
 ```python
-1. analysis_runs_list_tool(namespace)
+1. get_analysis_runs(namespace)
 2. # Check metrics source (Prometheus, etc.)
 3. # Verify threshold configuration
-4. rollout_retry_tool(name, namespace)  # Retry if transient
+4. retry_rollout(name, namespace)  # Retry if transient
 ```
 
 ## Related Skills

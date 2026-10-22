@@ -24,23 +24,23 @@ Use this skill when:
 
 | Priority | Rule | Impact | Tools |
 |----------|------|--------|-------|
-| 1 | Template before install (dry run) | CRITICAL | `template_helm_chart` |
-| 2 | Check existing releases first | CRITICAL | `list_helm_releases` |
-| 3 | Lint charts before packaging | HIGH | `lint_helm_chart` |
-| 4 | Note revision before upgrade | HIGH | `get_helm_history` |
-| 5 | Verify values after upgrade | MEDIUM | `get_helm_values` |
-| 6 | Update repos before search | LOW | `update_helm_repos` |
+| 1 | Template before install (dry run) | CRITICAL | `helm_template` |
+| 2 | Check existing releases first | CRITICAL | `helm_list` |
+| 3 | Lint charts before packaging | HIGH | `helm_lint` |
+| 4 | Note revision before upgrade | HIGH | `helm_history` |
+| 5 | Verify values after upgrade | MEDIUM | `helm_get_values` |
+| 6 | Update repos before search | LOW | `helm_repo_update` |
 
 ## Quick Reference
 
 | Task | Tool | Example |
 |------|------|---------|
 | Install chart | `install_helm_chart` | `install_helm_chart(name, chart, namespace)` |
-| Upgrade release | `upgrade_helm_release` | `upgrade_helm_release(name, chart, namespace, values)` |
-| Rollback | `rollback_helm_release` | `rollback_helm_release(name, namespace, revision)` |
-| List releases | `list_helm_releases` | `list_helm_releases(namespace)` |
-| Get values | `get_helm_values` | `get_helm_values(name, namespace)` |
-| Template (dry run) | `template_helm_chart` | `template_helm_chart(name, chart, namespace)` |
+| Upgrade release | `upgrade_helm_chart` | `upgrade_helm_chart(name, chart, namespace, values)` |
+| Rollback | `helm_rollback` | `helm_rollback(name, namespace, revision)` |
+| List releases | `helm_list` | `helm_list(namespace)` |
+| Get values | `helm_get_values` | `helm_get_values(name, namespace)` |
+| Template (dry run) | `helm_template` | `helm_template(name, chart, namespace)` |
 
 ## Install Chart
 
@@ -56,7 +56,7 @@ install_helm_chart(
 ## Upgrade Release
 
 ```python
-upgrade_helm_release(
+upgrade_helm_chart(
     name="my-release",
     chart="bitnami/nginx",
     namespace="web",
@@ -67,7 +67,7 @@ upgrade_helm_release(
 ## Rollback Release
 
 ```python
-rollback_helm_release(
+helm_rollback(
     name="my-release",
     namespace="web",
     revision=1
@@ -85,9 +85,9 @@ uninstall_helm_chart(name="my-release", namespace="web")
 ### List Releases
 
 ```python
-list_helm_releases(namespace="web")
+helm_list(namespace="web")
 
-list_helm_releases()
+helm_list()
 ```
 
 ### Get Release Details
@@ -99,13 +99,13 @@ get_helm_release(name="my-release", namespace="web")
 ### Release History
 
 ```python
-get_helm_history(name="my-release", namespace="web")
+helm_history(name="my-release", namespace="web")
 ```
 
 ### Get Release Values
 
 ```python
-get_helm_values(name="my-release", namespace="web")
+helm_get_values(name="my-release", namespace="web")
 ```
 
 ### Get Release Manifest
@@ -131,7 +131,7 @@ list_helm_repos()
 ### Update Repositories
 
 ```python
-update_helm_repos()
+helm_repo_update()
 ```
 
 ### Search Charts
@@ -147,7 +147,7 @@ search_helm_charts(keyword="postgres", repo="bitnami")
 ### Template Chart (Dry Run)
 
 ```python
-template_helm_chart(
+helm_template(
     name="my-release",
     chart="./my-chart",
     namespace="test",
@@ -158,7 +158,7 @@ template_helm_chart(
 ### Lint Chart
 
 ```python
-lint_helm_chart(chart="./my-chart")
+helm_lint(chart="./my-chart")
 ```
 
 ### Package Chart
@@ -176,7 +176,7 @@ add_helm_repo(name="bitnami", url="...")
 
 search_helm_charts(keyword="postgresql")
 
-template_helm_chart(...)
+helm_template(...)
 
 install_helm_chart(...)
 
@@ -186,11 +186,11 @@ get_helm_release(...)
 ### Upgrade with Rollback Safety
 
 ```python
-get_helm_history(name, namespace)
+helm_history(name, namespace)
 
-upgrade_helm_release(name, chart, namespace, values)
+upgrade_helm_chart(name, chart, namespace, values)
 
-rollback_helm_release(name, namespace, revision)
+helm_rollback(name, namespace, revision)
 ```
 
 ### Multi-Environment Deployment
@@ -240,7 +240,7 @@ get_pods(namespace, label_selector="app.kubernetes.io/instance=<release>")
 ### Failed Installation
 
 ```python
-get_helm_history(name, namespace)
+helm_history(name, namespace)
 
 get_events(namespace)
 
@@ -250,11 +250,11 @@ uninstall_helm_chart(name, namespace)
 ### Values Not Applied
 
 ```python
-get_helm_values(name, namespace)
+helm_get_values(name, namespace)
 
-template_helm_chart(...)
+helm_template(...)
 
-upgrade_helm_release(...)
+upgrade_helm_chart(...)
 ```
 
 ## Scripts
@@ -265,7 +265,7 @@ See [scripts/lint-chart.sh](scripts/lint-chart.sh) for automated chart validatio
 
 1. **Always Template First**
    ```python
-   template_helm_chart(name, chart, namespace, values)
+   helm_template(name, chart, namespace, values)
    ```
 
 2. **Use Semantic Versioning**

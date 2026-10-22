@@ -10,8 +10,8 @@ Common Helm issues and resolutions.
 
 **Diagnosis:**
 ```python
-list_helm_releases(namespace)
-get_helm_history(name, namespace)
+helm_list(namespace)
+helm_history(name, namespace)
 ```
 
 **Resolution:**
@@ -27,7 +27,7 @@ install_helm_chart(name, chart, namespace, values)
 **Diagnosis:**
 ```python
 get_pods(namespace, label_selector="app.kubernetes.io/instance=<release>")
-describe_pod(name, namespace)
+kubectl_describe(name, namespace)
 get_events(namespace)
 ```
 
@@ -40,7 +40,7 @@ get_events(namespace)
 **Resolution:**
 ```python
 # Fix the issue, then upgrade
-upgrade_helm_release(name, chart, namespace, values)
+upgrade_helm_chart(name, chart, namespace, values)
 ```
 
 ### Error: rendered manifests contain a resource that already exists
@@ -65,7 +65,7 @@ get_deployments(namespace)  # or other resource type
 
 **Diagnosis:**
 ```python
-get_helm_history(name, namespace)
+helm_history(name, namespace)
 # Look for pending-* status
 ```
 
@@ -76,7 +76,7 @@ uninstall_helm_chart(name, namespace)
 install_helm_chart(name, chart, namespace, values)
 
 # If stuck in pending-upgrade, rollback first
-rollback_helm_release(name, namespace, revision=<last-good>)
+helm_rollback(name, namespace, revision=<last-good>)
 ```
 
 ### Error: "spec.selector" is immutable
@@ -95,13 +95,13 @@ rollback_helm_release(name, namespace, revision=<last-good>)
 
 **Diagnosis:**
 ```python
-get_helm_values(name, namespace)
-get_helm_history(name, namespace)
+helm_get_values(name, namespace)
+helm_history(name, namespace)
 ```
 
 **Resolution:**
 ```python
-rollback_helm_release(name, namespace, revision=<specific>)
+helm_rollback(name, namespace, revision=<specific>)
 ```
 
 ## Chart Development Issues
@@ -110,8 +110,8 @@ rollback_helm_release(name, namespace, revision=<specific>)
 
 **Diagnosis:**
 ```python
-template_helm_chart(name, chart, namespace, values)
-lint_helm_chart(chart)
+helm_template(name, chart, namespace, values)
+helm_lint(chart)
 ```
 
 **Common Causes:**
@@ -123,8 +123,8 @@ lint_helm_chart(chart)
 
 **Diagnosis:**
 ```python
-get_helm_values(name, namespace)
-template_helm_chart(name, chart, namespace, values)
+helm_get_values(name, namespace)
+helm_template(name, chart, namespace, values)
 ```
 
 **Common Causes:**
@@ -151,31 +151,31 @@ template_helm_chart(name, chart, namespace, values)
 get_helm_release(name, namespace)
 
 # All revisions
-get_helm_history(name, namespace)
+helm_history(name, namespace)
 
 # Current values
-get_helm_values(name, namespace)
+helm_get_values(name, namespace)
 
 # Rendered manifests
 get_helm_manifest(name, namespace)
 
 # Dry-run to test
-template_helm_chart(name, chart, namespace, values)
+helm_template(name, chart, namespace, values)
 
 # Validate chart
-lint_helm_chart(chart)
+helm_lint(chart)
 ```
 
 ## Best Practices to Avoid Issues
 
 1. **Always dry-run first**
    ```python
-   template_helm_chart(name, chart, namespace, values)
+   helm_template(name, chart, namespace, values)
    ```
 
 2. **Check history before upgrade**
    ```python
-   get_helm_history(name, namespace)
+   helm_history(name, namespace)
    ```
 
 3. **Use specific versions**
@@ -190,5 +190,5 @@ lint_helm_chart(chart)
 5. **Test rollback procedure**
    ```python
    # Know which revision to rollback to
-   get_helm_history(name, namespace)
+   helm_history(name, namespace)
    ```

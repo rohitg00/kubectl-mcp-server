@@ -62,16 +62,16 @@ spec:
 
 ```python
 # List all applications
-argocd_apps_list_tool(namespace="argocd")
+gitops_apps_list(namespace="argocd")
 
 # Get application details
-argocd_app_get_tool(name="my-app", namespace="argocd")
+gitops_app_get(name="my-app", namespace="argocd")
 
 # Sync application
-argocd_sync_tool(name="my-app", namespace="argocd")
+gitops_app_sync(name="my-app", namespace="argocd")
 
 # Refresh application (fetch latest from git)
-argocd_refresh_tool(name="my-app", namespace="argocd")
+gitops_app_sync(name="my-app", namespace="argocd")
 ```
 
 ## Application States
@@ -98,22 +98,22 @@ argocd_refresh_tool(name="my-app", namespace="argocd")
 ### Check Application Status
 
 ```
-1. argocd_apps_list_tool(namespace="argocd")
-2. argocd_app_get_tool(name="my-app", namespace="argocd")
+1. gitops_apps_list(namespace="argocd")
+2. gitops_app_get(name="my-app", namespace="argocd")
 ```
 
 ### Force Sync
 
 ```
-argocd_refresh_tool(name="my-app", namespace="argocd")  # Refresh first
-argocd_sync_tool(name="my-app", namespace="argocd")     # Then sync
+gitops_app_sync(name="my-app", namespace="argocd")  # Refresh first
+gitops_app_sync(name="my-app", namespace="argocd")     # Then sync
 ```
 
 ### Sync with Prune
 
 When resources are deleted from git:
 ```
-argocd_sync_tool(name="my-app", namespace="argocd", prune=True)
+gitops_app_sync(name="my-app", namespace="argocd", prune=True)
 ```
 
 ## Multi-Cluster Deployment
@@ -136,7 +136,7 @@ spec:
 ### OutOfSync
 
 ```
-argocd_app_get_tool(name, namespace)
+gitops_app_get(name, namespace)
 # Check diff between desired and live state
 # May need manual sync or auto-sync enabled
 ```
@@ -144,7 +144,7 @@ argocd_app_get_tool(name, namespace)
 ### Sync Failed
 
 ```
-argocd_app_get_tool(name, namespace)
+gitops_app_get(name, namespace)
 get_events(namespace=target_namespace)
 # Check:
 # - RBAC permissions
@@ -155,9 +155,9 @@ get_events(namespace=target_namespace)
 ### Degraded Health
 
 ```
-argocd_app_get_tool(name, namespace)
+gitops_app_get(name, namespace)
 get_pods(namespace=target_namespace)
-describe_pod(name, target_namespace)
+kubectl_describe(name, target_namespace)
 ```
 
 ## Sync Options

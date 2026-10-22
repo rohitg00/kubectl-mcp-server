@@ -28,15 +28,15 @@ Use this skill when:
 | 2 | Assess node health | CRITICAL | `get_nodes` |
 | 3 | Gather events before changes | HIGH | `get_events` |
 | 4 | Document timeline | HIGH | Manual notes |
-| 5 | Rollback if safe | MEDIUM | `rollback_deployment` |
+| 5 | Rollback if safe | MEDIUM | `kubectl_rollout` |
 
 ## Quick Reference
 
 | Incident | First Tool | Next Steps |
 |----------|------------|------------|
-| Pod failure | `get_pod_logs(previous=True)` | `describe_pod`, `get_events` |
-| Node down | `describe_node` | Check kubelet logs |
-| Service unreachable | `get_endpoints` | `get_network_policies` |
+| Pod failure | `get_logs(previous=True)` | `kubectl_describe`, `get_events` |
+| Node down | `kubectl_describe` | Check kubelet logs |
+| Service unreachable | `get_endpoints` | `analyze_network_policies` |
 | Control plane | `get_pods(namespace="kube-system")` | Check API server logs |
 
 ## Incident Triage
@@ -63,8 +63,8 @@ get_events(namespace)
 ### CrashLoopBackOff
 
 ```python
-get_pod_logs(name, namespace, previous=True)
-describe_pod(name, namespace)
+get_logs(name, namespace, previous=True)
+kubectl_describe(name, namespace)
 get_events(namespace, field_selector="involvedObject.name=<pod>")
 get_pod_metrics(name, namespace)
 ```
@@ -78,14 +78,14 @@ get_pod_metrics(name, namespace)
 ### ImagePullBackOff
 
 ```python
-describe_pod(name, namespace)
+kubectl_describe(name, namespace)
 get_secrets(namespace)
 ```
 
 ### Pending Pod
 
 ```python
-describe_pod(name, namespace)
+kubectl_describe(name, namespace)
 get_nodes()
 get_events(namespace)
 ```
@@ -95,15 +95,15 @@ get_events(namespace)
 ### Node NotReady
 
 ```python
-describe_node(name)
+kubectl_describe(name)
 get_events(namespace="", field_selector="involvedObject.name=<node>")
-node_logs_tool(name, "kubelet")
+node_logs(name, "kubelet")
 ```
 
 ### Node DiskPressure
 
 ```python
-describe_node(name)
+kubectl_describe(name)
 get_pods(field_selector="spec.nodeName=<node>")
 ```
 
@@ -115,29 +115,29 @@ get_pods(field_selector="spec.nodeName=<node>")
 get_services(namespace)
 get_endpoints(namespace)
 get_pods(namespace, label_selector="<service-selector>")
-get_network_policies(namespace)
+analyze_network_policies(namespace)
 ```
 
 ### DNS Resolution Failures
 
 ```python
 get_pods(namespace="kube-system", label_selector="k8s-app=kube-dns")
-get_pod_logs("coredns-xxx", "kube-system")
+get_logs("coredns-xxx", "kube-system")
 ```
 
 ### With Cilium
 
 ```python
-cilium_status_tool()
-cilium_endpoints_list_tool(namespace)
-hubble_flows_query_tool(namespace)
+cilium_get_status()
+cilium_list_endpoints(namespace)
+get_hubble_flows(namespace)
 ```
 
 ### With Istio
 
 ```python
-istio_analyze_tool(namespace)
-istio_proxy_status_tool()
+istio_analyze(namespace)
+istio_proxy_status()
 ```
 
 ## Runbook: Storage Issues
@@ -145,7 +145,7 @@ istio_proxy_status_tool()
 ### PVC Pending
 
 ```python
-describe_pvc(name, namespace)
+kubectl_describe(name, namespace)
 get_storage_classes()
 get_events(namespace)
 ```
@@ -153,8 +153,8 @@ get_events(namespace)
 ### Pod Stuck in ContainerCreating
 
 ```python
-describe_pod(name, namespace)
-get_pvc(namespace)
+kubectl_describe(name, namespace)
+get_pvcs(namespace)
 get_events(namespace)
 ```
 
@@ -171,7 +171,7 @@ get_events(namespace="kube-system")
 
 ```python
 get_pods(namespace="kube-system", label_selector="component=etcd")
-get_pod_logs("etcd-xxx", "kube-system")
+get_logs("etcd-xxx", "kube-system")
 ```
 
 ## Emergency Actions
@@ -185,13 +185,13 @@ delete_pod(name, namespace, grace_period=0, force=True)
 ### Rollback Deployment
 
 ```python
-rollback_deployment(name, namespace, revision=0)
+kubectl_rollout(name, namespace, revision=0)
 ```
 
 ### Helm Rollback
 
 ```python
-rollback_helm_release(name, namespace, revision=1)
+helm_rollback(name, namespace, revision=1)
 ```
 
 ## Diagnostic Collection Script

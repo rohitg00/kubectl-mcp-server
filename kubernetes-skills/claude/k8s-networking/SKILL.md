@@ -26,8 +26,8 @@ Use this skill when:
 |----------|------|--------|-------|
 | 1 | Check endpoints before troubleshooting services | CRITICAL | `get_endpoints` |
 | 2 | Verify service selector matches pod labels | HIGH | `get_services`, `get_pods` |
-| 3 | Review network policies for isolation | HIGH | `get_network_policies` |
-| 4 | Test DNS resolution from within pods | MEDIUM | `kubectl_exec` |
+| 3 | Review network policies for isolation | HIGH | `analyze_network_policies` |
+| 4 | Test DNS resolution from within pods | MEDIUM | `exec_in_pod` |
 
 ## Quick Reference
 
@@ -35,8 +35,8 @@ Use this skill when:
 |------|------|---------|
 | List services | `get_services` | `get_services(namespace)` |
 | Check backends | `get_endpoints` | `get_endpoints(namespace)` |
-| List ingresses | `get_ingresses` | `get_ingresses(namespace)` |
-| Network policies | `get_network_policies` | `get_network_policies(namespace)` |
+| List ingresses | `get_ingress` | `get_ingress(namespace)` |
+| Network policies | `analyze_network_policies` | `analyze_network_policies(namespace)` |
 
 ## Services
 
@@ -70,7 +70,7 @@ get_endpoints(namespace="default")
 ## Ingress
 
 ```python
-get_ingresses(namespace="default")
+get_ingress(namespace="default")
 
 describe_ingress(name="my-ingress", namespace="default")
 
@@ -98,7 +98,7 @@ spec:
 ## Network Policies
 
 ```python
-get_network_policies(namespace="default")
+analyze_network_policies(namespace="default")
 
 describe_network_policy(name="deny-all", namespace="default")
 
@@ -140,9 +140,9 @@ spec:
 ```python
 get_endpoints(namespace="default")
 
-get_network_policies(namespace="default")
+analyze_network_policies(namespace="default")
 
-kubectl_exec(
+exec_in_pod(
     pod="debug-pod",
     namespace="default",
     command="nslookup my-service.default.svc.cluster.local"

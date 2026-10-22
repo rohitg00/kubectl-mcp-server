@@ -24,30 +24,30 @@ Use this skill when:
 
 | Priority | Rule | Impact | Tools |
 |----------|------|--------|-------|
-| 1 | Detect Cilium installation first | CRITICAL | `cilium_detect_tool` |
-| 2 | Check agent status for health | HIGH | `cilium_status_tool` |
-| 3 | Use Hubble for flow debugging | HIGH | `hubble_flows_query_tool` |
+| 1 | Detect Cilium installation first | CRITICAL | `detect_cilium` |
+| 2 | Check agent status for health | HIGH | `cilium_get_status` |
+| 3 | Use Hubble for flow debugging | HIGH | `get_hubble_flows` |
 | 4 | Start with default deny | MEDIUM | CiliumNetworkPolicy |
 
 ## Quick Reference
 
 | Task | Tool | Example |
 |------|------|---------|
-| Detect Cilium | `cilium_detect_tool` | `cilium_detect_tool()` |
-| Agent status | `cilium_status_tool` | `cilium_status_tool()` |
-| List policies | `cilium_policies_list_tool` | `cilium_policies_list_tool(namespace)` |
-| Query flows | `hubble_flows_query_tool` | `hubble_flows_query_tool(namespace)` |
+| Detect Cilium | `detect_cilium` | `detect_cilium()` |
+| Agent status | `cilium_get_status` | `cilium_get_status()` |
+| List policies | `cilium_list_policies` | `cilium_list_policies(namespace)` |
+| Query flows | `get_hubble_flows` | `get_hubble_flows(namespace)` |
 
 ## Check Installation
 
 ```python
-cilium_detect_tool()
+detect_cilium()
 ```
 
 ## Cilium Status
 
 ```python
-cilium_status_tool()
+cilium_get_status()
 ```
 
 ## Network Policies
@@ -55,13 +55,13 @@ cilium_status_tool()
 ### List Policies
 
 ```python
-cilium_policies_list_tool(namespace="default")
+cilium_list_policies(namespace="default")
 ```
 
 ### Get Policy Details
 
 ```python
-cilium_policy_get_tool(name="allow-web", namespace="default")
+cilium_get_policy(name="allow-web", namespace="default")
 ```
 
 ### Create Cilium Network Policy
@@ -99,36 +99,36 @@ spec:
 ## Endpoints
 
 ```python
-cilium_endpoints_list_tool(namespace="default")
+cilium_list_endpoints(namespace="default")
 ```
 
 ## Identities
 
 ```python
-cilium_identities_list_tool()
+cilium_list_identities()
 ```
 
 ## Nodes
 
 ```python
-cilium_nodes_list_tool()
+cilium_list_nodes()
 ```
 
 ## Hubble Flow Observability
 
 ```python
-hubble_flows_query_tool(
+get_hubble_flows(
     namespace="default",
     pod="my-pod",
     last="5m"
 )
 
-hubble_flows_query_tool(
+get_hubble_flows(
     namespace="default",
     verdict="DROPPED"
 )
 
-hubble_flows_query_tool(
+get_hubble_flows(
     namespace="default",
     type="l7"
 )
@@ -188,26 +188,26 @@ spec:
 ### Pod Can't Reach Service
 
 ```python
-cilium_status_tool()
-cilium_endpoints_list_tool(namespace)
-cilium_policies_list_tool(namespace)
-hubble_flows_query_tool(namespace, pod, verdict="DROPPED")
+cilium_get_status()
+cilium_list_endpoints(namespace)
+cilium_list_policies(namespace)
+get_hubble_flows(namespace, pod, verdict="DROPPED")
 ```
 
 ### Policy Not Working
 
 ```python
-cilium_policy_get_tool(name, namespace)
-cilium_endpoints_list_tool(namespace)
-hubble_flows_query_tool(namespace)
+cilium_get_policy(name, namespace)
+cilium_list_endpoints(namespace)
+get_hubble_flows(namespace)
 ```
 
 ### Network Performance Issues
 
 ```python
-cilium_status_tool()
-cilium_nodes_list_tool()
-hubble_flows_query_tool(namespace, type="l7")
+cilium_get_status()
+cilium_list_nodes()
+get_hubble_flows(namespace, type="l7")
 ```
 
 ## Best Practices

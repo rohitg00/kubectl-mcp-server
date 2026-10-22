@@ -42,7 +42,7 @@ platform-admin
 
 ```python
 # List all contexts
-list_contexts_tool()
+list_contexts()
 
 # View kubeconfig (sanitized)
 kubeconfig_view()
@@ -78,7 +78,7 @@ staging_deps = get_deployments(namespace="app", context="staging")
 secret = get_secrets(namespace="app", context="source-cluster")
 
 # Apply to target (via manifest)
-apply_manifest(secret_yaml, namespace="app", context="target-cluster")
+kubectl_apply(secret_yaml, namespace="app", context="target-cluster")
 ```
 
 ### Parallel Health Checks
@@ -127,7 +127,7 @@ export KUBECONFIG=~/.kube/development.yaml
 get_pods(namespace="app", context="production-readonly")
 
 # Development: full access SA
-apply_manifest(manifest, namespace="app", context="development-admin")
+kubectl_apply(manifest, namespace="app", context="development-admin")
 ```
 
 ## Cluster API Management
@@ -136,10 +136,10 @@ For managing cluster lifecycle:
 
 ```python
 # List CAPI-managed clusters
-capi_clusters_list_tool(namespace="capi-system")
+capi_list_clusters(namespace="capi-system")
 
 # Get workload cluster kubeconfig
-kubeconfig = capi_cluster_kubeconfig_tool(
+kubeconfig = capi_get_cluster_kubeconfig(
     name="workload-cluster-1",
     namespace="capi-system"
 )
@@ -158,15 +158,15 @@ Cross-cluster resource propagation with KubeFed.
 
 ```python
 # Check Cilium cluster mesh status
-cilium_nodes_list_tool(context="cluster-1")
-cilium_nodes_list_tool(context="cluster-2")
+cilium_list_nodes(context="cluster-1")
+cilium_list_nodes(context="cluster-2")
 ```
 
 ### Multi-Cluster Service Mesh (Istio)
 
 ```python
-istio_proxy_status_tool(context="primary")
-istio_proxy_status_tool(context="remote")
+istio_proxy_status(context="primary")
+istio_proxy_status(context="remote")
 ```
 
 ## Best Practices
@@ -201,7 +201,7 @@ istio_proxy_status_tool(context="remote")
 ### Context Not Found
 
 ```python
-list_contexts_tool()
+list_contexts()
 # Verify context name is correct
 ```
 

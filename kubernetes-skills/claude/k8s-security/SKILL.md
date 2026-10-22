@@ -24,31 +24,31 @@ Use this skill when:
 
 | Priority | Rule | Impact | Tools |
 |----------|------|--------|-------|
-| 1 | Check cluster-admin bindings first | CRITICAL | `get_cluster_role_bindings` |
+| 1 | Check cluster-admin bindings first | CRITICAL | `get_cluster_roles` |
 | 2 | Audit secrets access permissions | CRITICAL | Review role rules |
-| 3 | Verify network isolation | HIGH | `get_network_policies` |
+| 3 | Verify network isolation | HIGH | `analyze_network_policies` |
 | 4 | Check policy compliance | HIGH | `kyverno_*`, `gatekeeper_*` |
-| 5 | Review pod security contexts | MEDIUM | `describe_pod` |
+| 5 | Review pod security contexts | MEDIUM | `kubectl_describe` |
 
 ## Quick Reference
 
 | Task | Tool | Example |
 |------|------|---------|
-| List roles | `get_roles` | `get_roles(namespace)` |
+| List roles | `get_rbac_roles` | `get_rbac_roles(namespace)` |
 | Cluster roles | `get_cluster_roles` | `get_cluster_roles()` |
-| Role bindings | `get_role_bindings` | `get_role_bindings(namespace)` |
+| Role bindings | `get_rbac_roles` | `get_rbac_roles(namespace)` |
 | Service accounts | `get_service_accounts` | `get_service_accounts(namespace)` |
-| Kyverno policies | `kyverno_clusterpolicies_list_tool` | `kyverno_clusterpolicies_list_tool()` |
+| Kyverno policies | `get_policy_list` | `get_policy_list()` |
 
 ## RBAC Auditing
 
 ### List Roles and Bindings
 
 ```python
-get_roles(namespace)
+get_rbac_roles(namespace)
 get_cluster_roles()
-get_role_bindings(namespace)
-get_cluster_role_bindings()
+get_rbac_roles(namespace)
+get_cluster_roles()
 ```
 
 ### Check Service Account Permissions
@@ -61,7 +61,7 @@ get_service_accounts(namespace)
 
 | Pattern | Risk Level | Check |
 |---------|-----------|-------|
-| cluster-admin binding | Critical | `get_cluster_role_bindings()` |
+| cluster-admin binding | Critical | `get_cluster_roles()` |
 | Wildcard verbs (*) | High | Review role rules |
 | secrets access | High | Check get/list on secrets |
 | pod/exec | High | Allows container access |
@@ -73,17 +73,17 @@ See [RBAC-PATTERNS.md](RBAC-PATTERNS.md) for detailed patterns and remediation.
 ### Kyverno Policies
 
 ```python
-kyverno_policies_list_tool(namespace)
-kyverno_clusterpolicies_list_tool()
-kyverno_policy_get_tool(name, namespace)
+get_policy_list(namespace)
+get_policy_list()
+get_policy(name, namespace)
 ```
 
 ### OPA Gatekeeper
 
 ```python
-gatekeeper_constraints_list_tool()
-gatekeeper_constraint_get_tool(kind, name)
-gatekeeper_templates_list_tool()
+get_policy_list()
+get_policy(kind, name)
+get_policy_list()
 ```
 
 ### Common Policies to Enforce
@@ -116,14 +116,14 @@ get_secrets(namespace)
 ### List Policies
 
 ```python
-get_network_policies(namespace)
+analyze_network_policies(namespace)
 ```
 
 ### Cilium Network Policies
 
 ```python
-cilium_policies_list_tool(namespace)
-cilium_policy_get_tool(name, namespace)
+cilium_list_policies(namespace)
+cilium_get_policy(name, namespace)
 ```
 
 ### Default Deny Template
@@ -144,26 +144,26 @@ spec:
 
 1. **RBAC Audit**
    ```python
-   get_cluster_role_bindings()
-   get_roles(namespace)
+   get_cluster_roles()
+   get_rbac_roles(namespace)
    ```
 
 2. **Policy Compliance**
    ```python
-   kyverno_clusterpolicies_list_tool()
-   gatekeeper_constraints_list_tool()
+   get_policy_list()
+   get_policy_list()
    ```
 
 3. **Network Isolation**
    ```python
-   get_network_policies(namespace)
-   cilium_endpoints_list_tool(namespace)
+   analyze_network_policies(namespace)
+   cilium_list_endpoints(namespace)
    ```
 
 4. **Pod Security**
    ```python
    get_pods(namespace)
-   describe_pod(name, namespace)
+   kubectl_describe(name, namespace)
    ```
 
 ## Multi-Cluster Security
@@ -171,8 +171,8 @@ spec:
 Audit across clusters:
 
 ```python
-get_cluster_role_bindings(context="production")
-get_cluster_role_bindings(context="staging")
+get_cluster_roles(context="production")
+get_cluster_roles(context="staging")
 ```
 
 ## Automated Audit Script
@@ -181,10 +181,10 @@ For comprehensive security audit, see [scripts/audit-rbac.py](scripts/audit-rbac
 
 ## Related Tools
 
-- RBAC: `get_roles`, `get_cluster_roles`, `get_role_bindings`
+- RBAC: `get_rbac_roles`, `get_cluster_roles`, `get_rbac_roles`
 - Policy: `kyverno_*`, `gatekeeper_*`
-- Network: `get_network_policies`, `cilium_policies_*`
-- Istio: `istio_authorizationpolicies_list_tool`, `istio_peerauthentications_list_tool`
+- Network: `analyze_network_policies`, `cilium_policies_*`
+- Istio: `istio_authorizationpolicies_list`, `istio_peerauthentications_list`
 
 ## Related Skills
 

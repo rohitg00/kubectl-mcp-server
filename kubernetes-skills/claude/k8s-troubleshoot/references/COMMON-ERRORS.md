@@ -16,8 +16,8 @@ Quick reference for error messages and their solutions.
 
 **Fix:**
 ```python
-get_pod_logs(name, namespace, previous=True)
-describe_pod(name, namespace)
+get_logs(name, namespace, previous=True)
+kubectl_describe(name, namespace)
 ```
 
 ### ImagePullBackOff / ErrImagePull
@@ -32,7 +32,7 @@ describe_pod(name, namespace)
 
 **Fix:**
 ```python
-describe_pod(name, namespace)
+kubectl_describe(name, namespace)
 ```
 
 ### OOMKilled (Exit Code 137)
@@ -83,7 +83,7 @@ get_pod_metrics(name, namespace)
 
 **Fix:**
 ```python
-describe_pod(name, namespace)
+kubectl_describe(name, namespace)
 get_nodes()
 ```
 
@@ -95,7 +95,7 @@ get_nodes()
 
 **Fix:**
 ```python
-describe_node(name)
+kubectl_describe(name)
 ```
 
 ## Storage Errors
@@ -113,7 +113,7 @@ describe_node(name)
 
 **Fix:**
 ```python
-describe_pvc(name, namespace)
+kubectl_describe(name, namespace)
 get_storage_classes()
 ```
 
@@ -129,7 +129,7 @@ get_storage_classes()
 **Fix:**
 ```python
 get_endpoints(namespace)
-get_network_policies(namespace)
+analyze_network_policies(namespace)
 ```
 
 ### No route to host
@@ -159,7 +159,7 @@ get_pods(namespace="kube-system", label_selector="k8s-app=kube-dns")
 **Fix:**
 ```python
 get_cluster_roles()
-get_role_bindings(namespace)
+get_rbac_roles(namespace)
 ```
 
 ## Admission Controller Errors
@@ -172,8 +172,8 @@ get_role_bindings(namespace)
 
 **Fix:**
 ```python
-kyverno_clusterpolicies_list_tool()
-gatekeeper_constraints_list_tool()
+get_policy_list()
+get_policy_list()
 ```
 
 ## Resource Limit Errors
@@ -206,17 +206,17 @@ get_resource_quotas(namespace)
 
 **Fix:**
 ```python
-describe_pod(name, namespace)
-get_pod_logs(name, namespace)
+kubectl_describe(name, namespace)
+get_logs(name, namespace)
 ```
 
 ## Quick Lookup
 
 | Error | First Tool |
 |-------|------------|
-| CrashLoopBackOff | `get_pod_logs(previous=True)` |
-| ImagePullBackOff | `describe_pod` |
-| Pending (scheduling) | `describe_pod`, `get_events` |
-| PVC Pending | `describe_pvc` |
+| CrashLoopBackOff | `get_logs(previous=True)` |
+| ImagePullBackOff | `kubectl_describe` |
+| Pending (scheduling) | `kubectl_describe`, `get_events` |
+| PVC Pending | `kubectl_describe` |
 | Connection refused | `get_endpoints` |
-| RBAC Forbidden | `get_role_bindings` |
+| RBAC Forbidden | `get_rbac_roles` |

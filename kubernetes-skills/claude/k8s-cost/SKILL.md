@@ -24,7 +24,7 @@ Use this skill when:
 
 | Priority | Rule | Impact | Tools |
 |----------|------|--------|-------|
-| 1 | Find and delete unused PVCs | CRITICAL | `find_orphaned_pvcs` |
+| 1 | Find and delete unused PVCs | CRITICAL | `get_idle_resources` |
 | 2 | Right-size overprovisioned pods | HIGH | `get_resource_recommendations` |
 | 3 | Identify idle LoadBalancers | HIGH | `get_services` |
 | 4 | Scale down non-prod off-hours | MEDIUM | `scale_deployment` |
@@ -34,9 +34,9 @@ Use this skill when:
 
 | Task | Tool | Example |
 |------|------|---------|
-| Namespace cost | `get_namespace_cost` | `get_namespace_cost(namespace)` |
-| Cluster cost | `get_cluster_cost` | `get_cluster_cost()` |
-| Unused PVCs | `find_orphaned_pvcs` | `find_orphaned_pvcs(namespace)` |
+| Namespace cost | `get_namespace_cost_allocation` | `get_namespace_cost_allocation(namespace)` |
+| Cluster cost | `get_cost_analysis` | `get_cost_analysis()` |
+| Unused PVCs | `get_idle_resources` | `get_idle_resources(namespace)` |
 | Right-sizing | `get_resource_recommendations` | `get_resource_recommendations(namespace)` |
 
 ## Quick Cost Analysis
@@ -44,15 +44,15 @@ Use this skill when:
 ### Get Cost Summary
 
 ```python
-get_namespace_cost(namespace)
-get_cluster_cost()
+get_namespace_cost_allocation(namespace)
+get_cost_analysis()
 ```
 
 ### Find Unused Resources
 
 ```python
 find_unused_resources(namespace)
-find_orphaned_pvcs(namespace)
+get_idle_resources(namespace)
 ```
 
 ### Resource Right-Sizing
@@ -76,7 +76,7 @@ get_resource_usage(namespace)
 ### 2. Find Idle Resources
 
 ```python
-find_orphaned_pvcs(namespace)
+get_idle_resources(namespace)
 
 find_unused_resources(namespace)
 ```
@@ -109,8 +109,8 @@ get_pod_metrics(name, namespace)
 ### Storage (PVCs)
 
 ```python
-get_pvc(namespace)
-find_orphaned_pvcs(namespace)
+get_pvcs(namespace)
+get_idle_resources(namespace)
 ```
 
 ### Network (LoadBalancers)
@@ -124,16 +124,16 @@ get_services(namespace)
 Compare costs across clusters:
 
 ```python
-get_cluster_cost(context="production")
-get_cluster_cost(context="staging")
-get_cluster_cost(context="development")
+get_cost_analysis(context="production")
+get_cost_analysis(context="staging")
+get_cost_analysis(context="development")
 ```
 
 ## Cost Reduction Actions
 
 ### Immediate Wins
 
-1. **Delete unused PVCs**: `find_orphaned_pvcs()` then delete
+1. **Delete unused PVCs**: `get_idle_resources()` then delete
 2. **Right-size pods**: Apply `get_resource_recommendations()`
 3. **Scale down dev/staging**: Off-hours scaling
 
@@ -158,8 +158,8 @@ For comprehensive cost analysis, see [scripts/find-overprovisioned.py](scripts/f
 Scale to zero with KEDA:
 
 ```python
-keda_scaledobjects_list_tool(namespace)
-keda_scaledobject_get_tool(name, namespace)
+keda_scaledobjects_list(namespace)
+keda_scaledobject_get(name, namespace)
 ```
 
 KEDA reduces costs by:
