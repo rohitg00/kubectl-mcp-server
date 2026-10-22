@@ -1,17 +1,19 @@
 ---
 name: k8s-autoscaling
 description: Configure Kubernetes autoscaling with HPA, VPA, and KEDA. Use for horizontal/vertical pod autoscaling, event-driven scaling, and capacity management.
-license: Apache-2.0
+license: MIT-0
 metadata:
   author: rohitg00
-  version: "1.0.0"
-  tools: 7
+  version: "2.0.0"
+  tools: 12
   category: scaling
 ---
 
 # Kubernetes Autoscaling
 
 Comprehensive autoscaling using HPA, VPA, and KEDA with kubectl-mcp-server tools.
+
+> Requires the `cost`, `keda` toolsets: start kubectl-mcp-server with `--toolsets default,cost,keda` (or `MCP_TOOLSETS=default,cost,keda`).
 
 ## When to Apply
 

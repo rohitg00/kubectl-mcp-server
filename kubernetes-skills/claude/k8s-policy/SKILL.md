@@ -1,17 +1,19 @@
 ---
 name: k8s-policy
 description: Kubernetes policy management with Kyverno and Gatekeeper. Use when enforcing security policies, validating resources, or auditing policy compliance.
-license: Apache-2.0
+license: MIT-0
 metadata:
   author: rohitg00
-  version: "1.0.0"
-  tools: 6
+  version: "2.0.0"
+  tools: 5
   category: security
 ---
 
 # Kubernetes Policy Management
 
 Manage policies using kubectl-mcp-server's Kyverno and Gatekeeper tools.
+
+> Requires the `policy` toolset: start kubectl-mcp-server with `--toolsets default,policy` (or `MCP_TOOLSETS=default,policy`). For deep work, the project-maintained MCP servers may fit better: Kyverno: https://github.com/nirmata/kyverno-mcp.
 
 ## When to Apply
 

@@ -214,7 +214,7 @@ kubectl_logs(name, namespace)
 
 | Error | First Tool |
 |-------|------------|
-| CrashLoopBackOff | `kubectl_logs(previous=True)` |
+| CrashLoopBackOff | `kubectl_logs(pod_name, previous=True)` |
 | ImagePullBackOff | `kubectl_describe` |
 | Pending (scheduling) | `kubectl_describe`, `kubectl_get` |
 | PVC Pending | `kubectl_describe` |

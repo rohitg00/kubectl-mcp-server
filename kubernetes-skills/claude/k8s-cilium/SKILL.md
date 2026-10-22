@@ -1,17 +1,19 @@
 ---
 name: k8s-cilium
 description: Cilium and Hubble network observability for Kubernetes. Use when managing network policies, observing traffic flows, or troubleshooting connectivity with eBPF-based networking.
-license: Apache-2.0
+license: MIT-0
 metadata:
   author: rohitg00
-  version: "1.0.0"
-  tools: 8
+  version: "2.0.0"
+  tools: 9
   category: networking
 ---
 
 # Cilium & Hubble Network Observability
 
 Manage eBPF-based networking using kubectl-mcp-server's Cilium tools (8 tools).
+
+> Requires the `cilium` toolset: start kubectl-mcp-server with `--toolsets default,cilium` (or `MCP_TOOLSETS=default,cilium`).
 
 ## When to Apply
 
@@ -130,7 +132,7 @@ get_hubble_flows(
 
 get_hubble_flows(
     namespace="default",
-    type="l7"
+    protocol="http"
 )
 ```
 
@@ -207,7 +209,7 @@ get_hubble_flows(namespace)
 ```python
 cilium_get_status()
 cilium_list_nodes()
-get_hubble_flows(namespace, type="l7")
+get_hubble_flows(namespace, protocol="http")
 ```
 
 ## Best Practices

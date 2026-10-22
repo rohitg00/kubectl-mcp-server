@@ -17,7 +17,7 @@ Pod Status?
 │       └── Check scheduler pods in kube-system
 │
 ├── CrashLoopBackOff
-│   ├── kubectl_logs(previous=True)
+│   ├── kubectl_logs(pod_name, previous=True)
 │   ├── Exit Code 137 (OOMKilled)
 │   │   └── Increase memory limits
 │   ├── Exit Code 1 (App Error)

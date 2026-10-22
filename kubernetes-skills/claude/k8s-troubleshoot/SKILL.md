@@ -1,17 +1,19 @@
 ---
 name: k8s-troubleshoot
 description: Debug Kubernetes pods, nodes, and workloads. Use when pods are failing, containers crash, nodes are unhealthy, or users mention debugging, troubleshooting, or diagnosing Kubernetes issues.
-license: Apache-2.0
+license: MIT-0
 metadata:
   author: rohitg00
-  version: "1.0.0"
-  tools: 15
+  version: "2.0.0"
+  tools: 14
   category: observability
 ---
 
 # Kubernetes Troubleshooting
 
 Expert debugging and diagnostics for Kubernetes clusters using kubectl-mcp-server tools.
+
+> Requires the `cilium`, `diagnostics`, `istio`, `policy`, `security` toolsets: start kubectl-mcp-server with `--toolsets default,cilium,diagnostics,istio,policy,security` (or `MCP_TOOLSETS=default,cilium,diagnostics,istio,policy,security`). For deep work, the project-maintained MCP servers may fit better: Kyverno: https://github.com/nirmata/kyverno-mcp.
 
 ## When to Apply
 
@@ -38,7 +40,7 @@ Use this skill when:
 | Symptom | First Tool | Next Steps |
 |---------|------------|------------|
 | Pod Pending | `kubectl_describe` | Check events, node capacity, resource requests |
-| CrashLoopBackOff | `kubectl_logs(previous=True)` | Check exit code, resources, liveness probes |
+| CrashLoopBackOff | `kubectl_logs(pod_name, previous=True)` | Check exit code, resources, liveness probes |
 | ImagePullBackOff | `kubectl_describe` | Verify image name, registry auth, network |
 | OOMKilled | `kubectl_top` | Increase memory limits, check for memory leaks |
 | ContainerCreating | `kubectl_describe` | Check PVC binding, secrets, configmaps |
@@ -61,7 +63,7 @@ Use this skill when:
 |-------|-------------|--------------|
 | Pending | Scheduling issues | `kubectl_describe`, `kubectl_get`, `kubectl_get` |
 | ImagePullBackOff | Registry/auth | `kubectl_describe`, check image name |
-| CrashLoopBackOff | App crash | `kubectl_logs(previous=True)` |
+| CrashLoopBackOff | App crash | `kubectl_logs(pod_name, previous=True)` |
 | OOMKilled | Memory limit | `kubectl_top`, adjust limits |
 | ContainerCreating | Volume/network | `kubectl_describe`, `kubectl_get` |
 
@@ -111,7 +113,7 @@ Use this skill when:
 1. exec_in_pod(pod, namespace, "nslookup kubernetes.default") - Test DNS
 2. If fails: check coredns pods in kube-system
 3. kubectl_get(resource_type="pods", namespace="kube-system", label_selector="k8s-app=kube-dns")
-4. kubectl_logs(name="coredns-*", namespace="kube-system")
+4. kubectl_logs(pod_name="coredns-*", namespace="kube-system")
 ```
 
 ## Multi-Cluster Debugging
@@ -121,7 +123,7 @@ All tools support `context` parameter for targeting different clusters:
 ```python
 kubectl_get(resource_type="pods", namespace="kube-system", context="production-cluster")
 kubectl_get(resource_type="events", namespace="default", context="staging-cluster")
-kubectl_describe(name="myapp-xyz", namespace="prod", context="prod-east")
+kubectl_describe(resource_type="pod", name="myapp-xyz", namespace="prod", context="prod-east")
 ```
 
 ## Diagnostic Scripts

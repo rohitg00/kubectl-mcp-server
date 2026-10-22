@@ -1,17 +1,19 @@
 ---
 name: k8s-service-mesh
 description: Manage Istio service mesh for traffic management, security, and observability. Use for traffic shifting, canary releases, mTLS, and service mesh troubleshooting.
-license: Apache-2.0
+license: MIT-0
 metadata:
   author: rohitg00
-  version: "1.0.0"
-  tools: 10
+  version: "2.0.0"
+  tools: 13
   category: networking
 ---
 
 # Kubernetes Service Mesh (Istio)
 
 Traffic management, security, and observability using kubectl-mcp-server's Istio/Kiali tools.
+
+> Requires the `cilium`, `istio` toolsets: start kubectl-mcp-server with `--toolsets default,cilium,istio` (or `MCP_TOOLSETS=default,cilium,istio`).
 
 ## When to Apply
 

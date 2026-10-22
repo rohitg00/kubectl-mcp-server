@@ -1,17 +1,19 @@
 ---
 name: k8s-kind
 description: Manage kind (Kubernetes IN Docker) local clusters. Use when creating, testing, or developing with local Kubernetes clusters in Docker containers.
-license: Apache-2.0
+license: MIT-0
 metadata:
   author: rohitg00
-  version: "1.0.0"
-  tools: 32
+  version: "2.0.0"
+  tools: 31
   category: development
 ---
 
 # kind (Kubernetes IN Docker) Management
 
 Manage local Kubernetes clusters using kubectl-mcp-server's kind tools (32 tools).
+
+> Requires the `kind` toolset: start kubectl-mcp-server with `--toolsets default,kind` (or `MCP_TOOLSETS=default,kind`).
 
 kind enables running local Kubernetes clusters using Docker container "nodes". It's ideal for local development, CI/CD testing, and testing across Kubernetes versions.
 

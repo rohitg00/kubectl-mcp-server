@@ -94,14 +94,41 @@ Use this skill when:
 
 ## Installation
 
-### Option 1: Claude (Direct)
+### Option 1: skills CLI (any agent)
+
+[`npx skills`](https://skills.sh) installs into Claude Code, Codex, Cursor, OpenCode, Gemini CLI and 70+ other agents:
 
 ```bash
-# Copy skills to Claude
+# Pick skills and agents interactively
+npx skills add rohitg00/kubectl-mcp-server
+
+# One skill for one agent
+npx skills add rohitg00/kubectl-mcp-server --skill k8s-helm --agent claude-code
+
+# Every skill, user-level, no prompts
+npx skills add rohitg00/kubectl-mcp-server --skill '*' -g -y
+
+# List the skills without installing
+npx skills add rohitg00/kubectl-mcp-server --list
+```
+
+### Option 2: ClawHub (OpenClaw)
+
+Every skill is published to [ClawHub](https://clawhub.ai/rohitg00) and re-synced from this directory on each merge to `main`:
+
+```bash
+openclaw skills install @rohitg00/k8s-helm
+# or
+npx clawhub install @rohitg00/k8s-helm
+```
+
+### Option 3: Copy into Claude Code
+
+```bash
 cp -r kubernetes-skills/claude/* ~/.claude/skills/
 ```
 
-### Option 2: Other Agents (via SkillKit)
+### Option 4: Other formats via SkillKit
 
 Install [SkillKit](https://github.com/rohitg00/skillkit):
 
@@ -124,7 +151,7 @@ skillkit translate kubernetes-skills/claude --to <agent> --output <dir>
 
 **Supported agents:** cursor, codex, gemini-cli, github-copilot, goose, kilo, roo, windsurf, amp, universal
 
-### Option 3: Manual Conversion
+### Option 5: Manual Conversion
 
 Each `SKILL.md` file contains:
 - YAML frontmatter with `name` and `description`
@@ -140,7 +167,7 @@ Convert manually by copying the content to your agent's format:
 | Windsurf | `.windsurf/rules/<skill>.md` |
 | Goose | `.goose/instructions.md` |
 
-## Skill Coverage (26 Skills)
+## Skill Coverage (25 Skills)
 
 | Category | Skills |
 |----------|--------|
@@ -157,57 +184,35 @@ Convert manually by copying the content to your agent's format:
 
 ## MCP Server Features
 
-### Tool Categories (280+ tools)
+### Toolsets
 
-| Category | Tools | Examples |
-|----------|-------|----------|
-| **Core** | 17 | `kubectl_get`, `kubectl_get`, `kubectl_get`, `kubectl_get` |
-| **Deployments** | 10 | `kubectl_scale`, `kubectl_rollout`, `kubectl_patch` |
-| **Networking** | 8 | `kubectl_get`, `kubectl_get`, `analyze_network_policies` |
-| **Storage** | 3 | `kubectl_get`, `kubectl_get`, `kubectl_get` |
-| **Security** | 10 | `kubectl_get`, `kubectl_get`, `kubectl_get` |
-| **Helm** | 16 | `install_helm_chart`, `upgrade_helm_chart`, `helm_rollback` |
-| **Operations** | 14 | `kubectl_apply`, `delete_resource`, `kubectl_patch`, `exec_in_pod` |
-| **Diagnostics** | 3 | `compare_namespaces`, `kubectl_top`, `cluster_health_check` |
-| **Cost** | 8 | `kubectl_get`, `get_overprovisioned_resources`, `get_idle_resources` |
-| **GitOps** | 7 | `gitops_apps_list`, `gitops_app_sync`, `gitops_app_status` |
-| **Cert-Manager** | 9 | `list_certs`, `list_cert_issuers` |
-| **Policy** | 6 | `get_policy_list`, `get_policy_violations` |
-| **Backup** | 11 | `list_backups`, `create_backup`, `create_restore` |
-| **KEDA** | 7 | `keda_scaledobjects_list`, `keda_scaledjobs_list` |
-| **Cilium** | 8 | `cilium_list_policies`, `get_hubble_flows` |
-| **Rollouts** | 11 | `promote_rollout`, `abort_rollout`, `get_flagger_canaries` |
-| **Cluster API** | 11 | `capi_list_clusters`, `capi_list_machines` |
-| **KubeVirt** | 13 | `kubevirt_vms_list`, `kubevirt_vm_start`, `kubevirt_vm_migrate` |
-| **Istio** | 10 | `istio_virtualservices_list`, `istio_analyze`, `istio_proxy_status` |
-| **vCluster (vind)** | 14 | `vind_create_cluster`, `vind_connect`, `vind_pause` |
-| **kind** | 32 | `kind_create_cluster`, `kind_load_image`, `kind_get_kubeconfig` |
+The server registers only the `core` and `helm` toolsets by default. Skills that need another toolset say so at the top; start the server with `--toolsets default,<name>` (or `MCP_TOOLSETS`) to load it.
 
-### MCP Resources (8)
+| Toolset | Default | Tools | Covers |
+|---------|---------|-------|--------|
+| `core` | yes | 18 | Generic kubectl operations for every resource kind, including CRDs |
+| `helm` | yes | 8 | Helm release lifecycle |
+| `helm_dev` |  | 16 | Helm charts and repositories: search, show, template, lint, package, dependencies |
+| `ops` |  | 10 | Maintenance: create, label, annotate, taint, cordon/drain, copy files, wait, cleanup |
+| `diagnostics` |  | 9 | Network, DNS, node and pod health diagnostics |
+| `security` |  | 5 | RBAC, pod security and secret hygiene audits |
+| `cost` |  | 8 | Resource right-sizing and cost allocation |
+| `multicluster` |  | 7 | Kubeconfig contexts and cross-cluster queries |
+| `crds` |  | 5 | CRD discovery and custom resource inspection |
+| `gitops` |  | 6 | Flux and Argo CD |
+| `certs` |  | 8 | cert-manager certificates and issuers |
+| `policy` |  | 5 | Kyverno and Gatekeeper policies |
+| `backup` |  | 10 | Velero backups and restores |
+| `keda` |  | 6 | KEDA event-driven autoscaling |
+| `cilium` |  | 7 | Cilium network policies and Hubble flows |
+| `rollouts` |  | 10 | Argo Rollouts and Flagger progressive delivery |
+| `capi` |  | 10 | Cluster API lifecycle |
+| `kubevirt` |  | 12 | KubeVirt virtual machines |
+| `istio` |  | 9 | Istio service mesh |
+| `kind` |  | 29 | kind local clusters (runs docker on the server host) |
+| `vind` |  | 11 | vCluster virtual clusters (runs vcluster on the server host) |
 
-| Resource | Description |
-|----------|-------------|
-| `cluster://status` | Cluster health and version info |
-| `namespaces://list` | All namespaces with status |
-| `pods://{namespace}` | Pods in a namespace |
-| `deployments://{namespace}` | Deployments in a namespace |
-| `services://{namespace}` | Services in a namespace |
-| `events://{namespace}` | Recent events |
-| `nodes://list` | Node status and capacity |
-| `contexts://list` | Available kubeconfig contexts |
-
-### MCP Prompts (8)
-
-| Prompt | Description |
-|--------|-------------|
-| `troubleshoot-pod` | Debug a failing pod |
-| `deploy-application` | Deploy with best practices |
-| `security-audit` | RBAC and policy review |
-| `cost-optimization` | Find savings opportunities |
-| `incident-response` | Emergency debugging |
-| `helm-workflow` | Helm chart operations |
-| `gitops-sync` | Flux/ArgoCD reconciliation |
-| `multi-cluster-compare` | Cross-cluster analysis |
+Resources, prompts and the full tool list are documented in the [main README](../README.md#toolsets).
 
 ### CLI Commands
 
@@ -222,7 +227,7 @@ kubectl-mcp-server tools kubectl_get
 kubectl-mcp-server grep "*helm*"
 
 # Call tool directly
-kubectl-mcp-server call kubectl_get '{"namespace": "default"}'
+kubectl-mcp-server call kubectl_get '{"resource_type": "pods", "namespace": "default"}'
 
 # Check dependencies
 kubectl-mcp-server doctor

@@ -1,10 +1,10 @@
 ---
 name: k8s-security
 description: Audit Kubernetes RBAC, enforce policies, and manage secrets. Use for security reviews, permission audits, policy enforcement with Kyverno/Gatekeeper, and secret management.
-license: Apache-2.0
+license: MIT-0
 metadata:
   author: rohitg00
-  version: "1.0.0"
+  version: "2.0.0"
   tools: 10
   category: security
 ---
@@ -12,6 +12,8 @@ metadata:
 # Kubernetes Security
 
 Security auditing, RBAC management, and policy enforcement using kubectl-mcp-server tools.
+
+> Requires the `cilium`, `istio`, `policy`, `security` toolsets: start kubectl-mcp-server with `--toolsets default,cilium,istio,policy,security` (or `MCP_TOOLSETS=default,cilium,istio,policy,security`). For deep work, the project-maintained MCP servers may fit better: Kyverno: https://github.com/nirmata/kyverno-mcp.
 
 ## When to Apply
 

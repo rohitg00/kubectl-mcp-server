@@ -148,7 +148,7 @@ helm_template(name, chart, namespace, values)
 
 ```python
 # Full release info
-get_helm_release(name, namespace)
+helm_status(name, namespace)
 
 # All revisions
 helm_history(name, namespace)
@@ -157,7 +157,7 @@ helm_history(name, namespace)
 helm_get(name, namespace)
 
 # Rendered manifests
-get_helm_manifest(name, namespace)
+helm_get(what="manifest", name, namespace)
 
 # Dry-run to test
 helm_template(name, chart, namespace, values)
@@ -180,7 +180,7 @@ helm_lint(chart)
 
 3. **Use specific versions**
    ```python
-   install_helm_chart(name, chart, namespace, version="1.2.3", values)
+   helm_show(chart, what="chart", version="1.2.3")
    ```
 
 4. **Keep values in version control**

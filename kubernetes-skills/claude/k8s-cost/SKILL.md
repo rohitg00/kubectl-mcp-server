@@ -1,17 +1,19 @@
 ---
 name: k8s-cost
 description: Optimize Kubernetes costs through resource right-sizing, unused resource detection, and cluster efficiency analysis. Use for cost optimization, resource analysis, and capacity planning.
-license: Apache-2.0
+license: MIT-0
 metadata:
   author: rohitg00
-  version: "1.0.0"
-  tools: 8
+  version: "2.0.0"
+  tools: 9
   category: observability
 ---
 
 # Kubernetes Cost Optimization
 
 Cost analysis and optimization using kubectl-mcp-server's cost tools.
+
+> Requires the `cost`, `keda` toolsets: start kubectl-mcp-server with `--toolsets default,cost,keda` (or `MCP_TOOLSETS=default,cost,keda`).
 
 ## When to Apply
 
@@ -51,7 +53,7 @@ get_cost_analysis()
 ### Find Unused Resources
 
 ```python
-find_unused_resources(namespace)
+get_idle_resources(namespace)
 get_idle_resources(namespace)
 ```
 
@@ -78,7 +80,7 @@ kubectl_top(namespace)
 ```python
 get_idle_resources(namespace)
 
-find_unused_resources(namespace)
+get_idle_resources(namespace)
 ```
 
 ### 3. Analyze Node Utilization

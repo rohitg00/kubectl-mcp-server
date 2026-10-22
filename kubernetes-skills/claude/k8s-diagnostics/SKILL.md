@@ -1,10 +1,10 @@
 ---
 name: k8s-diagnostics
 description: Kubernetes diagnostics for metrics, health checks, resource comparisons, and cluster analysis. Use when analyzing cluster health, comparing environments, or gathering diagnostic data.
-license: Apache-2.0
+license: MIT-0
 metadata:
   author: rohitg00
-  version: "1.0.0"
+  version: "2.0.0"
   tools: 10
   category: observability
 ---
@@ -12,6 +12,8 @@ metadata:
 # Kubernetes Diagnostics
 
 Analyze cluster health and compare resources using kubectl-mcp-server's diagnostic tools.
+
+> Requires the `diagnostics`, `multicluster` toolsets: start kubectl-mcp-server with `--toolsets default,diagnostics,multicluster` (or `MCP_TOOLSETS=default,diagnostics,multicluster`).
 
 ## When to Apply
 
@@ -25,7 +27,7 @@ Use this skill when:
 | Priority | Rule | Impact | Tools |
 |----------|------|--------|-------|
 | 1 | Check metrics-server before using metrics | CRITICAL | `kubectl_top` |
-| 2 | Run health check before deployments | HIGH | `cluster_health_check` |
+| 2 | Run health check before deployments | HIGH | `health_check` |
 | 3 | Compare staging vs prod before release | MEDIUM | `compare_namespaces` |
 | 4 | Document baseline metrics | LOW | `get_nodes_summary` |
 
@@ -33,7 +35,7 @@ Use this skill when:
 
 | Task | Tool | Example |
 |------|------|---------|
-| Cluster health | `cluster_health_check` | `cluster_health_check()` |
+| Cluster health | `health_check` | `health_check()` |
 | Pod metrics | `kubectl_top` | `kubectl_top(namespace)` |
 | Node summary | `get_nodes_summary` | `get_nodes_summary()` |
 | Compare envs | `compare_namespaces` | `compare_namespaces(ns1, ns2, type)` |
@@ -46,15 +48,15 @@ kubectl_top(namespace="default")
 
 kubectl_top(resource="nodes")
 
-get_top_pods(namespace="default", sort_by="cpu")
+kubectl_top(resource="pods", namespace="default", sort_by="cpu")
 
-get_top_pods(namespace="default", sort_by="memory")
+kubectl_top(resource="pods", namespace="default", sort_by="memory")
 ```
 
 ## Cluster Health Check
 
 ```python
-cluster_health_check()
+health_check()
 
 health_check()
 ```
@@ -68,13 +70,8 @@ compare_namespaces(
     resource_type="deployment"
 )
 
-compare_namespaces(
-    namespace1="default",
-    namespace2="default",
-    resource_type="deployment",
-    context1="staging-cluster",
-    context2="prod-cluster"
-)
+kubectl_get(resource_type="deployments", namespace="default", context="staging-cluster")
+kubectl_get(resource_type="deployments", namespace="default", context="prod-cluster")
 ```
 
 ## API Discovery
@@ -82,7 +79,7 @@ compare_namespaces(
 ```python
 get_api_resources()
 
-kubectl_get(resource_type="crds", crd_name="certificates.cert-manager.io")
+kubectl_get(resource_type="crds", name="certificates.cert-manager.io")
 
 kubectl_get(resource_type="crds")
 ```
@@ -102,7 +99,7 @@ list_contexts()
 ### Cluster Overview
 
 ```python
-cluster_health_check()
+health_check()
 get_nodes_summary()
 kubectl_get(resource_type="events", namespace="")
 kubectl_get(resource_type="crds")

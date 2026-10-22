@@ -58,7 +58,7 @@ def find_overprovisioned(namespace: str = "", context: str = "") -> dict[str, An
         },
         {
             "name": "unused_resources",
-            "tool": "find_unused_resources",
+            "tool": "get_idle_resources",
             "params": {"namespace": namespace, "context": context},
             "description": "Find unused ConfigMaps/Secrets"
         },

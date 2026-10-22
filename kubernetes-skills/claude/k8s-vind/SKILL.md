@@ -1,10 +1,10 @@
 ---
 name: k8s-vind
 description: Manage vCluster (virtual Kubernetes clusters) instances using vind. Use when creating, managing, or operating lightweight virtual clusters for development, testing, or multi-tenancy.
-license: Apache-2.0
+license: MIT-0
 metadata:
   author: rohitg00
-  version: "1.0.0"
+  version: "2.0.0"
   tools: 14
   category: development
 ---
@@ -12,6 +12,8 @@ metadata:
 # vCluster (vind) Management
 
 Manage virtual Kubernetes clusters using kubectl-mcp-server's vind tools (14 tools).
+
+> Requires the `vind` toolset: start kubectl-mcp-server with `--toolsets default,vind` (or `MCP_TOOLSETS=default,vind`).
 
 vCluster enables running fully functional Kubernetes clusters as lightweight workloads inside a host cluster, combining multi-tenancy with strong isolation.
 
@@ -72,10 +74,10 @@ vind_status(name="my-vcluster", namespace="vcluster")
 vind_get_kubeconfig(name="my-vcluster", namespace="vcluster")
 ```
 
-## View Logs
+## Status
 
 ```python
-vind_status(name="my-vcluster", namespace="vcluster", tail=100)
+vind_status(name="my-vcluster", namespace="vcluster")
 ```
 
 ## Cluster Lifecycle
@@ -162,14 +164,6 @@ vind_upgrade(
 vind_describe(name="dev-cluster")
 ```
 
-## Platform UI
-
-```python
-vind_status()
-
-vind_status(host="0.0.0.0", port=9898)
-```
-
 ## Development Workflow
 
 ### Quick Dev Environment
@@ -233,8 +227,8 @@ vind_create_cluster(
 
 ```text
 1. detect_ecosystem()
-2. vind_status(name="my-cluster", tail=200)
-3. vind_status(name="my-cluster")
+2. vind_status(name="my-cluster")
+3. vind_describe(name="my-cluster")
 ```
 
 ### Connection Issues

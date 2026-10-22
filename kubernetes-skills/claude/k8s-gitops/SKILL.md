@@ -1,10 +1,10 @@
 ---
 name: k8s-gitops
 description: Manage GitOps workflows with Flux and ArgoCD. Use for sync status, reconciliation, app management, source management, and GitOps troubleshooting.
-license: Apache-2.0
+license: MIT-0
 metadata:
   author: rohitg00
-  version: "1.0.0"
+  version: "2.0.0"
   tools: 7
   category: gitops
 ---
@@ -12,6 +12,8 @@ metadata:
 # Kubernetes GitOps
 
 GitOps workflows using Flux and ArgoCD with kubectl-mcp-server tools.
+
+> Requires the `gitops` toolset: start kubectl-mcp-server with `--toolsets default,gitops` (or `MCP_TOOLSETS=default,gitops`). For deep work, the project-maintained MCP servers may fit better: Argo CD: https://github.com/argoproj-labs/mcp-for-argocd; Flux: https://fluxoperator.dev/mcp-server/.
 
 ## When to Apply
 
@@ -67,9 +69,9 @@ gitops_app_sync(
 ### Suspend/Resume
 
 ```python
-kubectl_patch(kind="kustomization", name="my-app", namespace="flux-system")
+kubectl_patch(resource_type="kustomization", name="my-app", namespace="flux-system", patch={"spec": {"suspend": true}}, patch_type="merge")
 
-kubectl_patch(kind="kustomization", name="my-app", namespace="flux-system")
+kubectl_patch(resource_type="kustomization", name="my-app", namespace="flux-system", patch={"spec": {"suspend": false}}, patch_type="merge")
 ```
 
 See [FLUX.md](FLUX.md) for detailed Flux workflows.
@@ -85,19 +87,19 @@ gitops_apps_list(namespace="argocd")
 ### Get App Status
 
 ```python
-gitops_app_get(name="my-app", namespace="argocd")
+gitops_app_get(kind="application", name="my-app", namespace="argocd")
 ```
 
 ### Sync Application
 
 ```python
-gitops_app_sync(name="my-app", namespace="argocd")
+gitops_app_sync(kind="application", name="my-app", namespace="argocd")
 ```
 
 ### Refresh App
 
 ```python
-gitops_app_sync(name="my-app", namespace="argocd")
+gitops_app_sync(kind="application", name="my-app", namespace="argocd")
 ```
 
 See [ARGOCD.md](ARGOCD.md) for detailed ArgoCD workflows.
@@ -133,11 +135,11 @@ gitops_app_sync(kind="kustomization", name="production", namespace="flux-system"
 ### With ArgoCD
 
 ```python
-gitops_app_sync(name="app-staging", namespace="argocd")
+gitops_app_sync(kind="application", name="app-staging", namespace="argocd")
 
-gitops_app_get(name="app-staging", namespace="argocd")
+gitops_app_get(kind="application", name="app-staging", namespace="argocd")
 
-gitops_app_sync(name="app-production", namespace="argocd")
+gitops_app_sync(kind="application", name="app-production", namespace="argocd")
 ```
 
 ## Multi-Cluster GitOps
@@ -161,7 +163,7 @@ gitops_app_sync(
 Compare live state with desired:
 
 ```python
-gitops_app_get(name="my-app", namespace="argocd")
+gitops_app_get(kind="application", name="my-app", namespace="argocd")
 
 gitops_apps_list(namespace="flux-system")
 ```

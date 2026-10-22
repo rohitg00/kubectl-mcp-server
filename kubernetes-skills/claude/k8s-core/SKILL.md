@@ -1,17 +1,19 @@
 ---
 name: k8s-core
 description: Core Kubernetes resource management for pods, namespaces, configmaps, secrets, and nodes. Use when listing, inspecting, or managing fundamental K8s objects.
-license: Apache-2.0
+license: MIT-0
 metadata:
   author: rohitg00
-  version: "1.0.0"
-  tools: 17
+  version: "2.0.0"
+  tools: 8
   category: core
 ---
 
 # Core Kubernetes Resources
 
 Manage fundamental Kubernetes objects using kubectl-mcp-server's core tools.
+
+> Requires the `diagnostics`, `ops` toolsets: start kubectl-mcp-server with `--toolsets default,diagnostics,ops` (or `MCP_TOOLSETS=default,diagnostics,ops`).
 
 ## When to Apply
 
@@ -46,12 +48,12 @@ Use this skill when:
 kubectl_get(resource_type="pods", namespace="default")
 kubectl_get(resource_type="pods", namespace="kube-system", label_selector="app=nginx")
 
-kubectl_describe(name="my-pod", namespace="default")
+kubectl_describe(resource_type="pod", name="my-pod", namespace="default")
 
-kubectl_logs(name="my-pod", namespace="default")
-kubectl_logs(name="my-pod", namespace="default", previous=True)
+kubectl_logs(pod_name="my-pod", namespace="default")
+kubectl_logs(pod_name="my-pod", namespace="default", previous=True)
 
-delete_pod(name="my-pod", namespace="default")
+delete_resource(resource_type="pod", name="my-pod", namespace="default")
 ```
 
 ## Namespaces
@@ -59,9 +61,9 @@ delete_pod(name="my-pod", namespace="default")
 ```python
 kubectl_get(resource_type="namespaces")
 
-create_namespace(name="my-namespace")
+kubectl_create(resource_type="namespace", name="my-namespace")
 
-delete_namespace(name="my-namespace")
+delete_resource(resource_type="namespace", name="my-namespace")
 ```
 
 ## ConfigMaps
@@ -71,11 +73,16 @@ kubectl_get(resource_type="configmaps", namespace="default")
 
 kubectl_get(resource_type="configmaps", name="my-config", namespace="default")
 
-create_configmap(
-    name="app-config",
-    namespace="default",
-    data={"key": "value", "config.yaml": "setting: true"}
-)
+kubectl_apply(manifest="""
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+  namespace: default
+data:
+  key: value
+  config.yaml: "setting: true"
+""")
 ```
 
 ## Secrets
@@ -85,11 +92,16 @@ kubectl_get(resource_type="secrets", namespace="default")
 
 kubectl_get(resource_type="secrets", name="my-secret", namespace="default")
 
-create_secret(
-    name="db-credentials",
-    namespace="default",
-    data={"username": "admin", "password": "secret123"}
-)
+kubectl_apply(manifest="""
+apiVersion: v1
+kind: Secret
+metadata:
+  name: db-credentials
+  namespace: default
+stringData:
+  username: <username>
+  password: <password>
+""")
 ```
 
 ## Nodes
@@ -97,14 +109,14 @@ create_secret(
 ```python
 kubectl_get(resource_type="nodes")
 
-kubectl_describe(name="node-1")
+kubectl_describe(resource_type="node", name="node-1")
 
 get_nodes_summary()
 
-cordon_node(name="node-1")
-uncordon_node(name="node-1")
+node_management(action="cordon", node_name="node-1")
+node_management(action="uncordon", node_name="node-1")
 
-drain_node(name="node-1", ignore_daemonsets=True)
+node_management(action="drain", node_name="node-1")
 ```
 
 ## Events

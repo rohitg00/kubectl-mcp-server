@@ -65,13 +65,13 @@ spec:
 gitops_apps_list(namespace="argocd")
 
 # Get application details
-gitops_app_get(name="my-app", namespace="argocd")
+gitops_app_get(kind="application", name="my-app", namespace="argocd")
 
 # Sync application
-gitops_app_sync(name="my-app", namespace="argocd")
+gitops_app_sync(kind="application", name="my-app", namespace="argocd")
 
 # Refresh application (fetch latest from git)
-gitops_app_sync(name="my-app", namespace="argocd")
+gitops_app_sync(kind="application", name="my-app", namespace="argocd")
 ```
 
 ## Application States
@@ -99,21 +99,21 @@ gitops_app_sync(name="my-app", namespace="argocd")
 
 ```
 1. gitops_apps_list(namespace="argocd")
-2. gitops_app_get(name="my-app", namespace="argocd")
+2. gitops_app_get(kind="application", name="my-app", namespace="argocd")
 ```
 
 ### Force Sync
 
 ```
-gitops_app_sync(name="my-app", namespace="argocd")  # Refresh first
-gitops_app_sync(name="my-app", namespace="argocd")     # Then sync
+gitops_app_sync(kind="application", name="my-app", namespace="argocd")  # Refresh first
+gitops_app_sync(kind="application", name="my-app", namespace="argocd")     # Then sync
 ```
 
 ### Sync with Prune
 
 When resources are deleted from git:
 ```
-gitops_app_sync(name="my-app", namespace="argocd", prune=True)
+gitops_app_sync(kind="application", name="my-app", namespace="argocd")
 ```
 
 ## Multi-Cluster Deployment

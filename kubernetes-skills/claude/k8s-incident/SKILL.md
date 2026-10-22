@@ -1,17 +1,19 @@
 ---
 name: k8s-incident
 description: Respond to Kubernetes incidents with runbooks and diagnostics. Use for outages, pod failures, node issues, network problems, and emergency response.
-license: Apache-2.0
+license: MIT-0
 metadata:
   author: rohitg00
-  version: "1.0.0"
-  tools: 15
+  version: "2.0.0"
+  tools: 14
   category: observability
 ---
 
 # Kubernetes Incident Response
 
 Runbooks and diagnostic workflows for common Kubernetes incidents.
+
+> Requires the `cilium`, `diagnostics`, `istio`, `security` toolsets: start kubectl-mcp-server with `--toolsets default,cilium,diagnostics,istio,security` (or `MCP_TOOLSETS=default,cilium,diagnostics,istio,security`).
 
 ## When to Apply
 
@@ -34,7 +36,7 @@ Use this skill when:
 
 | Incident | First Tool | Next Steps |
 |----------|------------|------------|
-| Pod failure | `kubectl_logs(previous=True)` | `kubectl_describe`, `kubectl_get` |
+| Pod failure | `kubectl_logs(pod_name, previous=True)` | `kubectl_describe`, `kubectl_get` |
 | Node down | `kubectl_describe` | Check kubelet logs |
 | Service unreachable | `kubectl_get` | `analyze_network_policies` |
 | Control plane | `kubectl_get(resource_type="pods", namespace="kube-system")` | Check API server logs |
@@ -176,16 +178,16 @@ kubectl_logs("etcd-xxx", "kube-system")
 
 ## Emergency Actions
 
-### Force Delete Pod
+### Delete a Stuck Pod
 
 ```python
-delete_pod(name, namespace, grace_period=0, force=True)
+delete_resource(resource_type="pod", name=name, namespace=namespace)
 ```
 
 ### Rollback Deployment
 
 ```python
-kubectl_rollout(name, namespace, revision=0)
+kubectl_rollout(action="undo", resource_type="deployment", name=name, namespace=namespace)
 ```
 
 ### Helm Rollback

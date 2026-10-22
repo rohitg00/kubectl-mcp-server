@@ -1,11 +1,11 @@
 ---
 name: k8s-storage
 description: Kubernetes storage management for PVCs, storage classes, and persistent volumes. Use when provisioning storage, managing volumes, or troubleshooting storage issues.
-license: Apache-2.0
+license: MIT-0
 metadata:
   author: rohitg00
-  version: "1.0.0"
-  tools: 3
+  version: "2.0.0"
+  tools: 4
   category: storage
 ---
 
@@ -43,7 +43,7 @@ Use this skill when:
 ```python
 kubectl_get(resource_type="pvc", namespace="default")
 
-kubectl_describe(name="my-pvc", namespace="default")
+kubectl_describe(resource_type="pvc", name="my-pvc", namespace="default")
 
 kubectl_apply(manifest="""
 apiVersion: v1
@@ -86,7 +86,7 @@ volumeBindingMode: WaitForFirstConsumer
 ```python
 kubectl_get(resource_type="pv")
 
-describe_persistent_volume(name="pv-001")
+kubectl_describe(resource_type="pv", name="pv-001")
 ```
 
 ## Volume Snapshots
@@ -125,10 +125,10 @@ spec:
 ## Troubleshooting Storage
 
 ```python
-kubectl_describe(name="my-pvc", namespace="default")
+kubectl_describe(resource_type="pvc", name="my-pvc", namespace="default")
 
 kubectl_get(resource_type="events", namespace="default")
-kubectl_describe(name="my-pod", namespace="default")
+kubectl_describe(resource_type="pod", name="my-pod", namespace="default")
 ```
 
 ## Related Skills

@@ -1,17 +1,19 @@
 ---
 name: k8s-capi
 description: Cluster API lifecycle management for provisioning, scaling, and upgrading Kubernetes clusters. Use when managing cluster infrastructure or multi-cluster operations.
-license: Apache-2.0
+license: MIT-0
 metadata:
   author: rohitg00
-  version: "1.0.0"
-  tools: 11
+  version: "2.0.0"
+  tools: 13
   category: infrastructure
 ---
 
 # Cluster API Lifecycle Management
 
 Manage Kubernetes clusters using kubectl-mcp-server's Cluster API tools (11 tools).
+
+> Requires the `capi` toolset: start kubectl-mcp-server with `--toolsets default,capi` (or `MCP_TOOLSETS=default,capi`).
 
 ## When to Apply
 

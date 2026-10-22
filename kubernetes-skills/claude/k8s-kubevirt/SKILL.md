@@ -1,17 +1,19 @@
 ---
 name: k8s-kubevirt
 description: Virtual machine management with KubeVirt on Kubernetes. Use when creating, managing, or troubleshooting VMs running on Kubernetes clusters.
-license: Apache-2.0
+license: MIT-0
 metadata:
   author: rohitg00
-  version: "1.0.0"
-  tools: 13
+  version: "2.0.0"
+  tools: 15
   category: virtualization
 ---
 
 # KubeVirt VM Management
 
 Manage virtual machines on Kubernetes using kubectl-mcp-server's KubeVirt tools (13 tools).
+
+> Requires the `kubevirt` toolset: start kubectl-mcp-server with `--toolsets default,kubevirt` (or `MCP_TOOLSETS=default,kubevirt`).
 
 ## When to Apply
 

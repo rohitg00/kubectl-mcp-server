@@ -1,17 +1,19 @@
 ---
 name: k8s-multicluster
 description: Manage multiple Kubernetes clusters, switch contexts, and perform cross-cluster operations. Use when working with multiple clusters, comparing environments, or managing cluster lifecycle.
-license: Apache-2.0
+license: MIT-0
 metadata:
   author: rohitg00
-  version: "1.0.0"
-  tools: 15
+  version: "2.0.0"
+  tools: 17
   category: multicluster
 ---
 
 # Multi-Cluster Kubernetes Management
 
 Cross-cluster operations and context management using kubectl-mcp-server's multi-cluster support.
+
+> Requires the `capi`, `cilium`, `diagnostics`, `gitops`, `istio`, `multicluster` toolsets: start kubectl-mcp-server with `--toolsets default,capi,cilium,diagnostics,gitops,istio,multicluster` (or `MCP_TOOLSETS=default,capi,cilium,diagnostics,gitops,istio,multicluster`). For deep work, the project-maintained MCP servers may fit better: Argo CD: https://github.com/argoproj-labs/mcp-for-argocd; Flux: https://fluxoperator.dev/mcp-server/.
 
 ## When to Apply
 

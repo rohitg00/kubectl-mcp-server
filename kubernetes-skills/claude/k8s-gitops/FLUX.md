@@ -86,17 +86,17 @@ gitops_app_sync(
 
 # Suspend reconciliation
 kubectl_patch(
-    kind="kustomization",
+    resource_type="kustomization",
     name="my-app",
-    namespace="flux-system"
-)
+    namespace="flux-system",
+    patch={"spec": {"suspend": true}}, patch_type="merge")
 
 # Resume reconciliation
 kubectl_patch(
-    kind="kustomization",
+    resource_type="kustomization",
     name="my-app",
-    namespace="flux-system"
-)
+    namespace="flux-system",
+    patch={"spec": {"suspend": false}}, patch_type="merge")
 ```
 
 ## Common Workflows
@@ -119,9 +119,9 @@ gitops_app_sync(kind="kustomization", name="my-app", namespace="flux-system")
 ### Pause for Maintenance
 
 ```
-kubectl_patch(kind="kustomization", name="production", namespace="flux-system")
+kubectl_patch(resource_type="kustomization", name="production", namespace="flux-system", patch={"spec": {"suspend": true}}, patch_type="merge")
 # Do maintenance
-kubectl_patch(kind="kustomization", name="production", namespace="flux-system")
+kubectl_patch(resource_type="kustomization", name="production", namespace="flux-system", patch={"spec": {"suspend": false}}, patch_type="merge")
 ```
 
 ## Troubleshooting

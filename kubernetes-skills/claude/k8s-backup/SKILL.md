@@ -1,17 +1,19 @@
 ---
 name: k8s-backup
 description: Kubernetes backup and restore with Velero. Use when creating backups, restoring applications, managing disaster recovery, or migrating workloads between clusters.
-license: Apache-2.0
+license: MIT-0
 metadata:
   author: rohitg00
-  version: "1.0.0"
-  tools: 11
+  version: "2.0.0"
+  tools: 10
   category: backup
 ---
 
 # Kubernetes Backup with Velero
 
 Manage backups and restores using kubectl-mcp-server's Velero tools.
+
+> Requires the `backup` toolset: start kubectl-mcp-server with `--toolsets default,backup` (or `MCP_TOOLSETS=default,backup`).
 
 ## When to Apply
 
@@ -51,24 +53,24 @@ list_backup_locations()
 ```python
 create_backup(
     name="my-backup",
-    namespaces=["default", "app-namespace"]
+    included_namespaces=["default", "app-namespace"]
 )
 
 create_backup(
     name="app-backup",
-    namespaces=["default"],
-    label_selector="app=my-app"
+    included_namespaces=["default"],
+    snapshot_volumes=False
 )
 
 create_backup(
     name="config-backup",
-    namespaces=["default"],
-    exclude_resources=["pods", "replicasets"]
+    included_namespaces=["default"],
+    excluded_namespaces=["kube-system"]
 )
 
 create_backup(
     name="daily-backup",
-    namespaces=["production"],
+    included_namespaces=["production"],
     ttl="720h"
 )
 ```
@@ -92,19 +94,19 @@ create_restore(
 create_restore(
     name="my-restore",
     backup_name="my-backup",
-    namespace_mappings={"old-ns": "new-ns"}
+    restore_pvs=False
 )
 
 create_restore(
     name="config-restore",
     backup_name="my-backup",
-    include_resources=["configmaps", "secrets"]
+    included_namespaces=["default"]
 )
 
 create_restore(
     name="partial-restore",
     backup_name="my-backup",
-    exclude_resources=["persistentvolumeclaims"]
+    excluded_namespaces=["kube-system"]
 )
 ```
 
@@ -121,7 +123,7 @@ get_restore(name="my-restore")
 ```python
 list_backup_schedules()
 
-list_backup_schedules(name="daily-backup")
+list_backup_schedules(namespace="velero")
 
 kubectl_apply(manifest="""
 apiVersion: velero.io/v1
@@ -147,7 +149,7 @@ from datetime import datetime
 
 create_backup(
     name=f"dr-backup-{datetime.now().strftime('%Y%m%d-%H%M%S')}",
-    namespaces=["production"]
+    included_namespaces=["production"]
 )
 get_backup(name="dr-backup-20260130-120000")
 ```

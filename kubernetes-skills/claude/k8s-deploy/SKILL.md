@@ -1,17 +1,19 @@
 ---
 name: k8s-deploy
 description: Deploy and manage Kubernetes workloads with progressive delivery. Use for deployments, rollouts, blue-green, canary releases, scaling, and release management.
-license: Apache-2.0
+license: MIT-0
 metadata:
   author: rohitg00
-  version: "1.0.0"
-  tools: 20
+  version: "2.0.0"
+  tools: 21
   category: workloads
 ---
 
 # Kubernetes Deployment Workflows
 
 Comprehensive deployment strategies using kubectl-mcp-server tools, including Argo Rollouts and Flagger for progressive delivery.
+
+> Requires the `helm_dev`, `rollouts` toolsets: start kubectl-mcp-server with `--toolsets default,helm_dev,rollouts` (or `MCP_TOOLSETS=default,helm_dev,rollouts`).
 
 ## When to Apply
 
@@ -38,9 +40,9 @@ Use this skill when:
 |------|------|---------|
 | Deploy from manifest | `kubectl_apply` | `kubectl_apply(yaml, namespace)` |
 | Deploy with Helm | `install_helm_chart` | `install_helm_chart(name, chart, namespace)` |
-| Update image | `kubectl_patch` | `kubectl_patch(name, ns, container, image)` |
+| Update image | `kubectl_patch` | `kubectl_patch(resource_type="deployment", name, ns, patch)` |
 | Scale replicas | `kubectl_scale` | `kubectl_scale(resource_type="deployment", name, ns, replicas=5)` |
-| Rollback | `kubectl_rollout` | `kubectl_rollout(name, ns, revision=0)` |
+| Rollback | `kubectl_rollout` | `kubectl_rollout(action="undo", resource_type="deployment", name, ns)` |
 | Canary promote | `promote_rollout` | `promote_rollout(name, ns)` |
 
 ## Standard Deployments
@@ -71,9 +73,12 @@ kubectl_scale(resource_type="deployment", name, namespace, replicas=5)
 ### Rolling Update
 
 ```python
-kubectl_patch(name, namespace, container="app", image="myapp:v2")
+kubectl_patch(
+    resource_type="deployment", name=name, namespace=namespace,
+    patch={"spec": {"template": {"spec": {"containers": [{"name": "app", "image": "myapp:v2"}]}}}},
+)
 
-kubectl_rollout(name, namespace, resource_type="deployment")
+kubectl_rollout(action="status", resource_type="deployment", name=name, namespace=namespace)
 ```
 
 ## Progressive Delivery
@@ -131,9 +136,9 @@ See [references/STRATEGIES.md](references/STRATEGIES.md) for detailed strategy c
 ### Native Kubernetes
 
 ```python
-kubectl_rollout(name, namespace, revision=0)
+kubectl_rollout(action="history", resource_type="deployment", name=name, namespace=namespace)
 
-kubectl_rollout(name, namespace, revision=2)
+kubectl_rollout(action="undo", resource_type="deployment", name=name, namespace=namespace)
 ```
 
 ### Helm Rollback

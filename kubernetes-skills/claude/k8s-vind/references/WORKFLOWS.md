@@ -160,7 +160,7 @@ vind_delete_cluster(name="old-prod")
 ```python
 detect_ecosystem()
 
-vind_status(name="my-cluster", tail=200)
+vind_describe(name="my-cluster")
 
 vind_status(name="my-cluster")
 
@@ -210,16 +210,6 @@ vind_create_cluster(
     name="k3s-cluster",
     set_values="controlPlane.distro=k3s"
 )
-```
-
-## Platform UI
-
-### Start UI for Management
-
-```python
-vind_status()
-
-vind_status(host="0.0.0.0", port=9898)
 ```
 
 ## Comparison: vCluster vs Host Resources

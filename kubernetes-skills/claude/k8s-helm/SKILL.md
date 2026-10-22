@@ -1,17 +1,19 @@
 ---
 name: k8s-helm
 description: Manage Helm charts, releases, and repositories. Use for Helm installations, upgrades, rollbacks, chart development, and release management.
-license: Apache-2.0
+license: MIT-0
 metadata:
   author: rohitg00
-  version: "1.0.0"
-  tools: 16
+  version: "2.0.0"
+  tools: 18
   category: workloads
 ---
 
 # Helm Chart Management
 
 Comprehensive Helm v3 operations using kubectl-mcp-server's 16 Helm tools.
+
+> Requires the `helm_dev` toolset: start kubectl-mcp-server with `--toolsets default,helm_dev` (or `MCP_TOOLSETS=default,helm_dev`).
 
 ## When to Apply
 
@@ -68,7 +70,7 @@ upgrade_helm_chart(
 
 ```python
 helm_rollback(
-    name="my-release",
+    release_name="my-release",
     namespace="web",
     revision=1
 )
@@ -93,25 +95,25 @@ helm_list()
 ### Get Release Details
 
 ```python
-get_helm_release(name="my-release", namespace="web")
+helm_status(release_name="my-release", namespace="web")
 ```
 
 ### Release History
 
 ```python
-helm_history(name="my-release", namespace="web")
+helm_history(release_name="my-release", namespace="web")
 ```
 
 ### Get Release Values
 
 ```python
-helm_get(name="my-release", namespace="web")
+helm_get(release_name="my-release", namespace="web")
 ```
 
 ### Get Release Manifest
 
 ```python
-get_helm_manifest(name="my-release", namespace="web")
+helm_get(what="manifest", release_name="my-release", namespace="web")
 ```
 
 ## Repository Management
@@ -119,13 +121,13 @@ get_helm_manifest(name="my-release", namespace="web")
 ### Add Repository
 
 ```python
-add_helm_repo(name="bitnami", url="https://charts.bitnami.com/bitnami")
+helm_repo_add(name="bitnami", url="https://charts.bitnami.com/bitnami")
 ```
 
 ### List Repositories
 
 ```python
-list_helm_repos()
+helm_repo_list()
 ```
 
 ### Update Repositories
@@ -137,9 +139,9 @@ helm_repo_update()
 ### Search Charts
 
 ```python
-search_helm_charts(keyword="nginx")
+helm_search_repo(keyword="nginx")
 
-search_helm_charts(keyword="postgres", repo="bitnami")
+helm_search_repo(keyword="bitnami/postgres")
 ```
 
 ## Chart Development
@@ -158,13 +160,13 @@ helm_template(
 ### Lint Chart
 
 ```python
-helm_lint(chart="./my-chart")
+helm_lint(chart_path="./my-chart")
 ```
 
 ### Package Chart
 
 ```python
-package_helm_chart(chart="./my-chart", destination="./packages")
+helm_package(chart_path="./my-chart", destination="./packages")
 ```
 
 ## Common Workflows
@@ -172,15 +174,15 @@ package_helm_chart(chart="./my-chart", destination="./packages")
 ### New Application Deployment
 
 ```python
-add_helm_repo(name="bitnami", url="...")
+helm_repo_add(name="bitnami", url="...")
 
-search_helm_charts(keyword="postgresql")
+helm_search_repo(keyword="postgresql")
 
 helm_template(...)
 
 install_helm_chart(...)
 
-get_helm_release(...)
+helm_status(...)
 ```
 
 ### Upgrade with Rollback Safety
@@ -232,7 +234,7 @@ See [TROUBLESHOOTING.md](TROUBLESHOOTING.md) for common issues.
 ### Release Stuck in Pending
 
 ```python
-get_helm_release(name, namespace)
+helm_status(name, namespace)
 
 kubectl_get(resource_type="pods", namespace, label_selector="app.kubernetes.io/instance=<release>")
 ```
@@ -270,7 +272,7 @@ See [scripts/lint-chart.sh](scripts/lint-chart.sh) for automated chart validatio
 
 2. **Use Semantic Versioning**
    ```python
-   install_helm_chart(..., version="1.2.3")
+   helm_show(chart="bitnami/nginx", what="chart", version="1.2.3")
    ```
 
 3. **Store Values in Git**

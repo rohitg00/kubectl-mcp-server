@@ -1,17 +1,19 @@
 ---
 name: k8s-rollouts
 description: Progressive delivery with Argo Rollouts and Flagger. Use when implementing canary deployments, blue-green deployments, or traffic shifting strategies.
-license: Apache-2.0
+license: MIT-0
 metadata:
   author: rohitg00
-  version: "1.0.0"
-  tools: 11
+  version: "2.0.0"
+  tools: 13
   category: delivery
 ---
 
 # Progressive Delivery with Argo Rollouts & Flagger
 
 Manage progressive deployments using kubectl-mcp-server's rollout tools (11 tools).
+
+> Requires the `rollouts` toolset: start kubectl-mcp-server with `--toolsets default,rollouts` (or `MCP_TOOLSETS=default,rollouts`).
 
 ## When to Apply
 

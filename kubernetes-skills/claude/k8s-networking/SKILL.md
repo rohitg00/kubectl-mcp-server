@@ -1,17 +1,19 @@
 ---
 name: k8s-networking
 description: Kubernetes networking management for services, ingresses, endpoints, and network policies. Use when configuring connectivity, load balancing, or network isolation.
-license: Apache-2.0
+license: MIT-0
 metadata:
   author: rohitg00
-  version: "1.0.0"
-  tools: 8
+  version: "2.0.0"
+  tools: 5
   category: networking
 ---
 
 # Kubernetes Networking
 
 Manage Kubernetes networking resources using kubectl-mcp-server's networking tools.
+
+> Requires the `security` toolset: start kubectl-mcp-server with `--toolsets default,security` (or `MCP_TOOLSETS=default,security`).
 
 ## When to Apply
 
@@ -43,22 +45,36 @@ Use this skill when:
 ```python
 kubectl_get(resource_type="services", namespace="default")
 
-describe_service(name="my-service", namespace="default")
+kubectl_describe(resource_type="service", name="my-service", namespace="default")
 
-create_service(
-    name="my-service",
-    namespace="default",
-    selector={"app": "my-app"},
-    ports=[{"port": 80, "targetPort": 8080}]
-)
+kubectl_apply(manifest="""
+apiVersion: v1
+kind: Service
+metadata:
+  name: my-service
+  namespace: default
+spec:
+  selector:
+    app: my-app
+  ports:
+  - port: 80
+    targetPort: 8080
+""")
 
-create_service(
-    name="my-lb",
-    namespace="default",
-    type="LoadBalancer",
-    selector={"app": "my-app"},
-    ports=[{"port": 443, "targetPort": 8443}]
-)
+kubectl_apply(manifest="""
+apiVersion: v1
+kind: Service
+metadata:
+  name: my-lb
+  namespace: default
+spec:
+  type: LoadBalancer
+  selector:
+    app: my-app
+  ports:
+  - port: 443
+    targetPort: 8443
+""")
 ```
 
 ## Endpoints
@@ -72,7 +88,7 @@ kubectl_get(resource_type="endpoints", namespace="default")
 ```python
 kubectl_get(resource_type="ingress", namespace="default")
 
-describe_ingress(name="my-ingress", namespace="default")
+kubectl_describe(resource_type="ingress", name="my-ingress", namespace="default")
 
 kubectl_apply(manifest="""
 apiVersion: networking.k8s.io/v1
@@ -100,7 +116,7 @@ spec:
 ```python
 analyze_network_policies(namespace="default")
 
-describe_network_policy(name="deny-all", namespace="default")
+kubectl_describe(resource_type="networkpolicy", name="deny-all", namespace="default")
 
 kubectl_apply(manifest="""
 apiVersion: networking.k8s.io/v1
@@ -143,7 +159,7 @@ kubectl_get(resource_type="endpoints", namespace="default")
 analyze_network_policies(namespace="default")
 
 exec_in_pod(
-    pod="debug-pod",
+    pod_name="debug-pod",
     namespace="default",
     command="nslookup my-service.default.svc.cluster.local"
 )

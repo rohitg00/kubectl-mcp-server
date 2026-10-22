@@ -1,17 +1,19 @@
 ---
 name: k8s-certs
 description: Kubernetes certificate management with cert-manager. Use when managing TLS certificates, configuring issuers, or troubleshooting certificate issues.
-license: Apache-2.0
+license: MIT-0
 metadata:
   author: rohitg00
-  version: "1.0.0"
-  tools: 9
+  version: "2.0.0"
+  tools: 8
   category: security
 ---
 
 # Certificate Management with cert-manager
 
 Manage TLS certificates using kubectl-mcp-server's cert-manager tools.
+
+> Requires the `certs` toolset: start kubectl-mcp-server with `--toolsets default,certs` (or `MCP_TOOLSETS=default,certs`).
 
 ## When to Apply
 
@@ -155,8 +157,8 @@ spec:
 list_cert_requests(namespace="default")
 
 list_cert_requests(
-    name="my-tls-xxxxx",
-    namespace="default"
+    namespace="default",
+    label_selector="app=my-app"
 )
 ```
 
