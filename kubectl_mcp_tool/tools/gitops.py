@@ -1,14 +1,11 @@
 """GitOps toolset for kubectl-mcp-server (Flux and Argo CD)."""
 
 import json
+from datetime import datetime, timezone
 from typing import Dict, Any, List
 
-try:
-    from fastmcp import FastMCP
-    from fastmcp.tools import ToolAnnotations
-except ImportError:
-    from mcp.server.fastmcp import FastMCP
-    from mcp.types import ToolAnnotations
+from fastmcp import FastMCP
+from mcp.types import ToolAnnotations
 
 from ..crd_detector import crd_exists, require_any_crd
 from .utils import run_kubectl, get_resources
@@ -172,7 +169,7 @@ def _gitops_app_sync(
             return {"success": False, "error": "Flux Kustomization CRD not installed"}
 
         annotation = "reconcile.fluxcd.io/requestedAt"
-        timestamp = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
+        timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
         args = [
             "annotate", "kustomizations.kustomize.toolkit.fluxcd.io",
@@ -195,7 +192,7 @@ def _gitops_app_sync(
             return {"success": False, "error": "Flux HelmRelease CRD not installed"}
 
         annotation = "reconcile.fluxcd.io/requestedAt"
-        timestamp = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
+        timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
         args = [
             "annotate", "helmreleases.helm.toolkit.fluxcd.io",

@@ -5,6 +5,7 @@ This module handles registration of both built-in and custom prompts.
 Custom prompts can be loaded from a TOML configuration file.
 """
 
+import inspect
 import logging
 import os
 from typing import Optional, Dict, Any
@@ -134,7 +135,7 @@ def _register_custom_prompt(server, prompt: CustomPrompt):
         """Create a closure that captures the prompt."""
         def handler(**kwargs) -> str:
             # Apply defaults for missing optional arguments
-            args = apply_defaults(p, kwargs)
+            args = apply_defaults(p, {k: v for k, v in kwargs.items() if v is not None})
 
             # Validate required arguments
             errors = validate_prompt_args(p, args)
@@ -159,17 +160,22 @@ def _register_custom_prompt(server, prompt: CustomPrompt):
     handler.__name__ = prompt.name.replace("-", "_")
     handler.__doc__ = prompt.description or prompt.title
 
-    # Build parameter annotations from arguments
-    params = {}
-    for arg in prompt.arguments:
-        # All prompt arguments are strings with Optional if not required
-        if arg.required:
-            params[arg.name] = str
-        else:
-            params[arg.name] = Optional[str]
-
-    handler.__annotations__ = params
-    handler.__annotations__["return"] = str
+    handler.__signature__ = inspect.Signature(
+        [
+            inspect.Parameter(
+                arg.name,
+                inspect.Parameter.KEYWORD_ONLY,
+                default=inspect.Parameter.empty if arg.required else None,
+                annotation=str if arg.required else Optional[str],
+            )
+            for arg in prompt.arguments
+        ],
+        return_annotation=str,
+    )
+    handler.__annotations__ = {
+        **{p.name: p.annotation for p in handler.__signature__.parameters.values()},
+        "return": str,
+    }
 
     # Register with server
     try:

@@ -3,16 +3,13 @@
 import subprocess
 import json
 from typing import Dict, Any, List
-from datetime import datetime
+from datetime import datetime, timezone
 
-try:
-    from fastmcp import FastMCP
-    from fastmcp.tools import ToolAnnotations
-except ImportError:
-    from mcp.server.fastmcp import FastMCP
-    from mcp.types import ToolAnnotations
+from fastmcp import FastMCP
+from mcp.types import ToolAnnotations
 
 from ..crd_detector import crd_exists
+from ..k8s_config import _get_kubectl_context_args
 from .utils import run_kubectl, get_resources
 
 
@@ -179,7 +176,7 @@ def backup_create(
         return {"success": False, "error": "Velero is not installed"}
 
     if not name:
-        name = f"backup-{datetime.utcnow().strftime('%Y%m%d%H%M%S')}"
+        name = f"backup-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}"
 
     if _velero_cli_available():
         args = ["backup", "create", name, "-n", namespace]
@@ -403,7 +400,7 @@ def restore_create(
         return {"success": False, "error": "Velero is not installed"}
 
     if not name:
-        name = f"restore-{backup_name}-{datetime.utcnow().strftime('%Y%m%d%H%M%S')}"
+        name = f"restore-{backup_name}-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}"
 
     if _velero_cli_available():
         args = ["restore", "create", name, "--from-backup", backup_name, "-n", namespace]

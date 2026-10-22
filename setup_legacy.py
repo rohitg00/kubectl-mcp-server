@@ -4,7 +4,7 @@ from setuptools import setup
 
 setup(
     name="kubectl-mcp-tool",
-    version="1.11.0",
+    version="2.0.0",
     author="Rohit Ghumare",
     author_email="ghumare64@gmail.com",
     description="Alias package for kubectl-mcp-server (use kubectl-mcp-server instead)",
@@ -27,18 +27,18 @@ For documentation, see: https://github.com/rohitg00/kubectl-mcp-server
     url="https://github.com/rohitg00/kubectl-mcp-server",
     packages=[],
     install_requires=[
-        "kubectl-mcp-server>=1.11.0",
+        "kubectl-mcp-server>=2.0.0",
     ],
     classifiers=[
         "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
         "Programming Language :: Python :: 3.11",
         "Programming Language :: Python :: 3.12",
+        "Programming Language :: Python :: 3.13",
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
     ],
-    python_requires=">=3.9",
+    python_requires=">=3.10",
     project_urls={
         "Bug Tracker": "https://github.com/rohitg00/kubectl-mcp-server/issues",
         "Documentation": "https://github.com/rohitg00/kubectl-mcp-server#readme",

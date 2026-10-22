@@ -1,15 +1,12 @@
 """Cert-Manager toolset for kubectl-mcp-server."""
 
 import json
+import subprocess
 from typing import Dict, Any, List, Optional
-from datetime import datetime
+from datetime import datetime, timezone
 
-try:
-    from fastmcp import FastMCP
-    from fastmcp.tools import ToolAnnotations
-except ImportError:
-    from mcp.server.fastmcp import FastMCP
-    from mcp.types import ToolAnnotations
+from fastmcp import FastMCP
+from mcp.types import ToolAnnotations
 
 from ..crd_detector import crd_exists
 from .utils import run_kubectl
@@ -161,7 +158,7 @@ def certs_get(
         return {"success": False, "error": "cert-manager is not installed"}
 
     args = ["get", "certificates.cert-manager.io", name, "-n", namespace, "-o", "json"]
-    result = _run_kubectl(args, context)
+    result = run_kubectl(args, context)
 
     if result["success"]:
         try:
@@ -299,7 +296,7 @@ def certs_issuer_get(
     if not crd_exists(crd, context):
         return {"success": False, "error": f"{crd} not found"}
 
-    result = _run_kubectl(args, context)
+    result = run_kubectl(args, context)
 
     if result["success"]:
         try:
@@ -364,7 +361,7 @@ def certs_renew(
         "-n", namespace,
         "-o", "jsonpath={.spec.secretName}"
     ]
-    secret_result = _run_kubectl(get_args, context)
+    secret_result = run_kubectl(get_args, context)
 
     if not secret_result["success"]:
         return {"success": False, "error": f"Failed to get certificate: {secret_result.get('error', 'Unknown error')}"}
@@ -375,7 +372,7 @@ def certs_renew(
 
     # Delete the secret to trigger renewal
     delete_args = ["delete", "secret", secret_name, "-n", namespace, "--ignore-not-found"]
-    result = _run_kubectl(delete_args, context)
+    result = run_kubectl(delete_args, context)
 
     if result["success"]:
         return {

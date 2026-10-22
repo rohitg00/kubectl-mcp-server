@@ -3,14 +3,10 @@
 import subprocess
 import json
 from typing import Dict, Any, List
-from datetime import datetime
+from datetime import datetime, timezone
 
-try:
-    from fastmcp import FastMCP
-    from fastmcp.tools import ToolAnnotations
-except ImportError:
-    from mcp.server.fastmcp import FastMCP
-    from mcp.types import ToolAnnotations
+from fastmcp import FastMCP
+from mcp.types import ToolAnnotations
 
 from ..crd_detector import crd_exists
 from .utils import run_kubectl, get_resources
@@ -426,7 +422,7 @@ def rollout_restart(
             return {"success": False, "error": str(e)}
 
     # Fallback: patch the template to trigger restart
-    timestamp = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
+    timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     patch = {
         "spec": {
             "restartAt": timestamp
