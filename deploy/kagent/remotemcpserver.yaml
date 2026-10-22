@@ -1,4 +1,4 @@
-# RemoteMCPServer for kubectl-mcp-server SSE transport
+# RemoteMCPServer for kubectl-mcp-server (stateless Streamable HTTP)
 # Use this with kagent to connect to kubectl-mcp-server running as a service
 apiVersion: kagent.dev/v1alpha2
 kind: RemoteMCPServer
@@ -6,6 +6,6 @@ metadata:
   name: kubectl-mcp-server
   namespace: default
 spec:
-  description: "kubectl-mcp-server provides 140+ Kubernetes management tools for AI assistants"
-  protocol: SSE
-  url: http://kubectl-mcp-server.kubectl-mcp.svc.cluster.local:8000/sse
+  description: "kubectl-mcp-server provides 280+ Kubernetes management tools for AI assistants"
+  protocol: STREAMABLE_HTTP
+  url: http://kubectl-mcp-server.kubectl-mcp.svc.cluster.local:8000/mcp

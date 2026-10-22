@@ -1,0 +1,53 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.11", "3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - run: pip install -r requirements-dev.txt -e .
+      - run: python -m pytest -q
+        env:
+          FASTMCP_MCP_CAMELCASE_COMPAT: "false"
+
+  chart:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/setup-helm@v4
+      - run: helm lint charts/kubectl-mcp-server --set mcp.allowUnauthenticated=true
+      - run: "! helm template t charts/kubectl-mcp-server"
+      - run: helm template t charts/kubectl-mcp-server --set auth.enabled=true --set auth.issuer=https://idp.example.com --set safety.mode=confirm > /dev/null
+
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v5
+        with:
+          context: .
+          load: true
+          tags: kubectl-mcp-server:ci
+      - name: Smoke test
+        run: |
+          docker run --rm kubectl-mcp-server:ci --version
+          ! docker run --rm kubectl-mcp-server:ci --transport http
+          docker run -d --name smoke -p 127.0.0.1:8000:8000 -e MCP_ALLOW_UNAUTHENTICATED=true kubectl-mcp-server:ci --transport http
+          for i in $(seq 1 20); do curl -fsS http://127.0.0.1:8000/health && exit 0; sleep 1; done
+          docker logs smoke; exit 1

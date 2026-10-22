@@ -25,6 +25,9 @@ serviceAccount:
 rbac:
   # Create ClusterRole and ClusterRoleBinding
   create: true
+  # Grant access to Secrets (read; write/delete outside read-only mode). Off by default:
+  # any MCP client can then read every Secret in the cluster.
+  secrets: false
   # Note: Currently only cluster-wide RBAC is supported.
   # The MCP server needs read access across all namespaces to function properly.
 
@@ -32,8 +35,11 @@ podAnnotations: {}
 
 podSecurityContext:
   runAsNonRoot: true
-  runAsUser: 1000
-  fsGroup: 1000
+  runAsUser: 10001
+  runAsGroup: 10001
+  fsGroup: 10001
+  seccompProfile:
+    type: RuntimeDefault
 
 securityContext:
   allowPrivilegeEscalation: false
@@ -42,7 +48,7 @@ securityContext:
       - ALL
   readOnlyRootFilesystem: true
   runAsNonRoot: true
-  runAsUser: 1000
+  runAsUser: 10001
 
 service:
   type: ClusterIP
@@ -51,33 +57,37 @@ service:
 
 # MCP Server configuration
 mcp:
-  # Transport mode: "streamable-http" or "stdio"
-  transport: streamable-http
-  # Server port (for streamable-http transport)
+  # Transport: "http" (stateless Streamable HTTP, served at /mcp). Any replica can serve any request.
+  transport: http
+  # Server port
   port: 8000
+  # Serve without OAuth. Only for networks that are otherwise locked down (NetworkPolicy,
+  # mesh mTLS + authz). Installation fails unless auth.enabled or this is true.
+  allowUnauthenticated: false
+  # Secret holding a >=32 byte key (key name "request-state-key") shared by all replicas.
+  # Needed for safety.mode=confirm with more than one replica.
+  requestStateKeySecret: ""
   # Enable debug logging
   debug: false
   # Log to file (leave empty to disable)
   logFile: ""
 
-# Safety mode configuration
-safety:
-  # Safety mode: "normal", "read-only", or "disable-destructive"
-  mode: normal
-
-# Browser tools configuration
-browser:
-  # Enable browser automation tools
+# OAuth 2.1 resource-server authentication (JWT validated against the issuer's JWKS)
+auth:
   enabled: false
-  # Cloud provider: "local", "browserbase", or "browseruse"
-  provider: local
-  # Browserbase configuration
-  browserbase:
-    apiKey: ""
-    projectId: ""
-  # Browser Use configuration
-  browseruse:
-    apiKey: ""
+  issuer: ""
+  jwksUri: ""
+  audience: kubectl-mcp-server
+  # Comma-separated. Tokens with mcp:tools or mcp:admin may call every tool; with
+  # requiredScopes=mcp:read, read tools need mcp:read and write tools need mcp:write.
+  requiredScopes: mcp:tools
+  # Public URL of this server, advertised in RFC 9728 protected resource metadata
+  resourceUrl: ""
+
+# Safety mode: "read-only" (default), "disable-destructive", "confirm", or "normal".
+# Also scopes the ClusterRole: write/delete rules are only granted outside read-only mode.
+safety:
+  mode: read-only
 
 # Metrics configuration
 metrics:

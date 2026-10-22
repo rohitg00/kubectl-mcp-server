@@ -29,10 +29,9 @@ Then configure your MCP client to connect to:
   http://localhost:{{ .Values.mcp.port }}/mcp
 {{- end }}
 
-Configuration:
-  Tools: 220+ Kubernetes management tools
-  Resources: 8 MCP resources
-  Prompts: 8 workflow prompts
+Protocol: stateless MCP 2026-07-28 (older clients negotiate the handshake era automatically)
+Authentication: {{ if .Values.auth.enabled }}OAuth ({{ .Values.auth.issuer }}){{ else }}DISABLED (mcp.allowUnauthenticated=true){{ end }}
+Secrets access: {{ if .Values.rbac.secrets }}granted{{ else }}not granted (rbac.secrets=false){{ end }}
 
 {{- if eq .Values.safety.mode "read-only" }}
 
@@ -40,11 +39,10 @@ SAFETY: Running in READ-ONLY mode - all write operations are blocked.
 {{- else if eq .Values.safety.mode "disable-destructive" }}
 
 SAFETY: Destructive operations are disabled - delete operations are blocked.
+{{- else if eq .Values.safety.mode "confirm" }}
+
+SAFETY: Destructive operations require user confirmation.
 {{- end }}
 
-{{- if .Values.browser.enabled }}
-
-Browser automation is ENABLED (provider: {{ .Values.browser.provider }})
-{{- end }}
 
 For more information, visit: https://github.com/rohitg00/kubectl-mcp-server

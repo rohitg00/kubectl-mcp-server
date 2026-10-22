@@ -17,7 +17,6 @@ rules:
       - persistentvolumeclaims
       - persistentvolumes
       - configmaps
-      - secrets
       - serviceaccounts
       - namespaces
       - nodes
@@ -27,6 +26,12 @@ rules:
       - limitranges
       - replicationcontrollers
     verbs: ["get", "list", "watch"]
+
+  {{- if .Values.rbac.secrets }}
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["get", "list", "watch"]
+  {{- end }}
 
   # Apps API resources
   - apiGroups: ["apps"]
@@ -131,7 +136,9 @@ rules:
       - pods/portforward
       - services
       - configmaps
+      {{- if .Values.rbac.secrets }}
       - secrets
+      {{- end }}
       - serviceaccounts
       - persistentvolumeclaims
     verbs: ["create", "update", "patch"]
@@ -157,14 +164,16 @@ rules:
     verbs: ["create", "update", "patch"]
   {{- end }}
 
-  {{- if eq .Values.safety.mode "normal" }}
-  # Delete access only in normal mode
+  {{- if or (eq .Values.safety.mode "normal") (eq .Values.safety.mode "confirm") }}
+  # Delete access only in normal and confirm modes
   - apiGroups: [""]
     resources:
       - pods
       - services
       - configmaps
+      {{- if .Values.rbac.secrets }}
       - secrets
+      {{- end }}
       - persistentvolumeclaims
     verbs: ["delete", "deletecollection"]
 

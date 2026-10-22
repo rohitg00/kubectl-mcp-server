@@ -20,4 +20,4 @@ labels:
 
 images:
   - name: rohitghumare64/kubectl-mcp-server
-    newTag: latest
+    newTag: 2.0.0

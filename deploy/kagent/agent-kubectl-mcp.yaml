@@ -91,7 +91,7 @@ spec:
             - list_contexts
             - get_context_details
             - set_namespace_for_context
-            - list_kubeconfig_contexts
+            - list_contexts
             - get_cluster_info
             - kubectl_explain
             - get_api_resources

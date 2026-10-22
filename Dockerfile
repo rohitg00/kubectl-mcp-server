@@ -1,65 +1,58 @@
-FROM --platform=$TARGETPLATFORM python:3.11-slim
+# syntax=docker/dockerfile:1.7
+
+FROM python:3.13-slim AS build
+WORKDIR /src
+COPY setup.py README.md ./
+COPY kubectl_mcp_tool ./kubectl_mcp_tool
+RUN pip install --no-cache-dir --upgrade pip \
+ && pip wheel --no-cache-dir --wheel-dir /wheels .
+
+FROM python:3.13-slim AS tools
 ARG TARGETARCH
-# Build: 2026-01-21 - Rebuild Docker image with proper tags
+ARG KUBECTL_VERSION=v1.37.1
+ARG HELM_VERSION=v3.22.1
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends curl ca-certificates \
+ && rm -rf /var/lib/apt/lists/*
+WORKDIR /tmp/tools
+RUN curl -fsSLO "https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/${TARGETARCH}/kubectl" \
+ && curl -fsSLO "https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/${TARGETARCH}/kubectl.sha256" \
+ && echo "$(cat kubectl.sha256)  kubectl" | sha256sum -c - \
+ && install -m 0755 kubectl /usr/local/bin/kubectl
+RUN HELM_TGZ="helm-${HELM_VERSION}-linux-${TARGETARCH}.tar.gz" \
+ && curl -fsSLO "https://get.helm.sh/${HELM_TGZ}" \
+ && curl -fsSLO "https://get.helm.sh/${HELM_TGZ}.sha256sum" \
+ && sha256sum -c "${HELM_TGZ}.sha256sum" \
+ && tar -xzf "${HELM_TGZ}" \
+ && install -m 0755 "linux-${TARGETARCH}/helm" /usr/local/bin/helm
 
-# Install system dependencies and tools
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-        build-essential \
-        gcc \
-        curl \
-        gnupg \
-        ca-certificates \
-    && rm -rf /var/lib/apt/lists/*
+FROM python:3.13-slim
+ARG VERSION=2.0.0
+LABEL org.opencontainers.image.title="kubectl-mcp-server" \
+      org.opencontainers.image.description="Stateless MCP (2026-07-28) server for Kubernetes" \
+      org.opencontainers.image.source="https://github.com/rohitg00/kubectl-mcp-server" \
+      org.opencontainers.image.licenses="MIT" \
+      org.opencontainers.image.version="${VERSION}"
 
-# -----------------------------------------------------------------------------
-# Install kubectl (pinned version for reliability) and helm (v3)
-# -----------------------------------------------------------------------------
-ARG KUBECTL_VERSION=v1.32.0
-RUN curl -fsSL -o /usr/local/bin/kubectl \
-    "https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/${TARGETARCH}/kubectl" && \
-    chmod +x /usr/local/bin/kubectl && \
-    kubectl version --client --output=yaml
+RUN groupadd --gid 10001 mcp \
+ && useradd --uid 10001 --gid 10001 --create-home --home-dir /home/mcp --shell /usr/sbin/nologin mcp
 
-# Install Helm
-RUN curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+COPY --from=tools /usr/local/bin/kubectl /usr/local/bin/helm /usr/local/bin/
+COPY --from=build /wheels /tmp/wheels
+RUN pip install --no-cache-dir /tmp/wheels/*.whl && rm -rf /tmp/wheels
 
-# -----------------------------------------------------------------------------
-# Set up application
-# -----------------------------------------------------------------------------
-WORKDIR /app
+USER 10001:10001
+WORKDIR /home/mcp
 
-# Copy requirements and install Python deps first (leverage Docker layer cache)
-COPY requirements.txt ./
-RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir -r requirements.txt
+ENV HOME=/home/mcp \
+    PYTHONUNBUFFERED=1 \
+    MCP_SERVER_TRANSPORT=stdio \
+    MCP_SERVER_HOST=0.0.0.0 \
+    MCP_SERVER_PORT=8000
 
-# Copy the rest of the codebase
-COPY . .
-
-# Install the package
-RUN pip install --no-cache-dir -e .
-
-# Expose server port (for SSE/HTTP modes)
 EXPOSE 8000
 
-# Environment variables (can be overridden)
-# TRANSPORT: "stdio" (default for Docker MCP Toolkit), "sse", "http", "streamable-http"
-# HOST: Bind address for network transports
-# PORT: Port for network transports
-ENV TRANSPORT=stdio \
-    HOST=0.0.0.0 \
-    PORT=8000 \
-    PYTHONUNBUFFERED=1
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+    CMD python -c "import os,sys,urllib.request; os.environ.get('MCP_SERVER_TRANSPORT','stdio')=='stdio' or urllib.request.urlopen('http://127.0.0.1:'+os.environ.get('MCP_SERVER_PORT','8000')+'/health', timeout=4)" || exit 1
 
-# Health check for network modes
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD if [ "$TRANSPORT" != "stdio" ]; then curl -f http://localhost:${PORT}/health || exit 1; else exit 0; fi
-
-# Default entrypoint for Docker MCP Toolkit compatibility (stdio transport)
-# For SSE/HTTP modes, override with: --transport sse --host 0.0.0.0 --port 8000
-ENTRYPOINT ["python", "-m", "kubectl_mcp_tool.mcp_server"]
-
-# Default to stdio for Docker MCP Toolkit compatibility
-# Override with: docker run ... <image> --transport sse --port 8000
-CMD ["--transport", "stdio"]
+ENTRYPOINT ["kubectl-mcp"]

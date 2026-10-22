@@ -25,7 +25,6 @@ rules:
       - services
       - endpoints
       - configmaps
-      - secrets
       - namespaces
       - nodes
       - persistentvolumes
