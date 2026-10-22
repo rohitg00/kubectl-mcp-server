@@ -18,7 +18,7 @@
 - **Entrypoints**: one parser in `mcp_server.add_serve_arguments` + `run_server`; `main()` accepts a leading `serve`. Env defaults `MCP_SERVER_TRANSPORT/HOST/PORT`.
 - **Removed**: browser tools, MCP-UI tools (`ui.py`), `kubectl-mcp-app/`, k8s-browser skill, hand-rolled JSON-RPC HTTP fallback.
 - **Docker**: multi-stage, python:3.13-slim, UID 10001, kubectl v1.37.1 + helm v3.22.1 with sha256 verification, ENTRYPOINT `kubectl-mcp`, `.dockerignore` allowlist.
-- **Verify**: `pytest` (541), conformance `npx -y @hasmcp/mcp-spec-test@0.1.1 -c "python -m kubectl_mcp_tool.mcp_server"` (2025-11-25 conformant; its 2026-07-28 probe omits `_meta`, which mcp 2.3 routes to the legacy era).
+- **Verify**: `pytest` (551), conformance `npx -y @hasmcp/mcp-spec-test@0.1.1 -c "python -m kubectl_mcp_tool.mcp_server"` (2025-11-25 conformant; its 2026-07-28 probe omits `_meta`, which mcp 2.3 routes to the legacy era).
 - **Tool names**: README table generated from the live registry; skills had 935 stale/phantom names fixed.
 
 ### Release v1.22.0
