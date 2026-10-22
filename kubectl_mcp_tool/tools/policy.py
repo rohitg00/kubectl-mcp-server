@@ -423,39 +423,6 @@ def policy_audit(
     }
 
 
-def policy_detect(context: str = "") -> Dict[str, Any]:
-    """Detect which policy engines are installed in the cluster.
-
-    Args:
-        context: Kubernetes context to use (optional)
-
-    Returns:
-        Detection results for Kyverno and Gatekeeper
-    """
-    kyverno_installed = any([
-        crd_exists(KYVERNO_CLUSTER_POLICY_CRD, context),
-        crd_exists(KYVERNO_POLICY_CRD, context),
-    ])
-
-    gatekeeper_installed = crd_exists(GATEKEEPER_CONSTRAINT_TEMPLATE_CRD, context)
-
-    return {
-        "context": context or "current",
-        "kyverno": {
-            "installed": kyverno_installed,
-            "cluster_policies": crd_exists(KYVERNO_CLUSTER_POLICY_CRD, context),
-            "policies": crd_exists(KYVERNO_POLICY_CRD, context),
-            "policy_reports": crd_exists(KYVERNO_POLICY_REPORT_CRD, context),
-            "cluster_policy_reports": crd_exists(KYVERNO_CLUSTER_POLICY_REPORT_CRD, context),
-        },
-        "gatekeeper": {
-            "installed": gatekeeper_installed,
-            "constraint_templates": crd_exists(GATEKEEPER_CONSTRAINT_TEMPLATE_CRD, context),
-            "config": crd_exists(GATEKEEPER_CONFIG_CRD, context),
-        },
-    }
-
-
 def register_policy_tools(mcp: FastMCP, non_destructive: bool = False):
     """Register policy tools with the MCP server."""
 
@@ -506,7 +473,3 @@ def register_policy_tools(mcp: FastMCP, non_destructive: bool = False):
         """Audit resources against installed policies."""
         return json.dumps(policy_audit(namespace, context, resource_kind), indent=2)
 
-    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
-    def detect_policy_engines(context: str = "") -> str:
-        """Detect which policy engines are installed in the cluster."""
-        return json.dumps(policy_detect(context), indent=2)

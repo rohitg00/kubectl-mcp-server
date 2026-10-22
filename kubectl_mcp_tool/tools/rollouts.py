@@ -2,7 +2,7 @@
 
 import subprocess
 import json
-from typing import Dict, Any, List
+from typing import Dict, Any
 from datetime import datetime, timezone
 
 from fastmcp import FastMCP
@@ -591,39 +591,6 @@ def flagger_canary_get(
     return {"success": False, "error": result.get("error", "Unknown error")}
 
 
-def rollouts_detect(context: str = "") -> Dict[str, Any]:
-    """Detect which progressive delivery tools are installed.
-
-    Args:
-        context: Kubernetes context to use (optional)
-
-    Returns:
-        Detection results for Argo Rollouts and Flagger
-    """
-    return {
-        "context": context or "current",
-        "argo_rollouts": {
-            "installed": crd_exists(ARGO_ROLLOUT_CRD, context),
-            "cli_available": _argo_rollouts_cli_available(),
-            "crds": {
-                "rollouts": crd_exists(ARGO_ROLLOUT_CRD, context),
-                "analysistemplates": crd_exists(ARGO_ANALYSIS_TEMPLATE_CRD, context),
-                "clusteranalysistemplates": crd_exists(ARGO_CLUSTER_ANALYSIS_TEMPLATE_CRD, context),
-                "analysisruns": crd_exists(ARGO_ANALYSIS_RUN_CRD, context),
-                "experiments": crd_exists(ARGO_EXPERIMENT_CRD, context),
-            },
-        },
-        "flagger": {
-            "installed": crd_exists(FLAGGER_CANARY_CRD, context),
-            "crds": {
-                "canaries": crd_exists(FLAGGER_CANARY_CRD, context),
-                "metrictemplates": crd_exists(FLAGGER_METRIC_TEMPLATE_CRD, context),
-                "alertproviders": crd_exists(FLAGGER_ALERT_PROVIDER_CRD, context),
-            },
-        },
-    }
-
-
 def register_rollouts_tools(mcp: FastMCP, non_destructive: bool = False):
     """Register progressive delivery tools with the MCP server."""
     from fastmcp import Context
@@ -736,7 +703,3 @@ def register_rollouts_tools(mcp: FastMCP, non_destructive: bool = False):
         """Get detailed information about a Flagger Canary."""
         return json.dumps(flagger_canary_get(name, namespace, context), indent=2)
 
-    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
-    def detect_rollouts(context: str = "") -> str:
-        """Detect which progressive delivery tools are installed."""
-        return json.dumps(rollouts_detect(context), indent=2)

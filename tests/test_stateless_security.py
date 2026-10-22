@@ -206,9 +206,9 @@ class TestBothProtocolEras:
         async with Client(server.server, mode=mode) as client:
             assert (client.protocol_version == "2026-07-28") == (mode == "2026-07-28")
             tools = await client.list_tools()
-            assert len(tools) > 250
-            with patch("kubectl_mcp_tool.tools.operations.subprocess.run", return_value=completed(SECRET_YAML)):
-                result = await client.call_tool("backup_resource", {"resource_type": "secret", "name": "db", "namespace": "default"})
+            assert 20 <= len(tools) <= 30
+            with patch("kubectl_mcp_tool.tools.utils.subprocess.run", return_value=completed(SECRET_YAML)):
+                result = await client.call_tool("kubectl_get", {"resource_type": "secret", "name": "db", "namespace": "default", "output": "yaml"})
         assert "aHVudGVyMg==" not in json.dumps(result.structured_content)
         assert all("aHVudGVyMg==" not in getattr(c, "text", "") for c in result.content)
 
@@ -216,7 +216,7 @@ class TestBothProtocolEras:
         server = make_server(read_only=True)
         async with Client(server.server, mode="2026-07-28") as client:
             names = {t.name for t in await client.list_tools()}
-            assert "get_pods" in names and "delete_resource" not in names
+            assert "kubectl_get" in names and "delete_resource" not in names
             with pytest.raises(Exception, match="read-only|Unknown tool|not found"):
                 await client.call_tool("delete_resource", {"resource_type": "pod", "name": "x"})
 

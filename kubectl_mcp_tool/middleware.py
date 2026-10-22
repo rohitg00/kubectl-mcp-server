@@ -29,6 +29,7 @@ FREE_TEXT_PARAMS = frozenset({
 })
 
 UNRESTRICTED_SCOPES = frozenset({MCPScopes.TOOLS.value, MCPScopes.ADMIN.value})
+DISCOVERY_TOOLS = frozenset({"search_tools", "call_tool"})
 
 
 def _strings(value: Any) -> Iterable[str]:
@@ -69,11 +70,13 @@ class ToolGuardMiddleware(Middleware):
         tools = await call_next(context)
         if get_safety_mode() != SafetyMode.READ_ONLY:
             return tools
-        return [t for t in tools if is_read_only_tool(t)]
+        return [t for t in tools if t.name in DISCOVERY_TOOLS or is_read_only_tool(t)]
 
     async def on_call_tool(self, context, call_next):
         params = context.message
         name = params.name
+        if name in DISCOVERY_TOOLS:
+            return await call_next(context)
         reject_option_injection(params.arguments or {})
         tool = await context.fastmcp_context.fastmcp.get_tool(name)
         if tool is None:

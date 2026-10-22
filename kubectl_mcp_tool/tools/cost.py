@@ -2,7 +2,7 @@ import logging
 import subprocess
 import re
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 from mcp.types import ToolAnnotations
 

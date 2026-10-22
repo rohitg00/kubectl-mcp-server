@@ -605,32 +605,6 @@ def _kubevirt_datavolumes_list(
     }
 
 
-def _kubevirt_detect(context: str = "") -> Dict[str, Any]:
-    """Detect if KubeVirt is installed and its components.
-
-    Args:
-        context: Kubernetes context to use (optional)
-
-    Returns:
-        Detection results for KubeVirt
-    """
-    return {
-        "context": context or "current",
-        "installed": crd_exists(VM_CRD, context),
-        "cli_available": _virtctl_available(),
-        "crds": {
-            "virtualmachines": crd_exists(VM_CRD, context),
-            "virtualmachineinstances": crd_exists(VMI_CRD, context),
-            "virtualmachineinstancepresets": crd_exists(VMIPRESET_CRD, context),
-            "virtualmachineinstancereplicasets": crd_exists(VMIRS_CRD, context),
-            "datasources": crd_exists(DATASOURCE_CRD, context),
-            "datavolumes": crd_exists(DATAVOLUME_CRD, context),
-            "instancetypes": crd_exists(INSTANCETYPE_CRD, context),
-            "clusterinstancetypes": crd_exists(CLUSTERINSTANCETYPE_CRD, context),
-        },
-    }
-
-
 def register_kubevirt_tools(mcp: FastMCP, non_destructive: bool = False):
     """Register KubeVirt tools with the MCP server."""
     from fastmcp import Context
@@ -769,7 +743,3 @@ def register_kubevirt_tools(mcp: FastMCP, non_destructive: bool = False):
         """List KubeVirt DataVolumes (disk images)."""
         return json.dumps(_kubevirt_datavolumes_list(namespace, context, label_selector), indent=2)
 
-    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
-    def kubevirt_detect(context: str = "") -> str:
-        """Detect if KubeVirt is installed and its components."""
-        return json.dumps(_kubevirt_detect(context), indent=2)

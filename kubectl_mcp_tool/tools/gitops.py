@@ -2,12 +2,12 @@
 
 import json
 from datetime import datetime, timezone
-from typing import Dict, Any, List
+from typing import Dict, Any
 
 from fastmcp import FastMCP
 from mcp.types import ToolAnnotations
 
-from ..crd_detector import crd_exists, require_any_crd
+from ..crd_detector import crd_exists
 from .utils import run_kubectl, get_resources
 
 
@@ -406,39 +406,6 @@ def _gitops_source_get(
     return {"success": False, "error": result.get("error", "Unknown error")}
 
 
-def _gitops_detect_engine(context: str = "") -> Dict[str, Any]:
-    """Detect which GitOps engines are installed in the cluster.
-
-    Args:
-        context: Kubernetes context to use (optional)
-
-    Returns:
-        Detection results for Flux and ArgoCD
-    """
-    flux_installed = any([
-        crd_exists(FLUX_KUSTOMIZATION_CRD, context),
-        crd_exists(FLUX_HELMRELEASE_CRD, context),
-    ])
-
-    argocd_installed = crd_exists(ARGOCD_APP_CRD, context)
-
-    return {
-        "context": context or "current",
-        "flux": {
-            "installed": flux_installed,
-            "kustomizations": crd_exists(FLUX_KUSTOMIZATION_CRD, context),
-            "helmreleases": crd_exists(FLUX_HELMRELEASE_CRD, context),
-            "gitrepositories": crd_exists(FLUX_GITREPO_CRD, context),
-            "helmrepositories": crd_exists(FLUX_HELMREPO_CRD, context),
-        },
-        "argocd": {
-            "installed": argocd_installed,
-            "applications": crd_exists(ARGOCD_APP_CRD, context),
-            "applicationsets": crd_exists(ARGOCD_APPSET_CRD, context),
-        },
-    }
-
-
 def register_gitops_tools(mcp: FastMCP, non_destructive: bool = False):
     """Register GitOps tools with the MCP server."""
     from fastmcp import Context
@@ -508,7 +475,3 @@ def register_gitops_tools(mcp: FastMCP, non_destructive: bool = False):
         """Get details of a Flux source resource."""
         return json.dumps(_gitops_source_get(name, namespace, kind, context), indent=2)
 
-    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
-    def gitops_detect_engine(context: str = "") -> str:
-        """Detect which GitOps engines are installed in the cluster."""
-        return json.dumps(_gitops_detect_engine(context), indent=2)

@@ -3,7 +3,7 @@
 import subprocess
 import json
 import os
-from typing import Dict, Any, List
+from typing import Dict, Any
 
 from fastmcp import FastMCP
 from mcp.types import ToolAnnotations
@@ -497,33 +497,6 @@ def _istio_sidecar_status(
     }
 
 
-def _istio_detect(context: str = "") -> Dict[str, Any]:
-    """Detect if Istio is installed and its components.
-
-    Args:
-        context: Kubernetes context to use (optional)
-
-    Returns:
-        Detection results for Istio
-    """
-    return {
-        "context": context or "current",
-        "installed": crd_exists(VIRTUALSERVICE_CRD, context),
-        "cli_available": _istioctl_available(),
-        "kiali_configured": bool(_get_kiali_config().get("url")),
-        "crds": {
-            "virtualservices": crd_exists(VIRTUALSERVICE_CRD, context),
-            "destinationrules": crd_exists(DESTINATIONRULE_CRD, context),
-            "gateways": crd_exists(GATEWAY_CRD, context),
-            "serviceentries": crd_exists(SERVICEENTRY_CRD, context),
-            "sidecars": crd_exists(SIDECAR_CRD, context),
-            "peerauthentications": crd_exists(PEERAUTHENTICATION_CRD, context),
-            "authorizationpolicies": crd_exists(AUTHORIZATIONPOLICY_CRD, context),
-            "requestauthentications": crd_exists(REQUESTAUTHENTICATION_CRD, context),
-        },
-    }
-
-
 def register_istio_tools(mcp: FastMCP, non_destructive: bool = False):
     """Register Istio/Kiali tools with the MCP server."""
 
@@ -602,7 +575,3 @@ def register_istio_tools(mcp: FastMCP, non_destructive: bool = False):
         """Get sidecar injection status for pods."""
         return json.dumps(_istio_sidecar_status(namespace, context), indent=2)
 
-    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
-    def istio_detect(context: str = "") -> str:
-        """Detect if Istio is installed and its components."""
-        return json.dumps(_istio_detect(context), indent=2)

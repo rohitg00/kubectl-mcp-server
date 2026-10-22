@@ -1,5 +1,5 @@
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 from mcp.types import ToolAnnotations
 
@@ -8,7 +8,7 @@ from ..k8s_config import (
     get_rbac_client,
     get_networking_client,
 )
-from kubectl_mcp_tool.schemas import AnalyzeNetworkPoliciesResponse, GetRBACRolesResponse
+from kubectl_mcp_tool.schemas import AnalyzeNetworkPoliciesResponse
 from kubectl_mcp_tool.structured import structured_response
 
 logger = logging.getLogger("mcp-server")
@@ -16,98 +16,6 @@ logger = logging.getLogger("mcp-server")
 
 def register_security_tools(server, non_destructive: bool):
     """Register RBAC and security-related tools."""
-
-    @server.tool(
-        output_schema=GetRBACRolesResponse.model_json_schema(),
-        annotations=ToolAnnotations(
-            title="Get RBAC Roles",
-            readOnlyHint=True,
-            destructiveHint=False,
-            idempotentHint=True,
-            openWorldHint=True,
-        ),
-    )
-    def get_rbac_roles(
-        namespace: Optional[str] = None,
-        context: str = ""
-    ) -> Dict[str, Any]:
-        """Get RBAC Roles in a namespace or cluster-wide.
-
-        Args:
-            namespace: Namespace to list roles from (all namespaces if not specified)
-            context: Kubernetes context to use (uses current context if not specified)
-        """
-        try:
-            rbac = get_rbac_client(context)
-
-            if namespace:
-                roles = rbac.list_namespaced_role(namespace)
-            else:
-                roles = rbac.list_role_for_all_namespaces()
-
-            return structured_response({
-                "success": True,
-                "context": context or "current",
-                "roles": [
-                    {
-                        "name": role.metadata.name,
-                        "namespace": role.metadata.namespace,
-                        "rules": [
-                            {
-                                "apiGroups": rule.api_groups,
-                                "resources": rule.resources,
-                                "verbs": rule.verbs
-                            }
-                            for rule in (role.rules or [])
-                        ]
-                    }
-                    for role in roles.items
-                ]
-            }, GetRBACRolesResponse)
-        except Exception as e:
-            logger.error(f"Error getting RBAC roles: {e}")
-            return {"success": False, "error": str(e)}
-
-    @server.tool(
-        annotations=ToolAnnotations(
-            title="Get Cluster Roles",
-            readOnlyHint=True,
-            destructiveHint=False,
-            idempotentHint=True,
-            openWorldHint=True,
-        ),
-    )
-    def get_cluster_roles(context: str = "") -> Dict[str, Any]:
-        """Get ClusterRoles in the cluster.
-
-        Args:
-            context: Kubernetes context to use (uses current context if not specified)
-        """
-        try:
-            rbac = get_rbac_client(context)
-            roles = rbac.list_cluster_role()
-
-            return {
-                "success": True,
-                "context": context or "current",
-                "clusterRoles": [
-                    {
-                        "name": role.metadata.name,
-                        "rules": [
-                            {
-                                "apiGroups": rule.api_groups,
-                                "resources": rule.resources,
-                                "verbs": rule.verbs
-                            }
-                            for rule in (role.rules or [])
-                        ][:5]
-                    }
-                    for role in roles.items[:20]
-                ]
-            }
-        except Exception as e:
-            logger.error(f"Error getting cluster roles: {e}")
-            return {"success": False, "error": str(e)}
 
     @server.tool(
         annotations=ToolAnnotations(

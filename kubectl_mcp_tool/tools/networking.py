@@ -1,148 +1,16 @@
 import logging
 import subprocess
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 from mcp.types import ToolAnnotations
 
-from ..k8s_config import get_k8s_client, get_networking_client, _get_kubectl_context_args
-from kubectl_mcp_tool.schemas import GetIngressResponse
-from kubectl_mcp_tool.structured import structured_response
+from ..k8s_config import get_k8s_client, _get_kubectl_context_args
 
 logger = logging.getLogger("mcp-server")
 
 
 def register_networking_tools(server: "FastMCP", non_destructive: bool):
     """Register networking-related tools."""
-    from fastmcp import Context
-    from kubectl_mcp_tool.elicit import confirm_destructive
-
-    @server.tool(
-        output_schema=GetIngressResponse.model_json_schema(),
-        annotations=ToolAnnotations(
-            title="Get Ingress Resources",
-            readOnlyHint=True,
-            destructiveHint=False,
-            idempotentHint=True,
-            openWorldHint=True,
-        ),
-    )
-    def get_ingress(
-        namespace: Optional[str] = None,
-        context: str = ""
-    ) -> Dict[str, Any]:
-        """Get Ingress resources in a namespace or cluster-wide.
-
-        Args:
-            namespace: Namespace to list ingresses from (all namespaces if not specified)
-            context: Kubernetes context to use (uses current context if not specified)
-        """
-        try:
-            networking = get_networking_client(context)
-
-            if namespace:
-                ingresses = networking.list_namespaced_ingress(namespace)
-            else:
-                ingresses = networking.list_ingress_for_all_namespaces()
-
-            return structured_response({
-                "success": True,
-                "context": context or "current",
-                "ingresses": [
-                    {
-                        "name": ing.metadata.name,
-                        "namespace": ing.metadata.namespace,
-                        "ingressClassName": ing.spec.ingress_class_name,
-                        "rules": [
-                            {
-                                "host": rule.host,
-                                "paths": [
-                                    {
-                                        "path": path.path,
-                                        "pathType": path.path_type,
-                                        "backend": {
-                                            "serviceName": path.backend.service.name if path.backend.service else None,
-                                            "servicePort": path.backend.service.port.number if path.backend.service and path.backend.service.port else None
-                                        }
-                                    }
-                                    for path in (rule.http.paths if rule.http else [])
-                                ]
-                            }
-                            for rule in (ing.spec.rules or [])
-                        ],
-                        "tls": [
-                            {"hosts": tls.hosts, "secretName": tls.secret_name}
-                            for tls in (ing.spec.tls or [])
-                        ] if ing.spec.tls else None
-                    }
-                    for ing in ingresses.items
-                ]
-            }, GetIngressResponse)
-        except Exception as e:
-            logger.error(f"Error getting Ingresses: {e}")
-            return {"success": False, "error": str(e)}
-
-    @server.tool(
-        annotations=ToolAnnotations(
-            title="Get Endpoints",
-            readOnlyHint=True,
-            destructiveHint=False,
-            idempotentHint=True,
-            openWorldHint=True,
-        ),
-    )
-    def get_endpoints(
-        namespace: Optional[str] = None,
-        service_name: Optional[str] = None,
-        context: str = ""
-    ) -> Dict[str, Any]:
-        """Get Endpoints for services.
-
-        Args:
-            namespace: Namespace to list endpoints from (all namespaces if not specified)
-            service_name: Filter by specific service name
-            context: Kubernetes context to use (uses current context if not specified)
-        """
-        try:
-            v1 = get_k8s_client(context)
-
-            if namespace:
-                endpoints = v1.list_namespaced_endpoints(namespace)
-            else:
-                endpoints = v1.list_endpoints_for_all_namespaces()
-
-            result = []
-            for ep in endpoints.items:
-                if service_name and ep.metadata.name != service_name:
-                    continue
-
-                addresses = []
-                for subset in (ep.subsets or []):
-                    for addr in (subset.addresses or []):
-                        for port in (subset.ports or []):
-                            addresses.append({
-                                "ip": addr.ip,
-                                "port": port.port,
-                                "protocol": port.protocol,
-                                "targetRef": {
-                                    "kind": addr.target_ref.kind,
-                                    "name": addr.target_ref.name
-                                } if addr.target_ref else None
-                            })
-
-                result.append({
-                    "name": ep.metadata.name,
-                    "namespace": ep.metadata.namespace,
-                    "addresses": addresses
-                })
-
-            return {
-                "success": True,
-                "context": context or "current",
-                "endpoints": result
-            }
-        except Exception as e:
-            logger.error(f"Error getting Endpoints: {e}")
-            return {"success": False, "error": str(e)}
 
     @server.tool(
         annotations=ToolAnnotations(
@@ -345,52 +213,3 @@ def register_networking_tools(server: "FastMCP", non_destructive: bool):
             logger.error(f"Error tracing service chain: {e}")
             return {"success": False, "error": str(e)}
 
-    @server.tool(
-        annotations=ToolAnnotations(
-            title="Port Forward",
-            readOnlyHint=False,
-            destructiveHint=True,
-            idempotentHint=False,
-            openWorldHint=True,
-        ),
-    )
-    async def port_forward(
-        pod_name: str,
-        local_port: int,
-        pod_port: int,
-        namespace: Optional[str] = "default",
-        context: str = "",
-        ctx: Context = None
-    ) -> Dict[str, Any]:
-        """Start port forwarding to a pod (note: this starts a background process).
-
-        Args:
-            pod_name: Name of the pod to forward to
-            local_port: Local port to listen on
-            pod_port: Pod port to forward to
-            namespace: Namespace of the pod
-            context: Kubernetes context to use (uses current context if not specified)
-        """
-        blocked = await confirm_destructive(ctx, "Port forward", f"{pod_name}:{pod_port}", namespace)
-        if blocked:
-            return blocked
-        try:
-            cmd = ["kubectl"] + _get_kubectl_context_args(context) + [
-                "port-forward", pod_name,
-                f"{int(local_port)}:{int(pod_port)}",
-                "-n", namespace
-            ]
-            subprocess.Popen(
-                cmd,
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-            )
-            return {
-                "success": True,
-                "context": context or "current",
-                "message": f"Port forwarding started: localhost:{local_port} -> {pod_name}:{pod_port}",
-                "note": "Port forwarding is running in background. Use 'pkill -f port-forward' to stop."
-            }
-        except Exception as e:
-            logger.error(f"Error setting up port forward: {e}")
-            return {"success": False, "error": str(e)}

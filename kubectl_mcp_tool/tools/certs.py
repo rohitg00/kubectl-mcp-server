@@ -22,7 +22,6 @@ CHALLENGE_CRD = "challenges.acme.cert-manager.io"
 
 class CertsResourceError(Exception):
     """Exception raised when fetching cert-manager resources fails."""
-    pass
 
 
 def _get_certs_resources(kind: str, namespace: str = "", context: str = "", label_selector: str = "") -> List[Dict]:
@@ -581,29 +580,6 @@ def certs_requests_list(
     }
 
 
-def certs_detect(context: str = "") -> Dict[str, Any]:
-    """Detect if cert-manager is installed and its components.
-
-    Args:
-        context: Kubernetes context to use (optional)
-
-    Returns:
-        Detection results for cert-manager
-    """
-    return {
-        "context": context or "current",
-        "installed": crd_exists(CERTIFICATE_CRD, context),
-        "crds": {
-            "certificates": crd_exists(CERTIFICATE_CRD, context),
-            "issuers": crd_exists(ISSUER_CRD, context),
-            "clusterissuers": crd_exists(CLUSTER_ISSUER_CRD, context),
-            "certificaterequests": crd_exists(CERTIFICATE_REQUEST_CRD, context),
-            "orders": crd_exists(ORDER_CRD, context),
-            "challenges": crd_exists(CHALLENGE_CRD, context),
-        },
-    }
-
-
 def register_certs_tools(mcp: FastMCP, non_destructive: bool = False):
     """Register cert-manager tools with the MCP server."""
     from fastmcp import Context
@@ -686,7 +662,3 @@ def register_certs_tools(mcp: FastMCP, non_destructive: bool = False):
         """List CertificateRequests."""
         return json.dumps(certs_requests_list(namespace, context, label_selector), indent=2)
 
-    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
-    def detect_certs(context: str = "") -> str:
-        """Detect if cert-manager is installed and its components."""
-        return json.dumps(certs_detect(context), indent=2)

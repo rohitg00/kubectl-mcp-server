@@ -21,11 +21,9 @@ class TestVindHelpers:
             _vcluster_available,
             _get_vcluster_version,
             _run_vcluster,
-            vind_detect,
             vind_list_clusters,
             vind_status,
             vind_get_kubeconfig,
-            vind_logs,
             vind_create_cluster,
             vind_delete_cluster,
             vind_pause,
@@ -34,17 +32,14 @@ class TestVindHelpers:
             vind_disconnect,
             vind_upgrade,
             vind_describe,
-            vind_platform_start,
         )
         assert callable(register_vind_tools)
         assert callable(_vcluster_available)
         assert callable(_get_vcluster_version)
         assert callable(_run_vcluster)
-        assert callable(vind_detect)
         assert callable(vind_list_clusters)
         assert callable(vind_status)
         assert callable(vind_get_kubeconfig)
-        assert callable(vind_logs)
         assert callable(vind_create_cluster)
         assert callable(vind_delete_cluster)
         assert callable(vind_pause)
@@ -53,7 +48,6 @@ class TestVindHelpers:
         assert callable(vind_disconnect)
         assert callable(vind_upgrade)
         assert callable(vind_describe)
-        assert callable(vind_platform_start)
 
     @pytest.mark.unit
     def test_vcluster_available_when_installed(self):
@@ -154,39 +148,6 @@ class TestVindHelpers:
             result = _run_vcluster(["list"], json_output=True)
             assert result["success"] is True
             assert result["data"] == [{"Name": "test", "Status": "Running"}]
-
-
-class TestVindDetect:
-    """Tests for vind_detect function."""
-
-    @pytest.mark.unit
-    def test_vind_detect_installed(self):
-        """Test vind_detect when vcluster is installed."""
-        from kubectl_mcp_tool.tools.vind import vind_detect
-
-        with patch("subprocess.run") as mock_run:
-            mock_run.return_value = MagicMock(
-                returncode=0,
-                stdout="vcluster version v0.19.0"
-            )
-            result = vind_detect()
-            assert result["installed"] is True
-            assert result["cli_available"] is True
-            assert result["version"] == "v0.19.0"
-            assert result["install_instructions"] is None
-
-    @pytest.mark.unit
-    def test_vind_detect_not_installed(self):
-        """Test vind_detect when vcluster is not installed."""
-        from kubectl_mcp_tool.tools.vind import vind_detect
-
-        with patch("subprocess.run") as mock_run:
-            mock_run.side_effect = FileNotFoundError()
-            result = vind_detect()
-            assert result["installed"] is False
-            assert result["cli_available"] is False
-            assert result["version"] is None
-            assert result["install_instructions"] is not None
 
 
 class TestVindListClusters:
@@ -361,17 +322,15 @@ class TestVindToolsRegistration:
         from kubectl_mcp_tool.mcp_server import MCPServer
 
         with patch("kubectl_mcp_tool.mcp_server.MCPServer._check_dependencies", return_value=True):
-            server = MCPServer(name="test")
+            server = MCPServer(name="test", toolsets="all")
 
         tools = await server.server.list_tools()
         tool_names = {t.name for t in tools}
 
         vind_tools = [
-            "vind_detect",
             "vind_list_clusters",
             "vind_status",
             "vind_get_kubeconfig",
-            "vind_logs",
             "vind_create_cluster",
             "vind_delete_cluster",
             "vind_pause",
@@ -380,7 +339,6 @@ class TestVindToolsRegistration:
             "vind_disconnect",
             "vind_upgrade",
             "vind_describe",
-            "vind_platform_start",
         ]
         for tool in vind_tools:
             assert tool in tool_names, f"vind tool '{tool}' not registered"
@@ -392,12 +350,12 @@ class TestVindToolsRegistration:
         from kubectl_mcp_tool.mcp_server import MCPServer
 
         with patch("kubectl_mcp_tool.mcp_server.MCPServer._check_dependencies", return_value=True):
-            server = MCPServer(name="test")
+            server = MCPServer(name="test", toolsets="all")
 
         tools = await server.server.list_tools()
         tool_names = {t.name for t in tools}
         vind_tools = [name for name in tool_names if name.startswith("vind_")]
-        assert len(vind_tools) == 14, f"Expected 14 vind tools, got {len(vind_tools)}: {vind_tools}"
+        assert len(vind_tools) == 11, f"Expected 11 vind tools, got {len(vind_tools)}: {vind_tools}"
 
     @pytest.mark.unit
     def test_vind_non_destructive_mode(self, mock_all_kubernetes_apis):
@@ -416,7 +374,7 @@ class TestVindToolsRegistration:
         from kubectl_mcp_tool.mcp_server import MCPServer
 
         with patch("kubectl_mcp_tool.mcp_server.MCPServer._check_dependencies", return_value=True):
-            server = MCPServer(name="test")
+            server = MCPServer(name="test", toolsets="all")
 
         tools = await server.server.list_tools()
         vind_tools = [t for t in tools if t.name.startswith("vind_")]
@@ -519,9 +477,8 @@ class TestVindNonDestructiveBlocking:
         mcp = FastMCP(name="test")
         register_vind_tools(mcp, non_destructive=True)
 
-        tool = await mcp.get_tool("vind_detect")
+        tool = await mcp.get_tool("vind_list_clusters")
         with patch("subprocess.run") as mock_run:
             mock_run.side_effect = FileNotFoundError()
-            result = tool.fn()
-            result_dict = json.loads(result)
-            assert "installed" in result_dict
+            result_dict = json.loads(tool.fn())
+            assert "blocked" not in json.dumps(result_dict).lower()

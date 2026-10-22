@@ -32,22 +32,22 @@ from kubectl_mcp_tool.observability import (
 from kubectl_mcp_tool.prompts import register_prompts
 from kubectl_mcp_tool.resources import register_resources
 from kubectl_mcp_tool.safety import SafetyMode, get_mode_info, get_safety_mode, set_safety_mode
+from kubectl_mcp_tool.toolsets import DEFAULT_TOOLSETS, TOOL_TOOLSET, ToolsetServer, build_instructions, resolve_toolsets
 from kubectl_mcp_tool.tools import (
     register_backup_tools,
     register_capi_tools,
     register_certs_tools,
     register_cilium_tools,
     register_cluster_tools,
-    register_core_tools,
     register_cost_tools,
     register_custom_resource_tools,
-    register_deployment_tools,
     register_diagnostics_tools,
     register_gitops_tools,
     register_helm_tools,
     register_istio_tools,
     register_keda_tools,
     register_kind_tools,
+    register_kubectl_tools,
     register_kubevirt_tools,
     register_multicluster_tools,
     register_networking_tools,
@@ -56,7 +56,6 @@ from kubectl_mcp_tool.tools import (
     register_policy_tools,
     register_rollouts_tools,
     register_security_tools,
-    register_storage_tools,
     register_vind_tools,
 )
 from kubectl_mcp_tool.utils.helpers import mask_secrets, secret_masking_enabled
@@ -159,6 +158,8 @@ class MCPServer:
         disable_destructive: bool = False,
         confirm_destructive: bool = False,
         config_file: Optional[str] = None,
+        toolsets: Optional[str] = None,
+        tool_search: Optional[bool] = None,
     ):
         self.name = name
         self._dependencies_checked = False
@@ -180,7 +181,8 @@ class MCPServer:
         self.auth_config = get_auth_config()
         auth_verifier = self._setup_auth()
 
-        server_kwargs: dict = {"name": name, "version": __version__}
+        self.toolsets = resolve_toolsets(toolsets if toolsets is not None else os.environ.get("MCP_TOOLSETS"))
+        server_kwargs: dict = {"name": name, "version": __version__, "instructions": build_instructions(self.toolsets)}
         if auth_verifier:
             server_kwargs["auth"] = auth_verifier
         request_state_security = _request_state_security()
@@ -193,6 +195,9 @@ class MCPServer:
         ))
 
         self.setup_tools()
+        self.tool_search = _env_flag("MCP_TOOL_SEARCH") if tool_search is None else tool_search
+        if self.tool_search:
+            self._enable_tool_search()
         self.setup_resources()
         self.setup_prompts()
         self._setup_routes()
@@ -252,18 +257,19 @@ class MCPServer:
         return self._dependencies_available
 
     def setup_tools(self):
+        registrar = ToolsetServer(self.server, self.toolsets)
+        register_kubectl_tools(registrar, self.non_destructive)
+        register_helm_tools(registrar, self.non_destructive, self._check_helm_availability)
         for register in (
+            register_operations_tools,
             register_pod_tools,
-            register_core_tools,
             register_cluster_tools,
             register_multicluster_tools,
-            register_deployment_tools,
-            register_security_tools,
             register_networking_tools,
-            register_storage_tools,
-            register_operations_tools,
             register_diagnostics_tools,
+            register_security_tools,
             register_cost_tools,
+            register_custom_resource_tools,
             register_gitops_tools,
             register_certs_tools,
             register_policy_tools,
@@ -274,12 +280,20 @@ class MCPServer:
             register_capi_tools,
             register_kubevirt_tools,
             register_istio_tools,
-            register_vind_tools,
             register_kind_tools,
-            register_custom_resource_tools,
+            register_vind_tools,
         ):
-            register(self.server, self.non_destructive)
-        register_helm_tools(self.server, self.non_destructive, self._check_helm_availability)
+            register(registrar, self.non_destructive)
+        self.registered_tools = registrar.registered
+        logger.info(f"Toolsets: {', '.join(sorted(self.toolsets))} ({len(self.registered_tools)} tools)")
+
+    def _enable_tool_search(self) -> None:
+        """List only default-toolset tools plus search_tools/call_tool; the rest is found on demand."""
+        from fastmcp.server.transforms.search import BM25SearchTransform
+
+        pinned = [n for n in self.registered_tools if TOOL_TOOLSET[n] in DEFAULT_TOOLSETS]
+        self.server.add_transform(BM25SearchTransform(max_results=8, always_visible=pinned))
+        logger.info(f"Tool search enabled: {len(pinned)} tools pinned, {len(self.registered_tools) - len(pinned)} searchable")
 
     def setup_resources(self):
         register_resources(self.server)
@@ -394,6 +408,10 @@ def add_serve_arguments(parser: argparse.ArgumentParser) -> argparse.ArgumentPar
                         help="Allow create/update, block delete operations")
     parser.add_argument("--confirm-destructive", action="store_true",
                         help="Ask the user to confirm destructive operations (blocked if the client cannot ask)")
+    parser.add_argument("--toolsets", default=os.environ.get("MCP_TOOLSETS"),
+                        help="Comma-separated toolsets: default (core,helm), all, or names such as gitops,certs. Env: MCP_TOOLSETS")
+    parser.add_argument("--tool-search", action="store_true", default=_env_flag("MCP_TOOL_SEARCH"),
+                        help="List only default tools plus search_tools/call_tool for on-demand discovery. Env: MCP_TOOL_SEARCH")
     parser.add_argument("--config", default=None, help="Path to TOML configuration file")
     parser.add_argument("--stateless", action="store_true",
                         help="Do not cache Kubernetes API clients; reload kubeconfig on every request. Env: MCP_STATELESS_MODE")
@@ -418,6 +436,8 @@ def run_server(args: argparse.Namespace, name: str = "kubernetes") -> int:
         disable_destructive=args.disable_destructive,
         confirm_destructive=args.confirm_destructive,
         config_file=args.config,
+        toolsets=args.toolsets,
+        tool_search=args.tool_search,
     )
 
     try:

@@ -131,7 +131,7 @@ class TestGitOpsTools:
         import asyncio
 
         with patch("kubectl_mcp_tool.mcp_server.MCPServer._check_dependencies", return_value=True):
-            server = MCPServer(name="test")
+            server = MCPServer(name="test", toolsets="all")
 
         async def get_tools():
             return await server.server.list_tools()
@@ -141,8 +141,7 @@ class TestGitOpsTools:
 
         gitops_tools = [
             "gitops_apps_list", "gitops_app_get", "gitops_app_sync",
-            "gitops_app_status", "gitops_sources_list", "gitops_source_get",
-            "gitops_detect_engine"
+            "gitops_app_status", "gitops_sources_list", "gitops_source_get"
         ]
         for tool in gitops_tools:
             assert tool in tool_names, f"GitOps tool '{tool}' not registered"
@@ -174,7 +173,7 @@ class TestCertManagerTools:
         import asyncio
 
         with patch("kubectl_mcp_tool.mcp_server.MCPServer._check_dependencies", return_value=True):
-            server = MCPServer(name="test")
+            server = MCPServer(name="test", toolsets="all")
 
         async def get_tools():
             return await server.server.list_tools()
@@ -185,7 +184,7 @@ class TestCertManagerTools:
         certs_tools = [
             "list_certs", "get_cert", "list_cert_issuers", "get_cert_issuer",
             "renew_cert", "explain_cert_status", "list_cert_challenges",
-            "list_cert_requests", "detect_certs"
+            "list_cert_requests"
         ]
         for tool in certs_tools:
             assert tool in tool_names, f"Cert-Manager tool '{tool}' not registered"
@@ -207,7 +206,7 @@ class TestPolicyTools:
         import asyncio
 
         with patch("kubectl_mcp_tool.mcp_server.MCPServer._check_dependencies", return_value=True):
-            server = MCPServer(name="test")
+            server = MCPServer(name="test", toolsets="all")
 
         async def get_tools():
             return await server.server.list_tools()
@@ -217,7 +216,7 @@ class TestPolicyTools:
 
         policy_tools = [
             "get_policy_list", "get_policy", "get_policy_violations",
-            "explain_policy_denial", "audit_policies", "detect_policy_engines"
+            "explain_policy_denial", "audit_policies"
         ]
         for tool in policy_tools:
             assert tool in tool_names, f"Policy tool '{tool}' not registered"
@@ -239,7 +238,7 @@ class TestBackupTools:
         import asyncio
 
         with patch("kubectl_mcp_tool.mcp_server.MCPServer._check_dependencies", return_value=True):
-            server = MCPServer(name="test")
+            server = MCPServer(name="test", toolsets="all")
 
         async def get_tools():
             return await server.server.list_tools()
@@ -251,7 +250,7 @@ class TestBackupTools:
             "list_backups", "get_backup", "create_backup", "delete_backup",
             "list_restores", "create_restore", "get_restore",
             "list_backup_locations", "list_backup_schedules",
-            "create_backup_schedule", "detect_backup"
+            "create_backup_schedule"
         ]
         for tool in backup_tools:
             assert tool in tool_names, f"Backup tool '{tool}' not registered"
@@ -277,7 +276,7 @@ class TestEcosystemToolsIntegration:
         import asyncio
 
         with patch("kubectl_mcp_tool.mcp_server.MCPServer._check_dependencies", return_value=True):
-            server = MCPServer(name="test")
+            server = MCPServer(name="test", toolsets="all")
 
         async def get_tools():
             return await server.server.list_tools()
@@ -286,7 +285,7 @@ class TestEcosystemToolsIntegration:
 
         ecosystem_prefixes = ["gitops_", "list_cert", "get_cert", "renew_cert", "explain_cert", "detect_cert",
                               "get_policy", "explain_policy", "audit_polic", "detect_policy",
-                              "list_backup", "get_backup", "create_backup", "delete_backup", "detect_backup",
+                              "list_backup", "get_backup", "create_backup", "delete_backup",
                               "list_restore", "create_restore", "get_restore"]
         ecosystem_tools = [t for t in tools if any(t.name.startswith(p) for p in ecosystem_prefixes)]
 
@@ -303,7 +302,7 @@ class TestEcosystemToolsIntegration:
         import asyncio
 
         with patch("kubectl_mcp_tool.mcp_server.MCPServer._check_dependencies", return_value=True):
-            server = MCPServer(name="test")
+            server = MCPServer(name="test", toolsets="gitops,certs,policy,backup")
 
         async def get_tools():
             return await server.server.list_tools()
@@ -314,19 +313,18 @@ class TestEcosystemToolsIntegration:
         ecosystem_tool_names = [
             "gitops_apps_list", "gitops_app_get", "gitops_app_sync",
             "gitops_app_status", "gitops_sources_list", "gitops_source_get",
-            "gitops_detect_engine",
             "list_certs", "get_cert", "list_cert_issuers", "get_cert_issuer",
             "renew_cert", "explain_cert_status", "list_cert_challenges",
-            "list_cert_requests", "detect_certs",
+            "list_cert_requests",
             "get_policy_list", "get_policy", "get_policy_violations",
-            "explain_policy_denial", "audit_policies", "detect_policy_engines",
+            "explain_policy_denial", "audit_policies",
             "list_backups", "get_backup", "create_backup", "delete_backup",
             "list_restores", "create_restore", "get_restore",
             "list_backup_locations", "list_backup_schedules",
-            "create_backup_schedule", "detect_backup"
+            "create_backup_schedule"
         ]
         tool_names = {t.name for t in tools}
         ecosystem_tools = [name for name in ecosystem_tool_names if name in tool_names]
 
-        # 7 GitOps + 9 Certs + 6 Policy + 11 Backup = 33 ecosystem tools
-        assert len(ecosystem_tools) == 33, f"Expected 33 ecosystem tools, got {len(ecosystem_tools)}"
+        # 6 GitOps + 8 Certs + 5 Policy + 10 Backup = 29 ecosystem tools
+        assert len(ecosystem_tools) == 29, f"Expected 29 ecosystem tools, got {len(ecosystem_tools)}"

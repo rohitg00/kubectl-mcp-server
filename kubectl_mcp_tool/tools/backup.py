@@ -695,29 +695,6 @@ def backup_schedule_create(
         return {"success": False, "error": str(e)}
 
 
-def backup_detect(context: str = "") -> Dict[str, Any]:
-    """Detect if Velero is installed and its components.
-
-    Args:
-        context: Kubernetes context to use (optional)
-
-    Returns:
-        Detection results for Velero
-    """
-    return {
-        "context": context or "current",
-        "installed": crd_exists(VELERO_BACKUP_CRD, context),
-        "cli_available": _velero_cli_available(),
-        "crds": {
-            "backups": crd_exists(VELERO_BACKUP_CRD, context),
-            "restores": crd_exists(VELERO_RESTORE_CRD, context),
-            "schedules": crd_exists(VELERO_SCHEDULE_CRD, context),
-            "backup_storage_locations": crd_exists(VELERO_BSL_CRD, context),
-            "volume_snapshot_locations": crd_exists(VELERO_VSL_CRD, context),
-        },
-    }
-
-
 def register_backup_tools(mcp: FastMCP, non_destructive: bool = False):
     """Register backup tools with the MCP server."""
     from fastmcp import Context
@@ -843,7 +820,3 @@ def register_backup_tools(mcp: FastMCP, non_destructive: bool = False):
         exc_ns = [n.strip() for n in excluded_namespaces.split(",") if n.strip()] if excluded_namespaces else None
         return json.dumps(backup_schedule_create(name, schedule, namespace, inc_ns, exc_ns, ttl, "", context), indent=2)
 
-    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
-    def detect_backup(context: str = "") -> str:
-        """Detect if Velero is installed and its components."""
-        return json.dumps(backup_detect(context), indent=2)

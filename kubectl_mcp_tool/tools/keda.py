@@ -1,7 +1,7 @@
 """KEDA autoscaling toolset for kubectl-mcp-server."""
 
 import json
-from typing import Dict, Any, List
+from typing import Dict, Any
 
 from fastmcp import FastMCP
 from mcp.types import ToolAnnotations
@@ -337,27 +337,6 @@ def _keda_hpa_list(
     }
 
 
-def _keda_detect(context: str = "") -> Dict[str, Any]:
-    """Detect if KEDA is installed and its components.
-
-    Args:
-        context: Kubernetes context to use (optional)
-
-    Returns:
-        Detection results for KEDA
-    """
-    return {
-        "context": context or "current",
-        "installed": crd_exists(SCALEDOBJECT_CRD, context),
-        "crds": {
-            "scaledobjects": crd_exists(SCALEDOBJECT_CRD, context),
-            "scaledjobs": crd_exists(SCALEDJOB_CRD, context),
-            "triggerauthentications": crd_exists(TRIGGERAUTH_CRD, context),
-            "clustertriggerauthentications": crd_exists(CLUSTERTRIGGERAUTH_CRD, context),
-        },
-    }
-
-
 def register_keda_tools(mcp: FastMCP, non_destructive: bool = False):
     """Register KEDA tools with the MCP server."""
 
@@ -416,7 +395,3 @@ def register_keda_tools(mcp: FastMCP, non_destructive: bool = False):
         """List HPAs managed by KEDA."""
         return json.dumps(_keda_hpa_list(namespace, context, label_selector), indent=2)
 
-    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
-    def keda_detect(context: str = "") -> str:
-        """Detect if KEDA is installed and its components."""
-        return json.dumps(_keda_detect(context), indent=2)

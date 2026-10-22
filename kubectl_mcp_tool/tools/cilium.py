@@ -2,7 +2,7 @@
 
 import subprocess
 import json
-from typing import Dict, Any, List
+from typing import Dict, Any
 
 from fastmcp import FastMCP
 from mcp.types import ToolAnnotations
@@ -447,32 +447,6 @@ def hubble_flows_query(
         return {"success": False, "error": str(e)}
 
 
-def cilium_detect(context: str = "") -> Dict[str, Any]:
-    """Detect if Cilium is installed and its components.
-
-    Args:
-        context: Kubernetes context to use (optional)
-
-    Returns:
-        Detection results for Cilium
-    """
-    return {
-        "context": context or "current",
-        "installed": crd_exists(CILIUM_NETWORK_POLICY_CRD, context),
-        "crds": {
-            "ciliumnetworkpolicies": crd_exists(CILIUM_NETWORK_POLICY_CRD, context),
-            "ciliumclusterwidenetworkpolicies": crd_exists(CILIUM_CLUSTERWIDE_POLICY_CRD, context),
-            "ciliumendpoints": crd_exists(CILIUM_ENDPOINT_CRD, context),
-            "ciliumidentities": crd_exists(CILIUM_IDENTITY_CRD, context),
-            "ciliumnodes": crd_exists(CILIUM_NODE_CRD, context),
-        },
-        "cli": {
-            "cilium_available": _cilium_cli_available(),
-            "hubble_available": _hubble_cli_available(),
-        },
-    }
-
-
 def register_cilium_tools(mcp: FastMCP, non_destructive: bool = False):
     """Register Cilium tools with the MCP server."""
 
@@ -535,7 +509,3 @@ def register_cilium_tools(mcp: FastMCP, non_destructive: bool = False):
         """Query Hubble flows for network observability."""
         return json.dumps(hubble_flows_query(namespace, pod, label_selector, verdict, protocol, last, context), indent=2)
 
-    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True))
-    def detect_cilium(context: str = "") -> str:
-        """Detect if Cilium is installed and its components."""
-        return json.dumps(cilium_detect(context), indent=2)
