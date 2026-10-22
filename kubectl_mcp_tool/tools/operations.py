@@ -23,13 +23,27 @@ GENERIC_BLOCKED_FLAGS = (
     "--insecure-skip-tls-verify", "--tls-server-name", "--cluster", "--user", "--context",
     "--raw", "--flatten", "--cache-dir", "--log-file", "--profile-output",
 )
-OUTPUT_FLAGS = ("-o", "--output", "--template")
+VALUE_FREE_OUTPUT_FORMATS = {"name", "wide"}
 
 
 def _is_blocked_flag(token: str) -> bool:
     if token.startswith("-s") and not token.startswith("--"):
         return True
     return any(token == flag or token.startswith(flag + "=") for flag in GENERIC_BLOCKED_FLAGS)
+
+
+def _output_formats(parts: List[str]) -> List[str]:
+    formats = []
+    for i, token in enumerate(parts):
+        if token in ("-o", "--output"):
+            formats.append(parts[i + 1] if i + 1 < len(parts) else "")
+        elif token.startswith(("-o=", "--output=")):
+            formats.append(token.split("=", 1)[1])
+        elif token.startswith("-o") and not token.startswith("--"):
+            formats.append(token[2:])
+        elif token == "--template" or token.startswith("--template="):
+            formats.append("template")
+    return formats
 
 
 def _reads_secret_values(parts: List[str]) -> bool:
@@ -40,8 +54,9 @@ def _reads_secret_values(parts: List[str]) -> bool:
         for token in parts[1:] if not token.startswith("-")
         for piece in token.split(",")
     }
-    has_output = any(token.startswith(OUTPUT_FLAGS) for token in parts[1:])
-    return bool(targets & {"secret", "secrets"}) and has_output
+    if not targets & {"secret", "secrets"}:
+        return False
+    return any(fmt.split("=")[0] not in VALUE_FREE_OUTPUT_FORMATS for fmt in _output_formats(parts))
 
 
 def validate_generic_command(parts: List[str]) -> Optional[str]:

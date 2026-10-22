@@ -49,8 +49,16 @@ def secret_masking_enabled() -> bool:
     return os.environ.get("MCP_MASK_SECRETS", "true").lower() not in ("0", "false", "no")
 
 
+_SECRET_KIND_LINE = re.compile(r"^\s*kind:\s*[\"']?secret[\"']?\s*$", re.IGNORECASE | re.MULTILINE)
+_SECRET_BLOCK = re.compile(r"^(\s*)(?:data|stringData):\s*$|^(\s*)kubectl\.kubernetes\.io/last-applied-configuration:")
+
+
 def _may_hold_secret(text: str) -> bool:
-    return "Secret" in text and ("\n" in text or text.lstrip().startswith(("{", "[")))
+    return "secret" in text.lower() and ("\n" in text or text.lstrip().startswith(("{", "[")))
+
+
+def _kind(obj: dict) -> str:
+    return str(obj.get("kind", "")).lower()
 
 
 def redact_secrets(obj: Any) -> Any:
@@ -61,10 +69,10 @@ def redact_secrets(obj: Any) -> Any:
         return [redact_secrets(item) for item in obj]
     if not isinstance(obj, dict):
         return obj
-    if obj.get("kind") == "SecretList" and isinstance(obj.get("items"), list):
+    if _kind(obj) == "secretlist" and isinstance(obj.get("items"), list):
         obj = {**obj, "items": [{"kind": "Secret", **i} if isinstance(i, dict) else i for i in obj["items"]]}
     out = {k: redact_secrets(v) for k, v in obj.items()}
-    if out.get("kind") == "Secret":
+    if _kind(out) == "secret":
         for field in ("data", "stringData"):
             if isinstance(out.get(field), dict):
                 out[field] = {k: REDACTED for k in out[field]}
@@ -74,9 +82,8 @@ def redact_secrets(obj: Any) -> Any:
     return out
 
 
-def _redact_documents(text: str) -> str:
-    stripped = text.lstrip()
-    if stripped.startswith(("{", "[")):
+def _redact_parsed(text: str) -> str:
+    if text.lstrip().startswith(("{", "[")):
         try:
             data = json.loads(text)
         except ValueError:
@@ -93,6 +100,36 @@ def _redact_documents(text: str) -> str:
     if redacted == docs:
         return text
     return yaml.safe_dump_all(redacted, default_flow_style=False, sort_keys=False)
+
+
+def _redact_secret_blocks(text: str) -> str:
+    """Line-based fallback for Secret manifests embedded in text that does not parse."""
+    out, block_indent, drop_block = [], None, False
+    for line in text.splitlines(keepends=True):
+        body, indent = line.strip(), len(line) - len(line.lstrip())
+        eol = "\n" if line.endswith("\n") else ""
+        if block_indent is not None and body and indent <= block_indent:
+            block_indent = None
+        if block_indent is not None:
+            if not body:
+                out.append(line)
+            elif ":" in body and not drop_block:
+                out.append(f'{line.split(":", 1)[0]}: "{REDACTED}"{eol}')
+            continue
+        match = _SECRET_BLOCK.match(line)
+        if match:
+            block_indent, drop_block = indent, match.group(2) is not None
+            if drop_block:
+                line = f'{line.split(":", 1)[0]}: "{REDACTED}"{eol}'
+        out.append(line)
+    return "".join(out)
+
+
+def _redact_documents(text: str) -> str:
+    redacted = _redact_parsed(text)
+    if redacted is text and _SECRET_KIND_LINE.search(text):
+        return _redact_secret_blocks(text)
+    return redacted
 
 
 def mask_secrets(text: str) -> str:

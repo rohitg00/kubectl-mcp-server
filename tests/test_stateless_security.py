@@ -77,6 +77,15 @@ class TestSecretRedaction:
         assert mask_secrets(text) == text
         assert mask_secrets("Secret rotation finished") == "Secret rotation finished"
 
+    def test_unparseable_text_with_embedded_secret_falls_back_to_line_redaction(self):
+        text = "Warning: resource applied\n: not yaml [\n" + SECRET_YAML
+        out = mask_secrets(text)
+        assert "aHVudGVyMg==" not in out
+        assert "type: Opaque" in out and "name: db" in out
+
+    def test_kind_match_is_case_insensitive(self):
+        assert redact_secrets({"kind": "secret", "data": {"k": "dg=="}})["data"] == {"k": REDACTED}
+
     def test_tokens_are_masked(self):
         jwt = "eyJhbGciOiJSUzI1NiJ9.eyJzdWIiOiJzeXN0ZW06YWRtaW4ifQ.c2lnbmF0dXJl"
         assert jwt not in mask_secrets(f"token: {jwt}")
@@ -99,7 +108,10 @@ class TestOptionInjection:
 
 
 class TestKubectlGeneric:
-    @pytest.mark.parametrize("cmd", ["get pods -A", "describe pod x", "auth can-i list pods", "config get-contexts", "get secrets"])
+    @pytest.mark.parametrize("cmd", [
+        "get pods -A", "describe pod x", "auth can-i list pods", "config get-contexts", "get secrets",
+        "get secrets -o name", "get secrets --output=wide", "describe secret db",
+    ])
     def test_safe_reads_allowed(self, cmd):
         assert validate_generic_command(cmd.split()) is None
 
@@ -112,11 +124,36 @@ class TestKubectlGeneric:
         "config view --flatten",
         "get secret db -o jsonpath={.data.password}",
         "get pods,secrets -oyaml",
+        "get secrets -o custom-columns=V:.data",
+        "get secret db --template={{.data}}",
         "delete pod x",
         "auth reconcile -f x",
     ])
     def test_unsafe_commands_blocked(self, cmd):
         assert validate_generic_command(cmd.split()) is not None
+
+
+class TestScopeEnforcement:
+    def test_missing_token_rejected_over_http(self):
+        from kubectl_mcp_tool import middleware
+        with patch.object(middleware, "get_access_token", return_value=None), \
+                patch.object(middleware, "get_http_request", return_value=object()):
+            with pytest.raises(ToolError, match="Unauthorized"):
+                middleware._check_scopes("get_pods", read_only=True)
+
+    def test_missing_token_allowed_on_stdio(self):
+        from kubectl_mcp_tool import middleware
+        with patch.object(middleware, "get_access_token", return_value=None), \
+                patch.object(middleware, "get_http_request", side_effect=RuntimeError("no request")):
+            middleware._check_scopes("delete_resource", read_only=False)
+
+    def test_read_scope_cannot_call_write_tools(self):
+        from unittest.mock import MagicMock
+        from kubectl_mcp_tool import middleware
+        with patch.object(middleware, "get_access_token", return_value=MagicMock(scopes=["mcp:read"])):
+            middleware._check_scopes("get_pods", read_only=True)
+            with pytest.raises(ToolError, match="mcp:write"):
+                middleware._check_scopes("delete_resource", read_only=False)
 
 
 class TestNetworkExposure:
@@ -179,14 +216,16 @@ class TestBothProtocolEras:
                     await client.call_tool("kubectl_describe", {"resource_type": "pod", "name": "--server=https://attacker.example"})
                 run.assert_not_called()
 
-    @pytest.mark.parametrize("mode", ["2026-07-28", "legacy"])
-    async def test_confirm_mode_accept(self, mode):
+    @pytest.mark.parametrize("mode,rounds", [("2026-07-28", 2), ("legacy", 1)])
+    async def test_confirm_mode_accept(self, mode, rounds):
         server = make_server(confirm_destructive=True)
+        before = (server._stats.get_tool_stats("delete_resource") or {}).get("calls", 0)
         async with Client(server.server, mode=mode, elicitation_handler=accept_all) as client:
             with patch("kubectl_mcp_tool.tools.operations.subprocess.run", return_value=completed("deleted")) as run:
                 result = await client.call_tool("delete_resource", {"resource_type": "pod", "name": "nginx"})
         assert result.structured_content["success"] is True
         assert run.call_args[0][0][-5:] == ["delete", "pod", "nginx", "-n", "default"]
+        assert server._stats.get_tool_stats("delete_resource")["calls"] - before == rounds
 
     @pytest.mark.parametrize("mode", ["2026-07-28", "legacy"])
     async def test_confirm_mode_decline(self, mode):

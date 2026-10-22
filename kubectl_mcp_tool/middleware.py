@@ -5,7 +5,7 @@ import time
 from typing import Any, Iterable
 
 from fastmcp.exceptions import ToolError
-from fastmcp.server.dependencies import get_access_token
+from fastmcp.server.dependencies import get_access_token, get_http_request
 from fastmcp.server.middleware import Middleware
 from fastmcp.tools import InputRequiredToolResult, ToolResult
 from mcp.types import TextContent
@@ -91,6 +91,7 @@ class ToolGuardMiddleware(Middleware):
             self._record(name, False, time.perf_counter() - started, type(exc).__name__)
             raise
         if isinstance(result, InputRequiredToolResult):
+            self._record(name, True, time.perf_counter() - started, "")
             return result
         failed = result.is_error or (isinstance(result.structured_content, dict) and result.structured_content.get("success") is False)
         self._record(name, not failed, time.perf_counter() - started, "tool_error")
@@ -104,9 +105,19 @@ class ToolGuardMiddleware(Middleware):
             record_tool_error_metric(name, error_type)
 
 
+def _in_http_request() -> bool:
+    try:
+        get_http_request()
+        return True
+    except RuntimeError:
+        return False
+
+
 def _check_scopes(name: str, read_only: bool) -> None:
     token = get_access_token()
     if token is None:
+        if _in_http_request():
+            raise ToolError("Unauthorized: missing access token")
         return
     scopes = set(token.scopes or [])
     if scopes & UNRESTRICTED_SCOPES:
