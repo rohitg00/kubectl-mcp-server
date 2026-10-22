@@ -38,13 +38,15 @@ def create_auth_verifier(config: AuthConfig) -> Optional[Any]:
     logger.info(f"Expected audience: {config.audience}")
     logger.info(f"Expected issuer: {config.issuer_url}")
 
-    verifier = JWTVerifier(
+    logger.info(f"Required scopes: {config.required_scopes}")
+
+    return JWTVerifier(
         jwks_uri=jwks_uri,
         issuer=config.issuer_url,
         audience=config.audience,
+        required_scopes=config.required_scopes or None,
+        base_url=config.resource_url,
     )
-
-    return verifier
 
 
 def create_auth_settings(config: AuthConfig) -> Optional[Any]:

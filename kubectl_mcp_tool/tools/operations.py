@@ -8,8 +8,61 @@ from typing import Any, Dict, List, Optional
 from mcp.types import ToolAnnotations
 
 from kubectl_mcp_tool.k8s_config import _get_kubectl_context_args
+from kubectl_mcp_tool.utils.helpers import secret_masking_enabled
 
 logger = logging.getLogger("mcp-server")
+
+GENERIC_COMMANDS = {
+    "get", "describe", "logs", "top", "explain", "api-resources", "api-versions",
+    "version", "cluster-info", "events",
+}
+GENERIC_CONFIG_COMMANDS = {"view", "current-context", "get-contexts", "get-clusters"}
+GENERIC_BLOCKED_FLAGS = (
+    "--kubeconfig", "--server", "--token", "--as", "--as-group", "--as-uid", "--username",
+    "--password", "--client-key", "--client-certificate", "--certificate-authority",
+    "--insecure-skip-tls-verify", "--tls-server-name", "--cluster", "--user", "--context",
+    "--raw", "--flatten", "--cache-dir", "--log-file", "--profile-output",
+)
+OUTPUT_FLAGS = ("-o", "--output", "--template")
+
+
+def _is_blocked_flag(token: str) -> bool:
+    if token.startswith("-s") and not token.startswith("--"):
+        return True
+    return any(token == flag or token.startswith(flag + "=") for flag in GENERIC_BLOCKED_FLAGS)
+
+
+def _reads_secret_values(parts: List[str]) -> bool:
+    if parts[0] != "get":
+        return False
+    targets = {
+        piece.split("/")[0].split(".")[0].lower()
+        for token in parts[1:] if not token.startswith("-")
+        for piece in token.split(",")
+    }
+    has_output = any(token.startswith(OUTPUT_FLAGS) for token in parts[1:])
+    return bool(targets & {"secret", "secrets"}) and has_output
+
+
+def validate_generic_command(parts: List[str]) -> Optional[str]:
+    """Return an error message if a kubectl_generic invocation is not a safe read."""
+    if not parts:
+        return "Empty command"
+    verb = parts[0]
+    if verb == "config":
+        if len(parts) < 2 or parts[1] not in GENERIC_CONFIG_COMMANDS:
+            return f"Config subcommand not allowed. Allowed: {', '.join(sorted(GENERIC_CONFIG_COMMANDS))}"
+    elif verb == "auth":
+        if parts[1:2] != ["can-i"]:
+            return "Auth subcommand not allowed. Allowed: can-i"
+    elif verb not in GENERIC_COMMANDS:
+        return f"Command not allowed. Allowed: {', '.join(sorted(GENERIC_COMMANDS))}, config, auth can-i"
+    blocked = next((t for t in parts if _is_blocked_flag(t)), None)
+    if blocked:
+        return f"Flag not allowed: {blocked.split('=')[0]} (connection, credential and raw-output flags are blocked; use the context argument)"
+    if secret_masking_enabled() and _reads_secret_values(parts):
+        return "Reading Secret values is blocked while MCP_MASK_SECRETS is enabled; use get_secrets for metadata"
+    return None
 
 
 def register_operations_tools(server: "FastMCP", non_destructive: bool):
@@ -107,50 +160,12 @@ def register_operations_tools(server: "FastMCP", non_destructive: bool):
             context: Kubernetes context to use (optional, uses current context if not specified)
         """
         try:
-            # Security: validate command starts with allowed operations
-            allowed_prefixes = [
-                "get", "describe", "logs", "top", "explain", "api-resources",
-                "version", "cluster-info"
-            ]
-            allowed_auth_subcommands = ["can-i"]
-            allowed_config_subcommands = [
-                "config view", "config current-context", "config get-contexts",
-                "config get-clusters", "config use-context"
-            ]
             cmd_parts = shlex.split(command)
-            if not cmd_parts:
-                return {"success": False, "error": "Empty command"}
-
-            # Remove 'kubectl' prefix if present
-            if cmd_parts[0] == "kubectl":
+            if cmd_parts[:1] == ["kubectl"]:
                 cmd_parts = cmd_parts[1:]
-
-            if not cmd_parts:
-                return {"success": False, "error": "Empty command"}
-
-            if cmd_parts[0] == "config":
-                cmd_prefix = " ".join(cmd_parts[:2])
-                if cmd_prefix not in allowed_config_subcommands:
-                    return {
-                        "success": False,
-                        "error": f"Config subcommand not allowed. Allowed: {', '.join(allowed_config_subcommands)}"
-                    }
-                if "--raw" in cmd_parts:
-                    return {
-                        "success": False,
-                        "error": "config view --raw is not allowed (may expose secrets)"
-                    }
-            elif cmd_parts[0] == "auth":
-                if len(cmd_parts) < 2 or cmd_parts[1] not in allowed_auth_subcommands:
-                    return {
-                        "success": False,
-                        "error": f"Auth subcommand not allowed. Allowed: {', '.join(allowed_auth_subcommands)}"
-                    }
-            elif cmd_parts[0] not in allowed_prefixes:
-                return {
-                    "success": False,
-                    "error": f"Command not allowed. Allowed: {', '.join(allowed_prefixes + ['config', 'auth can-i'])}"
-                }
+            error = validate_generic_command(cmd_parts)
+            if error:
+                return {"success": False, "error": error}
 
             full_cmd = ["kubectl"] + _get_kubectl_context_args(context) + cmd_parts
             result = subprocess.run(full_cmd, capture_output=True, text=True, timeout=60)

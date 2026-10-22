@@ -10,9 +10,9 @@ import traceback
 import json
 import shutil
 import fnmatch
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
-from ..mcp_server import MCPServer
+from ..mcp_server import MCPServer, add_serve_arguments, run_server
 from .errors import (
     ErrorCode,
     format_cli_error,
@@ -57,52 +57,6 @@ logging.basicConfig(
 logger = logging.getLogger("kubectl-mcp-cli")
 
 
-async def serve_stdio(
-    read_only: bool = False,
-    disable_destructive: bool = False,
-    config_file: Optional[str] = None,
-):
-    server = MCPServer(
-        "kubernetes",
-        read_only=read_only,
-        disable_destructive=disable_destructive,
-        config_file=config_file,
-    )
-    await server.serve_stdio()
-
-
-async def serve_sse(
-    host: str,
-    port: int,
-    read_only: bool = False,
-    disable_destructive: bool = False,
-    config_file: Optional[str] = None,
-):
-    server = MCPServer(
-        "kubernetes",
-        read_only=read_only,
-        disable_destructive=disable_destructive,
-        config_file=config_file,
-    )
-    await server.serve_sse(host=host, port=port)
-
-
-async def serve_http(
-    host: str,
-    port: int,
-    read_only: bool = False,
-    disable_destructive: bool = False,
-    config_file: Optional[str] = None,
-):
-    server = MCPServer(
-        "kubernetes",
-        read_only=read_only,
-        disable_destructive=disable_destructive,
-        config_file=config_file,
-    )
-    await server.serve_http(host=host, port=port)
-
-
 def get_all_tools() -> List[Dict[str, Any]]:
     server = MCPServer("kubernetes")
 
@@ -112,7 +66,7 @@ def get_all_tools() -> List[Dict[str, Any]]:
             {
                 "name": t.name,
                 "description": t.description or "",
-                "inputSchema": t.inputSchema if hasattr(t, 'inputSchema') else {},
+                "inputSchema": getattr(t, "parameters", None) or {},
                 "category": _get_tool_category(t.name),
             }
             for t in tools
@@ -154,10 +108,6 @@ def _get_tool_category(tool_name: str) -> str:
         "compare": "diagnostics",
         "event": "diagnostics",
         "cost": "cost",
-        "browser": "browser",
-        "screenshot": "browser",
-        "ui": "ui",
-        "dashboard": "ui",
     }
 
     name_lower = tool_name.lower()
@@ -197,7 +147,7 @@ def get_all_resources() -> List[Dict[str, Any]]:
                 "uri": r.uri,
                 "name": r.name,
                 "description": r.description or "",
-                "mimeType": getattr(r, 'mimeType', None),
+                "mimeType": getattr(r, "mime_type", None),
             }
             for r in resources
         ]
@@ -414,28 +364,6 @@ def cmd_doctor(args):
     except Exception as e:
         checks.append({"name": "kubernetes", "status": "error", "details": str(e)})
 
-    # Check agent-browser (optional)
-    browser_path = shutil.which("agent-browser")
-    if browser_path:
-        try:
-            import subprocess
-            result = subprocess.run(["agent-browser", "--version"], capture_output=True, text=True, timeout=5)
-            if result.returncode == 0:
-                version = result.stdout.strip()
-                checks.append({"name": "agent-browser", "status": "ok", "version": version, "details": browser_path})
-            else:
-                checks.append({"name": "agent-browser", "status": "ok", "details": browser_path})
-        except Exception:
-            checks.append({"name": "agent-browser", "status": "ok", "details": browser_path})
-    else:
-        enabled = os.environ.get("MCP_BROWSER_ENABLED", "").lower() in ("1", "true")
-        if enabled:
-            checks.append({"name": "agent-browser", "status": "warning",
-                           "details": "MCP_BROWSER_ENABLED=true but agent-browser not found"})
-        else:
-            checks.append({"name": "agent-browser", "status": "ok",
-                           "details": "Not installed (optional, set MCP_BROWSER_ENABLED=true to use)"})
-
     # Check Python dependencies
     try:
         import fastmcp
@@ -463,12 +391,12 @@ def cmd_doctor(args):
 def main():
     parser = argparse.ArgumentParser(
         prog="kubectl-mcp-server",
-        description="MCP server for Kubernetes with 127+ tools, 8 resources, and 8 prompts",
+        description="MCP server for Kubernetes (stateless MCP 2026-07-28 and earlier protocol revisions)",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
   kubectl-mcp-server serve                          # Start stdio server (Claude/Cursor)
-  kubectl-mcp-server serve --transport http         # Start HTTP server
+  kubectl-mcp-server serve --transport http         # Stateless Streamable HTTP on 127.0.0.1:8000/mcp
   kubectl-mcp-server tools                          # List all tools
   kubectl-mcp-server tools -d                       # List tools with descriptions
   kubectl-mcp-server tools get_pods                 # Show tool schema
@@ -479,9 +407,11 @@ Examples:
   kubectl-mcp-server doctor                         # Check dependencies
 
 Environment Variables:
-  MCP_DEBUG=true           Enable debug logging
-  MCP_BROWSER_ENABLED=true Enable browser automation tools
-  NO_COLOR=1               Disable colored output
+  MCP_DEBUG=true                 Enable debug logging
+  MCP_SAFETY_MODE=read-only      read-only | disable-destructive | confirm | normal
+  MCP_ALLOW_UNAUTHENTICATED=true Allow non-loopback HTTP without OAuth
+  MCP_MASK_SECRETS=false         Disable Secret value redaction
+  NO_COLOR=1                     Disable colored output
         """
     )
 
@@ -491,17 +421,7 @@ Environment Variables:
 
     # serve command (existing)
     serve_parser = subparsers.add_parser("serve", help="Start the MCP server")
-    serve_parser.add_argument(
-        "--transport",
-        choices=["stdio", "sse", "http", "streamable-http"],
-        default="stdio",
-        help="Transport to use (default: stdio)"
-    )
-    serve_parser.add_argument("--host", type=str, default="0.0.0.0", help="Host for SSE/HTTP (default: 0.0.0.0)")
-    serve_parser.add_argument("--port", type=int, default=8000, help="Port for SSE/HTTP (default: 8000)")
-    serve_parser.add_argument("--config", type=str, default=None, help="Path to TOML configuration file")
-    serve_parser.add_argument("--read-only", action="store_true", help="Enable read-only mode (block all write operations)")
-    serve_parser.add_argument("--disable-destructive", action="store_true", help="Disable destructive operations (allow create/update, block delete)")
+    add_serve_arguments(serve_parser)
 
     # version command (existing)
     subparsers.add_parser("version", help="Show version")
@@ -556,37 +476,7 @@ Environment Variables:
 
     try:
         if args.command == "serve":
-            # Log safety mode (actual mode is applied in MCPServer)
-            if args.read_only:
-                logger.info("Starting server in READ-ONLY mode")
-            elif args.disable_destructive:
-                logger.info("Starting server with destructive operations disabled")
-
-            if args.config:
-                logger.info(f"Loading configuration from: {args.config}")
-
-            if args.transport == "stdio":
-                asyncio.run(serve_stdio(
-                    read_only=args.read_only,
-                    disable_destructive=args.disable_destructive,
-                    config_file=args.config,
-                ))
-            elif args.transport == "sse":
-                asyncio.run(serve_sse(
-                    host=args.host,
-                    port=args.port,
-                    read_only=args.read_only,
-                    disable_destructive=args.disable_destructive,
-                    config_file=args.config,
-                ))
-            elif args.transport in ("http", "streamable-http"):
-                asyncio.run(serve_http(
-                    host=args.host,
-                    port=args.port,
-                    read_only=args.read_only,
-                    disable_destructive=args.disable_destructive,
-                    config_file=args.config,
-                ))
+            return run_server(args)
 
         elif args.command == "version":
             from .. import __version__

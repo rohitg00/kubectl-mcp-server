@@ -178,7 +178,7 @@ class TestMCPServerConfig:
         assert config is not None
         assert hasattr(config, 'server')
         assert hasattr(config, 'safety')
-        assert hasattr(config, 'browser')
+        assert not hasattr(config, 'browser')
 
     def test_config_reload_callbacks(self):
         """Test config reload callback registration."""

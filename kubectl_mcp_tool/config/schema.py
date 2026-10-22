@@ -9,6 +9,12 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+VALID_TRANSPORTS = {"stdio", "http", "streamable-http", "sse"}
+VALID_SAFETY_MODES = {
+    "normal", "read-only", "read_only", "disable-destructive", "disable_destructive",
+    "confirm", "confirm-destructive", "confirm_destructive",
+}
+
 
 @dataclass
 class ServerConfig:
@@ -23,9 +29,8 @@ class ServerConfig:
 
     def __post_init__(self):
         """Validate configuration values."""
-        valid_transports = {"stdio", "sse", "streamable-http"}
-        if self.transport not in valid_transports:
-            raise ValueError(f"Invalid transport: {self.transport}. Must be one of {valid_transports}")
+        if self.transport not in VALID_TRANSPORTS:
+            raise ValueError(f"Invalid transport: {self.transport}. Must be one of {sorted(VALID_TRANSPORTS)}")
 
         if not 1 <= self.port <= 65535:
             raise ValueError(f"Invalid port: {self.port}. Must be between 1 and 65535")
@@ -48,32 +53,9 @@ class SafetyConfig:
 
     def __post_init__(self):
         """Validate safety mode."""
-        valid_modes = {"normal", "read-only", "disable-destructive"}
-        if self.mode not in valid_modes:
-            raise ValueError(f"Invalid safety mode: {self.mode}. Must be one of {valid_modes}")
-
-
-@dataclass
-class BrowserConfig:
-    """Browser automation configuration."""
-
-    enabled: bool = False
-    provider: str = "local"
-    headed: bool = False
-    timeout: int = 60
-    max_retries: int = 3
-
-    # Provider-specific settings
-    browserbase_api_key: Optional[str] = None
-    browserbase_project_id: Optional[str] = None
-    browseruse_api_key: Optional[str] = None
-    cdp_url: Optional[str] = None
-
-    def __post_init__(self):
-        """Validate browser configuration."""
-        valid_providers = {"local", "browserbase", "browseruse", "cdp"}
-        if self.provider not in valid_providers:
-            raise ValueError(f"Invalid browser provider: {self.provider}. Must be one of {valid_providers}")
+        self.mode = str(self.mode).lower()
+        if self.mode not in VALID_SAFETY_MODES:
+            raise ValueError(f"Invalid safety mode: {self.mode}. Must be one of {sorted(VALID_SAFETY_MODES)}")
 
 
 @dataclass
@@ -129,7 +111,6 @@ class Config:
 
     server: ServerConfig = field(default_factory=ServerConfig)
     safety: SafetyConfig = field(default_factory=SafetyConfig)
-    browser: BrowserConfig = field(default_factory=BrowserConfig)
     metrics: MetricsConfig = field(default_factory=MetricsConfig)
     logging: LoggingConfig = field(default_factory=LoggingConfig)
     kubernetes: KubernetesConfig = field(default_factory=KubernetesConfig)
@@ -152,8 +133,7 @@ def validate_config(config_dict: Dict[str, Any]) -> List[str]:
     # Validate server section
     if "server" in config_dict:
         server = config_dict["server"]
-        valid_transports = {"stdio", "sse", "streamable-http"}
-        if server.get("transport") and server["transport"] not in valid_transports:
+        if server.get("transport") and server["transport"] not in VALID_TRANSPORTS:
             errors.append(f"Invalid server.transport: {server['transport']}")
 
         port = server.get("port")
@@ -163,16 +143,8 @@ def validate_config(config_dict: Dict[str, Any]) -> List[str]:
     # Validate safety section
     if "safety" in config_dict:
         safety = config_dict["safety"]
-        valid_modes = {"normal", "read-only", "disable-destructive"}
-        if safety.get("mode") and safety["mode"] not in valid_modes:
+        if safety.get("mode") and str(safety["mode"]).lower() not in VALID_SAFETY_MODES:
             errors.append(f"Invalid safety.mode: {safety['mode']}")
-
-    # Validate browser section
-    if "browser" in config_dict:
-        browser = config_dict["browser"]
-        valid_providers = {"local", "browserbase", "browseruse", "cdp"}
-        if browser.get("provider") and browser["provider"] not in valid_providers:
-            errors.append(f"Invalid browser.provider: {browser['provider']}")
 
     # Validate metrics section
     if "metrics" in config_dict:

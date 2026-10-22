@@ -281,11 +281,11 @@ def register_resources(server):
             config.load_kube_config()
             v1 = client.CoreV1Api()
 
+            from kubectl_mcp_tool.utils.helpers import redact_secrets
             secret = v1.read_namespaced_secret(name, namespace)
             manifest = client.ApiClient().sanitize_for_serialization(secret)
-            if "data" in manifest and manifest["data"]:
-                manifest["data"] = {k: "[MASKED]" for k in manifest["data"].keys()}
-            return yaml.dump(manifest, default_flow_style=False)
+            manifest["kind"] = "Secret"
+            return yaml.dump(redact_secrets(manifest), default_flow_style=False)
         except Exception as e:
             return f"# Error: {str(e)}"
 

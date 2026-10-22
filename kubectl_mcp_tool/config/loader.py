@@ -16,7 +16,6 @@ from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Union
 
 from .schema import (
-    BrowserConfig,
     Config,
     KubernetesConfig,
     LoggingConfig,
@@ -118,7 +117,6 @@ def _apply_env_overrides(config_dict: Dict[str, Any]) -> Dict[str, Any]:
     Examples:
         MCP_SERVER_PORT=9000
         MCP_SAFETY_MODE=read-only
-        MCP_BROWSER_ENABLED=true
 
     Args:
         config_dict: Configuration dictionary
@@ -138,14 +136,6 @@ def _apply_env_overrides(config_dict: Dict[str, Any]) -> Dict[str, Any]:
         "MCP_LOG_LEVEL": ("server", "log_level"),
         # Safety settings
         "MCP_SAFETY_MODE": ("safety", "mode"),
-        # Browser settings
-        "MCP_BROWSER_ENABLED": ("browser", "enabled", lambda x: x.lower() in ("true", "1", "yes")),
-        "MCP_BROWSER_PROVIDER": ("browser", "provider"),
-        "MCP_BROWSER_HEADED": ("browser", "headed", lambda x: x.lower() in ("true", "1", "yes")),
-        "BROWSERBASE_API_KEY": ("browser", "browserbase_api_key"),
-        "BROWSERBASE_PROJECT_ID": ("browser", "browserbase_project_id"),
-        "BROWSER_USE_API_KEY": ("browser", "browseruse_api_key"),
-        "MCP_BROWSER_CDP_URL": ("browser", "cdp_url"),
         # Metrics settings
         "MCP_METRICS_ENABLED": ("metrics", "enabled", lambda x: x.lower() in ("true", "1", "yes")),
         "MCP_TRACING_ENABLED": ("metrics", "tracing_enabled", lambda x: x.lower() in ("true", "1", "yes")),
@@ -193,19 +183,17 @@ def _dict_to_config(config_dict: Dict[str, Any]) -> Config:
 
     server = make_dataclass(ServerConfig, config_dict.get("server", {}))
     safety = make_dataclass(SafetyConfig, config_dict.get("safety", {}))
-    browser = make_dataclass(BrowserConfig, config_dict.get("browser", {}))
     metrics = make_dataclass(MetricsConfig, config_dict.get("metrics", {}))
     logging_config = make_dataclass(LoggingConfig, config_dict.get("logging", {}))
     kubernetes = make_dataclass(KubernetesConfig, config_dict.get("kubernetes", {}))
 
     # Collect custom/unknown sections
-    known_sections = {"server", "safety", "browser", "metrics", "logging", "kubernetes"}
+    known_sections = {"server", "safety", "metrics", "logging", "kubernetes"}
     custom = {k: v for k, v in config_dict.items() if k not in known_sections}
 
     return Config(
         server=server,
         safety=safety,
-        browser=browser,
         metrics=metrics,
         logging=logging_config,
         kubernetes=kubernetes,
@@ -377,7 +365,7 @@ def setup_sighup_handler() -> bool:
         signal.signal(signal.SIGHUP, _sighup_handler)
         logger.debug("SIGHUP handler installed for config reload")
         return True
-    except (OSError, AttributeError) as e:
+    except (OSError, AttributeError, ValueError) as e:
         logger.warning(f"Could not install SIGHUP handler: {e}")
         return False
 

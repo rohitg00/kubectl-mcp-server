@@ -10,7 +10,6 @@ class ErrorCode(IntEnum):
     CLIENT_ERROR = 1
     SERVER_ERROR = 2
     K8S_ERROR = 3
-    BROWSER_ERROR = 4
     NETWORK_ERROR = 5
 
 
@@ -108,55 +107,6 @@ def k8s_resource_error(resource: str, namespace: str, cause: str) -> CliError:
         message=f'Failed to access {resource} in namespace "{namespace}"',
         details=cause,
         suggestion="Check if the resource exists and you have permission to access it"
-    )
-
-
-def browser_not_found_error() -> CliError:
-    return CliError(
-        code=ErrorCode.BROWSER_ERROR,
-        type="BROWSER_NOT_FOUND",
-        message="agent-browser CLI not found",
-        details="Browser automation tools require agent-browser to be installed",
-        suggestion="Install with: npm install -g agent-browser && agent-browser install"
-    )
-
-
-def browser_not_enabled_error() -> CliError:
-    return CliError(
-        code=ErrorCode.BROWSER_ERROR,
-        type="BROWSER_NOT_ENABLED",
-        message="Browser tools are not enabled",
-        details="Set MCP_BROWSER_ENABLED=true to enable browser automation",
-        suggestion="Export MCP_BROWSER_ENABLED=true and ensure agent-browser is installed"
-    )
-
-
-def browser_connection_error(cause: str) -> CliError:
-    suggestion = "Check browser configuration and try again"
-
-    if "ECONNREFUSED" in cause:
-        suggestion = "Connection refused. Is the browser running? Try 'agent-browser install'"
-    elif "timeout" in cause.lower():
-        suggestion = "Connection timed out. Try increasing MCP_BROWSER_TIMEOUT"
-    elif "CDP" in cause or "websocket" in cause.lower():
-        suggestion = "CDP connection failed. Check MCP_BROWSER_CDP_URL is correct"
-
-    return CliError(
-        code=ErrorCode.BROWSER_ERROR,
-        type="BROWSER_CONNECTION_FAILED",
-        message="Failed to connect to browser",
-        details=cause,
-        suggestion=suggestion
-    )
-
-
-def browser_timeout_error(timeout: int) -> CliError:
-    return CliError(
-        code=ErrorCode.BROWSER_ERROR,
-        type="BROWSER_TIMEOUT",
-        message=f"Browser command timed out after {timeout}s",
-        details="The command took too long to complete",
-        suggestion="Increase timeout or check if the page is loading correctly"
     )
 
 

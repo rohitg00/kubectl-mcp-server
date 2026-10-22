@@ -134,32 +134,26 @@ class TestAllToolsRegistered:
 
     @pytest.mark.unit
     def test_all_tools_registered(self):
-        """Verify all expected tools are registered (excluding optional browser tools)."""
-        import os
+        """Verify all expected tools are registered."""
         from kubectl_mcp_tool.mcp_server import MCPServer
 
-        with patch.dict(os.environ, {"MCP_BROWSER_ENABLED": "false"}):
-            import importlib
-            import kubectl_mcp_tool.tools.browser as browser_module
-            importlib.reload(browser_module)
+        with patch("kubectl_mcp_tool.mcp_server.MCPServer._check_dependencies", return_value=True):
+            with patch("kubernetes.config.load_kube_config"):
+                server = MCPServer(name="test")
 
-            with patch("kubectl_mcp_tool.mcp_server.MCPServer._check_dependencies", return_value=True):
-                with patch("kubernetes.config.load_kube_config"):
-                    server = MCPServer(name="test")
+        async def get_tools():
+            return await server.server.list_tools()
 
-            async def get_tools():
-                return await server.server.list_tools()
+        tools = asyncio.run(get_tools())
+        tool_names = {t.name for t in tools}
 
-            tools = asyncio.run(get_tools())
-            tool_names = {t.name for t in tools}
+        assert len(tools) == EXPECTED_TOOL_COUNT, f"Expected {EXPECTED_TOOL_COUNT} tools, got {len(tools)}"
 
-            assert len(tools) == EXPECTED_TOOL_COUNT, f"Expected {EXPECTED_TOOL_COUNT} tools, got {len(tools)}"
+        missing_tools = set(EXPECTED_TOOLS) - tool_names
+        assert not missing_tools, f"Missing tools: {missing_tools}"
 
-            missing_tools = set(EXPECTED_TOOLS) - tool_names
-            assert not missing_tools, f"Missing tools: {missing_tools}"
-
-            unexpected_tools = tool_names - set(EXPECTED_TOOLS)
-            assert not unexpected_tools, f"Unexpected tools: {unexpected_tools}"
+        unexpected_tools = tool_names - set(EXPECTED_TOOLS)
+        assert not unexpected_tools, f"Unexpected tools: {unexpected_tools}"
 
     @pytest.mark.unit
     def test_tool_modules_import_correctly(self):
@@ -730,40 +724,3 @@ class TestErrorHandling:
             with patch("kubernetes.config.load_kube_config"):
                 server = MCPServer(name="test")
                 assert server is not None
-
-
-class TestMaskSecrets:
-    """Tests for secret masking functionality."""
-
-    @pytest.mark.unit
-    def test_masks_base64_data(self):
-        """Test that base64-encoded data is masked."""
-        from kubectl_mcp_tool.mcp_server import MCPServer
-        with patch("kubectl_mcp_tool.mcp_server.MCPServer._check_dependencies", return_value=True):
-            with patch("kubernetes.config.load_kube_config"):
-                server = MCPServer(name="test")
-                text = "data:\n  password: c2VjcmV0UGFzc3dvcmQxMjM="
-                masked = server._mask_secrets(text)
-                assert "[MASKED]" in masked
-
-    @pytest.mark.unit
-    def test_masks_password_fields(self):
-        """Test that password fields are masked."""
-        from kubectl_mcp_tool.mcp_server import MCPServer
-        with patch("kubectl_mcp_tool.mcp_server.MCPServer._check_dependencies", return_value=True):
-            with patch("kubernetes.config.load_kube_config"):
-                server = MCPServer(name="test")
-                text = 'password: "mysecretpassword"'
-                masked = server._mask_secrets(text)
-                assert "[MASKED]" in masked
-
-    @pytest.mark.unit
-    def test_masks_token_fields(self):
-        """Test that token fields are masked."""
-        from kubectl_mcp_tool.mcp_server import MCPServer
-        with patch("kubectl_mcp_tool.mcp_server.MCPServer._check_dependencies", return_value=True):
-            with patch("kubernetes.config.load_kube_config"):
-                server = MCPServer(name="test")
-                text = 'token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9"'
-                masked = server._mask_secrets(text)
-                assert "[MASKED]" in masked

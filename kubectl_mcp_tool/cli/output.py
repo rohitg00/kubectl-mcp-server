@@ -86,8 +86,6 @@ TOOL_CATEGORIES = {
     "operations": "Operations",
     "diagnostics": "Diagnostics",
     "cost": "Cost Optimization",
-    "browser": "Browser Automation",
-    "ui": "UI Dashboards",
 }
 
 
