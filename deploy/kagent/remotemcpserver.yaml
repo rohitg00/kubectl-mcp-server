@@ -6,6 +6,6 @@ metadata:
   name: kubectl-mcp-server
   namespace: default
 spec:
-  description: "kubectl-mcp-server provides 280+ Kubernetes management tools for AI assistants"
+  description: "kubectl-mcp-server: kubectl and Helm for AI assistants, with opt-in ecosystem toolsets"
   protocol: STREAMABLE_HTTP
   url: http://kubectl-mcp-server.kubectl-mcp.svc.cluster.local:8000/mcp

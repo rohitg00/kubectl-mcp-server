@@ -145,7 +145,7 @@ gitops_app_get(name, namespace)
 
 ```
 gitops_app_get(name, namespace)
-get_events(namespace=target_namespace)
+kubectl_get(resource_type="events", namespace=target_namespace)
 # Check:
 # - RBAC permissions
 # - Resource conflicts
@@ -156,7 +156,7 @@ get_events(namespace=target_namespace)
 
 ```
 gitops_app_get(name, namespace)
-get_pods(namespace=target_namespace)
+kubectl_get(resource_type="pods", namespace=target_namespace)
 kubectl_describe(name, target_namespace)
 ```
 

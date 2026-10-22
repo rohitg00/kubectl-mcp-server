@@ -24,9 +24,9 @@ Use this skill when:
 
 | Priority | Rule | Impact | Tools |
 |----------|------|--------|-------|
-| 1 | Check control plane first | CRITICAL | `get_pods(namespace="kube-system")` |
-| 2 | Assess node health | CRITICAL | `get_nodes` |
-| 3 | Gather events before changes | HIGH | `get_events` |
+| 1 | Check control plane first | CRITICAL | `kubectl_get(resource_type="pods", namespace="kube-system")` |
+| 2 | Assess node health | CRITICAL | `kubectl_get` |
+| 3 | Gather events before changes | HIGH | `kubectl_get` |
 | 4 | Document timeline | HIGH | Manual notes |
 | 5 | Rollback if safe | MEDIUM | `kubectl_rollout` |
 
@@ -34,19 +34,19 @@ Use this skill when:
 
 | Incident | First Tool | Next Steps |
 |----------|------------|------------|
-| Pod failure | `get_logs(previous=True)` | `kubectl_describe`, `get_events` |
+| Pod failure | `kubectl_logs(previous=True)` | `kubectl_describe`, `kubectl_get` |
 | Node down | `kubectl_describe` | Check kubelet logs |
-| Service unreachable | `get_endpoints` | `analyze_network_policies` |
-| Control plane | `get_pods(namespace="kube-system")` | Check API server logs |
+| Service unreachable | `kubectl_get` | `analyze_network_policies` |
+| Control plane | `kubectl_get(resource_type="pods", namespace="kube-system")` | Check API server logs |
 
 ## Incident Triage
 
 ### Quick Health Check
 
 ```python
-get_nodes()
-get_pods(namespace="kube-system")
-get_events(namespace)
+kubectl_get(resource_type="nodes")
+kubectl_get(resource_type="pods", namespace="kube-system")
+kubectl_get(resource_type="events", namespace)
 ```
 
 ### Severity Assessment
@@ -63,10 +63,10 @@ get_events(namespace)
 ### CrashLoopBackOff
 
 ```python
-get_logs(name, namespace, previous=True)
+kubectl_logs(name, namespace, previous=True)
 kubectl_describe(name, namespace)
-get_events(namespace, field_selector="involvedObject.name=<pod>")
-get_pod_metrics(name, namespace)
+kubectl_get(resource_type="events", namespace, field_selector="involvedObject.name=<pod>")
+kubectl_top(name, namespace)
 ```
 
 **Common Causes:**
@@ -79,15 +79,15 @@ get_pod_metrics(name, namespace)
 
 ```python
 kubectl_describe(name, namespace)
-get_secrets(namespace)
+kubectl_get(resource_type="secrets", namespace)
 ```
 
 ### Pending Pod
 
 ```python
 kubectl_describe(name, namespace)
-get_nodes()
-get_events(namespace)
+kubectl_get(resource_type="nodes")
+kubectl_get(resource_type="events", namespace)
 ```
 
 ## Runbook: Node Issues
@@ -96,7 +96,7 @@ get_events(namespace)
 
 ```python
 kubectl_describe(name)
-get_events(namespace="", field_selector="involvedObject.name=<node>")
+kubectl_get(resource_type="events", namespace="", field_selector="involvedObject.name=<node>")
 node_logs(name, "kubelet")
 ```
 
@@ -104,7 +104,7 @@ node_logs(name, "kubelet")
 
 ```python
 kubectl_describe(name)
-get_pods(field_selector="spec.nodeName=<node>")
+kubectl_get(resource_type="pods", field_selector="spec.nodeName=<node>")
 ```
 
 ## Runbook: Network Issues
@@ -112,17 +112,17 @@ get_pods(field_selector="spec.nodeName=<node>")
 ### Service Not Accessible
 
 ```python
-get_services(namespace)
-get_endpoints(namespace)
-get_pods(namespace, label_selector="<service-selector>")
+kubectl_get(resource_type="services", namespace)
+kubectl_get(resource_type="endpoints", namespace)
+kubectl_get(resource_type="pods", namespace, label_selector="<service-selector>")
 analyze_network_policies(namespace)
 ```
 
 ### DNS Resolution Failures
 
 ```python
-get_pods(namespace="kube-system", label_selector="k8s-app=kube-dns")
-get_logs("coredns-xxx", "kube-system")
+kubectl_get(resource_type="pods", namespace="kube-system", label_selector="k8s-app=kube-dns")
+kubectl_logs("coredns-xxx", "kube-system")
 ```
 
 ### With Cilium
@@ -146,16 +146,16 @@ istio_proxy_status()
 
 ```python
 kubectl_describe(name, namespace)
-get_storage_classes()
-get_events(namespace)
+kubectl_get(resource_type="storageclasses")
+kubectl_get(resource_type="events", namespace)
 ```
 
 ### Pod Stuck in ContainerCreating
 
 ```python
 kubectl_describe(name, namespace)
-get_pvcs(namespace)
-get_events(namespace)
+kubectl_get(resource_type="pvc", namespace)
+kubectl_get(resource_type="events", namespace)
 ```
 
 ## Runbook: Control Plane Issues
@@ -163,15 +163,15 @@ get_events(namespace)
 ### API Server Unavailable
 
 ```python
-get_pods(namespace="kube-system", label_selector="component=kube-apiserver")
-get_events(namespace="kube-system")
+kubectl_get(resource_type="pods", namespace="kube-system", label_selector="component=kube-apiserver")
+kubectl_get(resource_type="events", namespace="kube-system")
 ```
 
 ### etcd Issues
 
 ```python
-get_pods(namespace="kube-system", label_selector="component=etcd")
-get_logs("etcd-xxx", "kube-system")
+kubectl_get(resource_type="pods", namespace="kube-system", label_selector="component=etcd")
+kubectl_logs("etcd-xxx", "kube-system")
 ```
 
 ## Emergency Actions
@@ -204,9 +204,9 @@ Check all clusters:
 
 ```python
 for context in ["prod-1", "prod-2", "staging"]:
-    get_nodes(context=context)
-    get_pods(namespace="kube-system", context=context)
-    get_events(namespace="kube-system", context=context)
+    kubectl_get(resource_type="nodes", context=context)
+    kubectl_get(resource_type="pods", namespace="kube-system", context=context)
+    kubectl_get(resource_type="events", namespace="kube-system", context=context)
 ```
 
 ## Post-Incident

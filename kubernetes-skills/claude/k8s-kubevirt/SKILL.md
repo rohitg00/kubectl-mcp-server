@@ -24,7 +24,7 @@ Use this skill when:
 
 | Priority | Rule | Impact | Tools |
 |----------|------|--------|-------|
-| 1 | Detect KubeVirt installation first | CRITICAL | `kubevirt_detect` |
+| 1 | Detect KubeVirt installation first | CRITICAL | `detect_ecosystem` |
 | 2 | Check VM status before operations | HIGH | `kubevirt_vm_get` |
 | 3 | List VMIs for running VMs | HIGH | `kubevirt_vmis_list` |
 | 4 | Use instance types for consistency | MEDIUM | `kubevirt_instancetypes_list` |
@@ -33,7 +33,7 @@ Use this skill when:
 
 | Task | Tool | Example |
 |------|------|---------|
-| Detect KubeVirt | `kubevirt_detect` | `kubevirt_detect()` |
+| Detect KubeVirt | `detect_ecosystem` | `detect_ecosystem()` |
 | List VMs | `kubevirt_vms_list` | `kubevirt_vms_list(namespace)` |
 | Start VM | `kubevirt_vm_start` | `kubevirt_vm_start(name, namespace)` |
 | Live migrate VM | `kubevirt_vm_migrate` | `kubevirt_vm_migrate(name, namespace)` |
@@ -41,7 +41,7 @@ Use this skill when:
 ## Check Installation
 
 ```python
-kubevirt_detect()
+detect_ecosystem()
 ```
 
 ## List VMs
@@ -221,15 +221,15 @@ spec:
 ```python
 1. kubevirt_vm_get(name, namespace)  # Check status/conditions
 2. kubevirt_vmis_list(namespace)  # Check VMI exists
-3. get_events(namespace)  # Check events
-4. get_pods(namespace, label_selector="kubevirt.io/vm=<name>")  # Check virt-launcher
+3. kubectl_get(resource_type="events", namespace)  # Check events
+4. kubectl_get(resource_type="pods", namespace, label_selector="kubevirt.io/vm=<name>")  # Check virt-launcher
 ```
 
 ### Migration Failed
 
 ```python
 1. kubevirt_vmis_list(namespace)  # Check migrationState
-2. get_events(namespace)  # Check events
+2. kubectl_get(resource_type="events", namespace)  # Check events
 3. # Common issues:
    # - No suitable target node
    # - Insufficient resources

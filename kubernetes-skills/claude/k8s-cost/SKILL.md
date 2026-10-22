@@ -26,8 +26,8 @@ Use this skill when:
 |----------|------|--------|-------|
 | 1 | Find and delete unused PVCs | CRITICAL | `get_idle_resources` |
 | 2 | Right-size overprovisioned pods | HIGH | `get_resource_recommendations` |
-| 3 | Identify idle LoadBalancers | HIGH | `get_services` |
-| 4 | Scale down non-prod off-hours | MEDIUM | `scale_deployment` |
+| 3 | Identify idle LoadBalancers | HIGH | `kubectl_get` |
+| 4 | Scale down non-prod off-hours | MEDIUM | `kubectl_scale` |
 | 5 | Consolidate small namespaces | LOW | Analysis |
 
 ## Quick Reference
@@ -59,7 +59,7 @@ get_idle_resources(namespace)
 
 ```python
 get_resource_recommendations(namespace)
-get_pod_metrics(name, namespace)
+kubectl_top(name, namespace)
 ```
 
 ## Cost Optimization Workflow
@@ -69,8 +69,8 @@ get_pod_metrics(name, namespace)
 ```python
 get_resource_recommendations(namespace="production")
 
-get_pod_metrics(name, namespace)
-get_resource_usage(namespace)
+kubectl_top(name, namespace)
+kubectl_top(namespace)
 ```
 
 ### 2. Find Idle Resources
@@ -84,8 +84,8 @@ find_unused_resources(namespace)
 ### 3. Analyze Node Utilization
 
 ```python
-get_nodes()
-get_node_metrics()
+kubectl_get(resource_type="nodes")
+kubectl_top(resource="nodes")
 ```
 
 ## Right-Sizing Guidelines
@@ -102,21 +102,21 @@ get_node_metrics()
 ### Compute (Pods/Deployments)
 
 ```python
-get_resource_usage(namespace)
-get_pod_metrics(name, namespace)
+kubectl_top(namespace)
+kubectl_top(name, namespace)
 ```
 
 ### Storage (PVCs)
 
 ```python
-get_pvcs(namespace)
+kubectl_get(resource_type="pvc", namespace)
 get_idle_resources(namespace)
 ```
 
 ### Network (LoadBalancers)
 
 ```python
-get_services(namespace)
+kubectl_get(resource_type="services", namespace)
 ```
 
 ## Multi-Cluster Cost Analysis

@@ -37,7 +37,7 @@ Use this skill when:
 | Patch resource | `kubectl_patch` | `kubectl_patch(type, name, namespace, patch)` |
 | Delete resource | `delete_resource` | `delete_resource(type, name, namespace)` |
 | Exec command | `exec_in_pod` | `exec_in_pod(pod, namespace, command)` |
-| Scale deployment | `scale_deployment` | `scale_deployment(name, namespace, replicas)` |
+| Scale deployment | `kubectl_scale` | `kubectl_scale(resource_type="deployment", name, namespace, replicas)` |
 
 ## Apply Resources
 
@@ -141,9 +141,9 @@ exec_in_pod(
 ## Scale Resources
 
 ```python
-scale_deployment(name="nginx", namespace="default", replicas=5)
+kubectl_scale(resource_type="deployment", name="nginx", namespace="default", replicas=5)
 
-scale_deployment(name="nginx", namespace="default", replicas=0)
+kubectl_scale(resource_type="deployment", name="nginx", namespace="default", replicas=0)
 
 kubectl_scale(
     resource_type="statefulset",

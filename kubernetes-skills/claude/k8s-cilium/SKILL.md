@@ -24,7 +24,7 @@ Use this skill when:
 
 | Priority | Rule | Impact | Tools |
 |----------|------|--------|-------|
-| 1 | Detect Cilium installation first | CRITICAL | `detect_cilium` |
+| 1 | Detect Cilium installation first | CRITICAL | `detect_ecosystem` |
 | 2 | Check agent status for health | HIGH | `cilium_get_status` |
 | 3 | Use Hubble for flow debugging | HIGH | `get_hubble_flows` |
 | 4 | Start with default deny | MEDIUM | CiliumNetworkPolicy |
@@ -33,7 +33,7 @@ Use this skill when:
 
 | Task | Tool | Example |
 |------|------|---------|
-| Detect Cilium | `detect_cilium` | `detect_cilium()` |
+| Detect Cilium | `detect_ecosystem` | `detect_ecosystem()` |
 | Agent status | `cilium_get_status` | `cilium_get_status()` |
 | List policies | `cilium_list_policies` | `cilium_list_policies(namespace)` |
 | Query flows | `get_hubble_flows` | `get_hubble_flows(namespace)` |
@@ -41,7 +41,7 @@ Use this skill when:
 ## Check Installation
 
 ```python
-detect_cilium()
+detect_ecosystem()
 ```
 
 ## Cilium Status

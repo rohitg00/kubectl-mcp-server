@@ -82,14 +82,14 @@ Use this skill when:
 ## Priority Rules
 | Priority | Rule | Impact | Tools |
 |----------|------|--------|-------|
-| 1 | Check pod status first | CRITICAL | `get_pods` |
-| 2 | View recent events | CRITICAL | `get_events` |
-| 3 | Inspect logs | HIGH | `get_logs` |
+| 1 | Check pod status first | CRITICAL | `kubectl_get` |
+| 2 | View recent events | CRITICAL | `kubectl_get` |
+| 3 | Inspect logs | HIGH | `kubectl_logs` |
 
 ## Quick Reference
 | Task | Tool | Example |
 |------|------|---------|
-| Get pods | `get_pods` | `get_pods(namespace)` |
+| Get pods | `kubectl_get` | `kubectl_get(resource_type="pods", namespace)` |
 ```
 
 ## Installation
@@ -161,15 +161,15 @@ Convert manually by copying the content to your agent's format:
 
 | Category | Tools | Examples |
 |----------|-------|----------|
-| **Core** | 17 | `get_pods`, `get_namespaces`, `get_configmaps`, `get_secrets` |
-| **Deployments** | 10 | `scale_deployment`, `kubectl_rollout`, `kubectl_patch` |
-| **Networking** | 8 | `get_services`, `get_ingress`, `analyze_network_policies` |
-| **Storage** | 3 | `get_pvcs`, `get_storage_classes`, `get_persistent_volumes` |
-| **Security** | 10 | `get_cluster_roles`, `get_rbac_roles`, `get_service_accounts` |
+| **Core** | 17 | `kubectl_get`, `kubectl_get`, `kubectl_get`, `kubectl_get` |
+| **Deployments** | 10 | `kubectl_scale`, `kubectl_rollout`, `kubectl_patch` |
+| **Networking** | 8 | `kubectl_get`, `kubectl_get`, `analyze_network_policies` |
+| **Storage** | 3 | `kubectl_get`, `kubectl_get`, `kubectl_get` |
+| **Security** | 10 | `kubectl_get`, `kubectl_get`, `kubectl_get` |
 | **Helm** | 16 | `install_helm_chart`, `upgrade_helm_chart`, `helm_rollback` |
 | **Operations** | 14 | `kubectl_apply`, `delete_resource`, `kubectl_patch`, `exec_in_pod` |
-| **Diagnostics** | 3 | `compare_namespaces`, `get_pod_metrics`, `cluster_health_check` |
-| **Cost** | 8 | `get_resource_quotas`, `get_overprovisioned_resources`, `get_idle_resources` |
+| **Diagnostics** | 3 | `compare_namespaces`, `kubectl_top`, `cluster_health_check` |
+| **Cost** | 8 | `kubectl_get`, `get_overprovisioned_resources`, `get_idle_resources` |
 | **GitOps** | 7 | `gitops_apps_list`, `gitops_app_sync`, `gitops_app_status` |
 | **Cert-Manager** | 9 | `list_certs`, `list_cert_issuers` |
 | **Policy** | 6 | `get_policy_list`, `get_policy_violations` |
@@ -216,13 +216,13 @@ Convert manually by copying the content to your agent's format:
 kubectl-mcp-server tools -d
 
 # Show tool schema
-kubectl-mcp-server tools get_pods
+kubectl-mcp-server tools kubectl_get
 
 # Search tools
 kubectl-mcp-server grep "*helm*"
 
 # Call tool directly
-kubectl-mcp-server call get_pods '{"namespace": "default"}'
+kubectl-mcp-server call kubectl_get '{"namespace": "default"}'
 
 # Check dependencies
 kubectl-mcp-server doctor

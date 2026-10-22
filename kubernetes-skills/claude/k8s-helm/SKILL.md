@@ -28,7 +28,7 @@ Use this skill when:
 | 2 | Check existing releases first | CRITICAL | `helm_list` |
 | 3 | Lint charts before packaging | HIGH | `helm_lint` |
 | 4 | Note revision before upgrade | HIGH | `helm_history` |
-| 5 | Verify values after upgrade | MEDIUM | `helm_get_values` |
+| 5 | Verify values after upgrade | MEDIUM | `helm_get` |
 | 6 | Update repos before search | LOW | `helm_repo_update` |
 
 ## Quick Reference
@@ -39,7 +39,7 @@ Use this skill when:
 | Upgrade release | `upgrade_helm_chart` | `upgrade_helm_chart(name, chart, namespace, values)` |
 | Rollback | `helm_rollback` | `helm_rollback(name, namespace, revision)` |
 | List releases | `helm_list` | `helm_list(namespace)` |
-| Get values | `helm_get_values` | `helm_get_values(name, namespace)` |
+| Get values | `helm_get` | `helm_get(name, namespace)` |
 | Template (dry run) | `helm_template` | `helm_template(name, chart, namespace)` |
 
 ## Install Chart
@@ -105,7 +105,7 @@ helm_history(name="my-release", namespace="web")
 ### Get Release Values
 
 ```python
-helm_get_values(name="my-release", namespace="web")
+helm_get(name="my-release", namespace="web")
 ```
 
 ### Get Release Manifest
@@ -234,7 +234,7 @@ See [TROUBLESHOOTING.md](TROUBLESHOOTING.md) for common issues.
 ```python
 get_helm_release(name, namespace)
 
-get_pods(namespace, label_selector="app.kubernetes.io/instance=<release>")
+kubectl_get(resource_type="pods", namespace, label_selector="app.kubernetes.io/instance=<release>")
 ```
 
 ### Failed Installation
@@ -242,7 +242,7 @@ get_pods(namespace, label_selector="app.kubernetes.io/instance=<release>")
 ```python
 helm_history(name, namespace)
 
-get_events(namespace)
+kubectl_get(resource_type="events", namespace)
 
 uninstall_helm_chart(name, namespace)
 ```
@@ -250,7 +250,7 @@ uninstall_helm_chart(name, namespace)
 ### Values Not Applied
 
 ```python
-helm_get_values(name, namespace)
+helm_get(name, namespace)
 
 helm_template(...)
 

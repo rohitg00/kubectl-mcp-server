@@ -24,24 +24,24 @@ Use this skill when:
 
 | Priority | Rule | Impact | Tools |
 |----------|------|--------|-------|
-| 1 | Verify storage class exists before PVC | CRITICAL | `get_storage_classes` |
+| 1 | Verify storage class exists before PVC | CRITICAL | `kubectl_get` |
 | 2 | Check PVC status before pod deployment | HIGH | `kubectl_describe` |
-| 3 | Review access modes for multi-pod access | MEDIUM | `get_pvcs` |
-| 4 | Monitor PV reclaim policy | LOW | `get_persistent_volumes` |
+| 3 | Review access modes for multi-pod access | MEDIUM | `kubectl_get` |
+| 4 | Monitor PV reclaim policy | LOW | `kubectl_get` |
 
 ## Quick Reference
 
 | Task | Tool | Example |
 |------|------|---------|
-| List PVCs | `get_pvcs` | `get_pvcs(namespace)` |
+| List PVCs | `kubectl_get` | `kubectl_get(resource_type="pvc", namespace)` |
 | PVC details | `kubectl_describe` | `kubectl_describe(name, namespace)` |
-| Storage classes | `get_storage_classes` | `get_storage_classes()` |
-| List PVs | `get_persistent_volumes` | `get_persistent_volumes()` |
+| Storage classes | `kubectl_get` | `kubectl_get(resource_type="storageclasses")` |
+| List PVs | `kubectl_get` | `kubectl_get(resource_type="pv")` |
 
 ## Persistent Volume Claims (PVCs)
 
 ```python
-get_pvcs(namespace="default")
+kubectl_get(resource_type="pvc", namespace="default")
 
 kubectl_describe(name="my-pvc", namespace="default")
 
@@ -66,7 +66,7 @@ delete_resource(resource_type="pvc", name="my-pvc", namespace="default")
 ## Storage Classes
 
 ```python
-get_storage_classes()
+kubectl_get(resource_type="storageclasses")
 
 kubectl_apply(manifest="""
 apiVersion: storage.k8s.io/v1
@@ -84,7 +84,7 @@ volumeBindingMode: WaitForFirstConsumer
 ## Persistent Volumes
 
 ```python
-get_persistent_volumes()
+kubectl_get(resource_type="pv")
 
 describe_persistent_volume(name="pv-001")
 ```
@@ -127,7 +127,7 @@ spec:
 ```python
 kubectl_describe(name="my-pvc", namespace="default")
 
-get_events(namespace="default")
+kubectl_get(resource_type="events", namespace="default")
 kubectl_describe(name="my-pod", namespace="default")
 ```
 

@@ -17,7 +17,7 @@ Pod Status?
 │       └── Check scheduler pods in kube-system
 │
 ├── CrashLoopBackOff
-│   ├── get_logs(previous=True)
+│   ├── kubectl_logs(previous=True)
 │   ├── Exit Code 137 (OOMKilled)
 │   │   └── Increase memory limits
 │   ├── Exit Code 1 (App Error)
@@ -52,7 +52,7 @@ Pod Status?
 
 ```
 Service unreachable?
-├── get_endpoints(namespace) empty?
+├── kubectl_get(resource_type="endpoints", namespace) empty?
 │   ├── Yes
 │   │   ├── Pods exist with matching labels?
 │   │   │   ├── No → Fix selector labels
@@ -130,8 +130,8 @@ Deployment stuck?
 | Issue | First Command |
 |-------|--------------|
 | Pod not starting | `kubectl_describe(name, namespace)` |
-| Logs needed | `get_logs(name, namespace, previous=True)` |
-| Events check | `get_events(namespace)` |
+| Logs needed | `kubectl_logs(name, namespace, previous=True)` |
+| Events check | `kubectl_get(resource_type="events", namespace)` |
 | Node issues | `kubectl_describe(name)` |
-| Service debug | `get_endpoints(namespace)` |
+| Service debug | `kubectl_get(resource_type="endpoints", namespace)` |
 | Storage issues | `kubectl_describe(name, namespace)` |

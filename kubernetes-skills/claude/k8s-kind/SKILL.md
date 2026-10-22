@@ -26,7 +26,7 @@ Use this skill when:
 
 | Priority | Rule | Impact | Tools |
 |----------|------|--------|-------|
-| 1 | Detect kind CLI first | CRITICAL | `kind_detect` |
+| 1 | Detect kind CLI first | CRITICAL | `detect_ecosystem` |
 | 2 | Generate config for complex setups | HIGH | `kind_config_generate` |
 | 3 | Load images after cluster creation | HIGH | `kind_load_image` |
 | 4 | Export logs for debugging | MEDIUM | `kind_export_logs` |
@@ -35,7 +35,7 @@ Use this skill when:
 
 | Task | Tool | Example |
 |------|------|---------|
-| Detect kind | `kind_detect` | `kind_detect()` |
+| Detect kind | `detect_ecosystem` | `detect_ecosystem()` |
 | Create cluster | `kind_create_cluster` | `kind_create_cluster(name)` |
 | Load image | `kind_load_image` | `kind_load_image(images, name)` |
 | Get kubeconfig | `kind_get_kubeconfig` | `kind_get_kubeconfig(name)` |
@@ -55,9 +55,9 @@ Use this skill when:
 ## Check Installation
 
 ```python
-kind_detect()
+detect_ecosystem()
 
-kind_version()
+detect_ecosystem()
 
 kind_provider_info()
 ```
@@ -170,7 +170,7 @@ nodes:
 ```python
 kind_delete_cluster(name="dev-cluster")
 
-kind_delete_all_clusters()
+kind_delete_cluster()
 ```
 
 ## Local Registry Integration
@@ -431,7 +431,7 @@ kind_port_mappings()
 ```python
 kind_delete_cluster(name="broken-cluster")
 
-kind_delete_all_clusters()
+kind_delete_cluster()
 ```
 
 ## CLI Installation
@@ -463,8 +463,8 @@ kind version
 ### Read-Only Tools (20)
 | Tool | Description |
 |------|-------------|
-| `kind_detect` | Detect CLI installation |
-| `kind_version` | Get CLI version |
+| `detect_ecosystem` | Detect CLI installation |
+| `detect_ecosystem` | Get CLI version |
 | `kind_list_clusters` | List all clusters |
 | `kind_get_nodes` | List nodes in cluster |
 | `kind_get_kubeconfig` | Get kubeconfig |
@@ -489,7 +489,7 @@ kind version
 |------|-------------|
 | `kind_create_cluster` | Create cluster |
 | `kind_delete_cluster` | Delete cluster |
-| `kind_delete_all_clusters` | Delete all clusters |
+| `kind_delete_cluster` | Delete all clusters |
 | `kind_load_image` | Load Docker images |
 | `kind_load_image_archive` | Load from archive |
 | `kind_build_node_image` | Build node image |

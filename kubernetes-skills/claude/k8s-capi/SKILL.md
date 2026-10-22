@@ -24,7 +24,7 @@ Use this skill when:
 
 | Priority | Rule | Impact | Tools |
 |----------|------|--------|-------|
-| 1 | Detect CAPI installation first | CRITICAL | `detect_capi` |
+| 1 | Detect CAPI installation first | CRITICAL | `detect_ecosystem` |
 | 2 | Check cluster phase before operations | HIGH | `capi_get_cluster` |
 | 3 | Monitor machines during scaling | HIGH | `capi_list_machines` |
 | 4 | Get kubeconfig after provisioning | MEDIUM | `capi_get_cluster_kubeconfig` |
@@ -33,7 +33,7 @@ Use this skill when:
 
 | Task | Tool | Example |
 |------|------|---------|
-| Detect CAPI | `detect_capi` | `detect_capi()` |
+| Detect CAPI | `detect_ecosystem` | `detect_ecosystem()` |
 | List clusters | `capi_list_clusters` | `capi_list_clusters(namespace)` |
 | Get cluster kubeconfig | `capi_get_cluster_kubeconfig` | `capi_get_cluster_kubeconfig(name, namespace)` |
 | Scale workers | `capi_scale_machinedeployment` | `capi_scale_machinedeployment(name, namespace, replicas)` |
@@ -41,7 +41,7 @@ Use this skill when:
 ## Check Installation
 
 ```python
-detect_capi()
+detect_ecosystem()
 ```
 
 ## List Clusters
@@ -235,7 +235,7 @@ spec:
 ```python
 1. capi_get_cluster(name, namespace)  # Check conditions
 2. capi_list_machines(namespace)  # Check machine status
-3. get_events(namespace)  # Check events
+3. kubectl_get(resource_type="events", namespace)  # Check events
 4. # Check infrastructure provider logs
 ```
 
@@ -243,7 +243,7 @@ spec:
 
 ```python
 1. capi_get_machine(name, namespace)
-2. get_events(namespace)
+2. kubectl_get(resource_type="events", namespace)
 3. # Common issues:
    # - Cloud provider quota
    # - Invalid machine template

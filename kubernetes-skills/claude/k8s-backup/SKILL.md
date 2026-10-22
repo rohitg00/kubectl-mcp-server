@@ -24,7 +24,7 @@ Use this skill when:
 
 | Priority | Rule | Impact | Tools |
 |----------|------|--------|-------|
-| 1 | Verify Velero installation first | CRITICAL | `detect_backup` |
+| 1 | Verify Velero installation first | CRITICAL | `detect_ecosystem` |
 | 2 | Check backup location before create | HIGH | `list_backup_locations` |
 | 3 | Wait for backup completion | HIGH | `get_backup` |
 | 4 | Test restores to non-prod first | MEDIUM | `create_restore` |
@@ -33,7 +33,7 @@ Use this skill when:
 
 | Task | Tool | Example |
 |------|------|---------|
-| Detect Velero | `detect_backup` | `detect_backup()` |
+| Detect Velero | `detect_ecosystem` | `detect_ecosystem()` |
 | List backups | `list_backups` | `list_backups()` |
 | Create backup | `create_backup` | `create_backup(name, namespaces)` |
 | Restore | `create_restore` | `create_restore(name, backup_name)` |
@@ -41,7 +41,7 @@ Use this skill when:
 ## Check Velero Installation
 
 ```python
-detect_backup()
+detect_ecosystem()
 
 list_backup_locations()
 ```
@@ -155,7 +155,7 @@ get_backup(name="dr-backup-20260130-120000")
 ### Restore to New Cluster
 
 ```python
-detect_backup()
+detect_ecosystem()
 list_backups()
 create_restore(
     name="dr-restore",

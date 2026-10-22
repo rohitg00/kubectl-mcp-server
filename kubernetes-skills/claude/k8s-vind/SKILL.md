@@ -26,7 +26,7 @@ Use this skill when:
 
 | Priority | Rule | Impact | Tools |
 |----------|------|--------|-------|
-| 1 | Detect vCluster CLI first | CRITICAL | `vind_detect` |
+| 1 | Detect vCluster CLI first | CRITICAL | `detect_ecosystem` |
 | 2 | Check cluster status before operations | HIGH | `vind_status` |
 | 3 | Connect before kubectl operations | HIGH | `vind_connect` |
 | 4 | Pause unused clusters to save resources | MEDIUM | `vind_pause` |
@@ -35,7 +35,7 @@ Use this skill when:
 
 | Task | Tool | Example |
 |------|------|---------|
-| Detect vCluster | `vind_detect` | `vind_detect()` |
+| Detect vCluster | `detect_ecosystem` | `detect_ecosystem()` |
 | List clusters | `vind_list_clusters` | `vind_list_clusters()` |
 | Create cluster | `vind_create_cluster` | `vind_create_cluster(name)` |
 | Connect to cluster | `vind_connect` | `vind_connect(name)` |
@@ -51,7 +51,7 @@ Use this skill when:
 ## Check Installation
 
 ```python
-vind_detect()
+detect_ecosystem()
 ```
 
 ## List Clusters
@@ -75,7 +75,7 @@ vind_get_kubeconfig(name="my-vcluster", namespace="vcluster")
 ## View Logs
 
 ```python
-vind_logs(name="my-vcluster", namespace="vcluster", tail=100)
+vind_status(name="my-vcluster", namespace="vcluster", tail=100)
 ```
 
 ## Cluster Lifecycle
@@ -165,9 +165,9 @@ vind_describe(name="dev-cluster")
 ## Platform UI
 
 ```python
-vind_platform_start()
+vind_status()
 
-vind_platform_start(host="0.0.0.0", port=9898)
+vind_status(host="0.0.0.0", port=9898)
 ```
 
 ## Development Workflow
@@ -232,8 +232,8 @@ vind_create_cluster(
 ### Cluster Not Starting
 
 ```text
-1. vind_detect()
-2. vind_logs(name="my-cluster", tail=200)
+1. detect_ecosystem()
+2. vind_status(name="my-cluster", tail=200)
 3. vind_status(name="my-cluster")
 ```
 

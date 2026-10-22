@@ -24,7 +24,7 @@ Use this skill when:
 
 | Priority | Rule | Impact | Tools |
 |----------|------|--------|-------|
-| 1 | Check metrics-server before using metrics | CRITICAL | `get_pod_metrics` |
+| 1 | Check metrics-server before using metrics | CRITICAL | `kubectl_top` |
 | 2 | Run health check before deployments | HIGH | `cluster_health_check` |
 | 3 | Compare staging vs prod before release | MEDIUM | `compare_namespaces` |
 | 4 | Document baseline metrics | LOW | `get_nodes_summary` |
@@ -34,17 +34,17 @@ Use this skill when:
 | Task | Tool | Example |
 |------|------|---------|
 | Cluster health | `cluster_health_check` | `cluster_health_check()` |
-| Pod metrics | `get_pod_metrics` | `get_pod_metrics(namespace)` |
+| Pod metrics | `kubectl_top` | `kubectl_top(namespace)` |
 | Node summary | `get_nodes_summary` | `get_nodes_summary()` |
 | Compare envs | `compare_namespaces` | `compare_namespaces(ns1, ns2, type)` |
-| List CRDs | `list_crds` | `list_crds()` |
+| List CRDs | `kubectl_get` | `kubectl_get(resource_type="crds")` |
 
 ## Resource Metrics
 
 ```python
-get_pod_metrics(namespace="default")
+kubectl_top(namespace="default")
 
-get_node_metrics()
+kubectl_top(resource="nodes")
 
 get_top_pods(namespace="default", sort_by="cpu")
 
@@ -56,7 +56,7 @@ get_top_pods(namespace="default", sort_by="memory")
 ```python
 cluster_health_check()
 
-get_cluster_info()
+health_check()
 ```
 
 ## Compare Environments
@@ -80,11 +80,11 @@ compare_namespaces(
 ## API Discovery
 
 ```python
-get_api_versions()
+get_api_resources()
 
-check_crd_exists(crd_name="certificates.cert-manager.io")
+kubectl_get(resource_type="crds", crd_name="certificates.cert-manager.io")
 
-list_crds()
+kubectl_get(resource_type="crds")
 ```
 
 ## Resource Analysis
@@ -104,14 +104,14 @@ list_contexts()
 ```python
 cluster_health_check()
 get_nodes_summary()
-get_events(namespace="")
-list_crds()
+kubectl_get(resource_type="events", namespace="")
+kubectl_get(resource_type="crds")
 ```
 
 ### Pre-deployment Check
 
 ```python
-get_pod_metrics(namespace="production")
+kubectl_top(namespace="production")
 get_nodes_summary()
 compare_namespaces(namespace1="staging", namespace2="prod", resource_type="deployment")
 ```
@@ -119,9 +119,9 @@ compare_namespaces(namespace1="staging", namespace2="prod", resource_type="deplo
 ### Post-incident Analysis
 
 ```python
-get_events(namespace)
-get_logs(name, namespace, previous=True)
-get_pod_metrics(namespace)
+kubectl_get(resource_type="events", namespace)
+kubectl_logs(name, namespace, previous=True)
+kubectl_top(namespace)
 kubectl_describe(name)
 ```
 

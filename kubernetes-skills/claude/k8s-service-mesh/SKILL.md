@@ -24,7 +24,7 @@ Use this skill when:
 
 | Priority | Rule | Impact | Tools |
 |----------|------|--------|-------|
-| 1 | Detect Istio installation first | CRITICAL | `istio_detect` |
+| 1 | Detect Istio installation first | CRITICAL | `detect_ecosystem` |
 | 2 | Run analyze before changes | HIGH | `istio_analyze` |
 | 3 | Check proxy status for sync | HIGH | `istio_proxy_status` |
 | 4 | Verify sidecar injection | MEDIUM | `istio_sidecar_status` |
@@ -33,7 +33,7 @@ Use this skill when:
 
 | Task | Tool | Example |
 |------|------|---------|
-| Detect Istio | `istio_detect` | `istio_detect()` |
+| Detect Istio | `detect_ecosystem` | `detect_ecosystem()` |
 | Analyze config | `istio_analyze` | `istio_analyze(namespace)` |
 | Proxy status | `istio_proxy_status` | `istio_proxy_status()` |
 | List VirtualServices | `istio_virtualservices_list` | `istio_virtualservices_list(namespace)` |
@@ -43,7 +43,7 @@ Use this skill when:
 ### Detect Istio Installation
 
 ```python
-istio_detect()
+detect_ecosystem()
 ```
 
 ### Check Proxy Status

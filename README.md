@@ -106,7 +106,7 @@ Simply ask your AI assistant in natural language:
 - RBAC permission analysis
 - Secret security scanning and pod security policies
 
-**281 tools** | **14 workflow prompts** | **8 resources + 6 resource templates** | **Stateless MCP 2026-07-28** | **Works with all major AI assistants**
+**26 default tools, 209 with every toolset** | **14 workflow prompts** | **8 resources + 6 resource templates** | **Stateless MCP 2026-07-28** | **Works with all major AI assistants**
 
 ## Why kubectl-mcp-server?
 
@@ -116,7 +116,7 @@ Simply ask your AI assistant in natural language:
 - **🔒 Enterprise-ready** - OAuth 2.1 auth with per-tool scopes, read-only mode, Secret redaction, fail-closed network binding
 - **⚡ Zero learning curve** - Natural language instead of memorizing kubectl commands
 - **🌐 Universal compatibility** - Works with Claude, Cursor, Windsurf, Copilot, and 15+ other AI tools
-- **☸️ Production-grade** - Stateless HTTP scales behind any load balancer, Helm chart, 555 passing tests
+- **☸️ Production-grade** - Stateless HTTP scales behind any load balancer, Helm chart, 516 passing tests
 
 From debugging crashed pods to optimizing cluster costs, kubectl-mcp-server is your AI-powered DevOps companion.
 
@@ -207,7 +207,7 @@ kubectl-mcp-server info
 kubectl-mcp-server tools
 
 # Try calling a tool
-kubectl-mcp-server call get_pods '{"namespace": "kube-system"}'
+kubectl-mcp-server call kubectl_get '{"resource_type": "pods", "namespace": "kube-system"}'
 ```
 
 ### 2. Connect to Your AI Assistant
@@ -424,34 +424,50 @@ Add to `~/.config/roo-code/mcp.json` or `~/.config/kilo-code/mcp.json`:
 
 ## Complete Feature Set
 
-### 281 MCP Tools
+### Toolsets
 
-| Category | Count | Tools |
-|----------|-------|-------|
-| **Pods** | 12 | `get_pods`, `get_logs`, `get_pod_events`, `check_pod_health`, `exec_in_pod`, `cleanup_pods`, `run_pod`, `get_pod_conditions`, `get_previous_logs`, `diagnose_pod_crash`, `detect_pending_pods`, `get_evicted_pods` |
-| **Core** | 12 | `get_namespaces`, `get_services`, `get_nodes`, `get_configmaps`, `get_secrets`, `get_events`, `get_resource_usage`, `get_service_accounts`, `get_crds`, `get_resource_quotas`, `get_limit_ranges`, `get_priority_classes` |
-| **Cluster & contexts** | 26 | `list_contexts`, `get_current_context`, `get_context_details`, `kubeconfig_view`, `switch_context`, `set_namespace_for_context`, `get_cluster_info`, `get_cluster_version`, `health_check`, `kubectl_explain`, `get_api_resources`, `get_api_versions`, `get_admission_webhooks`, `check_crd_exists`, `list_crds`, `get_nodes_summary`, `get_server_config_status`, `enable_kubeconfig_watching`, `disable_kubeconfig_watching`, `set_server_stateless_mode`, `node_logs`, `node_stats_summary`, `node_top`, `multi_cluster_query`, `multi_cluster_health`, `multi_cluster_pod_count` |
-| **Workloads** | 10 | `get_deployments`, `create_deployment`, `scale_deployment`, `restart_deployment`, `get_replicasets`, `get_statefulsets`, `get_daemonsets`, `get_jobs`, `get_hpa`, `get_pdb` |
-| **RBAC & security** | 7 | `get_rbac_roles`, `get_cluster_roles`, `analyze_pod_security`, `analyze_network_policies`, `audit_rbac_permissions`, `check_secrets_security`, `get_pod_security_info` |
-| **Networking** | 6 | `get_ingress`, `get_endpoints`, `diagnose_network_connectivity`, `check_dns_resolution`, `trace_service_chain`, `port_forward` |
-| **Storage** | 3 | `get_persistent_volumes`, `get_pvcs`, `get_storage_classes` |
-| **kubectl operations** | 14 | `kubectl_apply`, `kubectl_describe`, `kubectl_generic`, `kubectl_patch`, `kubectl_rollout`, `kubectl_create`, `delete_resource`, `kubectl_cp`, `backup_resource`, `label_resource`, `annotate_resource`, `taint_node`, `wait_for_condition`, `node_management` |
-| **Diagnostics** | 3 | `compare_namespaces`, `get_pod_metrics`, `get_node_metrics` |
-| **Cost** | 8 | `get_resource_recommendations`, `get_idle_resources`, `get_resource_quotas_usage`, `get_cost_analysis`, `get_overprovisioned_resources`, `get_resource_trends`, `get_namespace_cost_allocation`, `optimize_resource_requests` |
-| **Helm** | 35 | `install_helm_chart`, `upgrade_helm_chart`, `uninstall_helm_chart`, `helm_list`, `helm_status`, `helm_history`, `helm_get_values`, `helm_get_manifest`, `helm_get_notes`, `helm_get_hooks`, `helm_get_all`, `helm_show_chart`, `helm_show_values`, `helm_show_readme`, `helm_show_crds`, `helm_show_all`, `helm_search_repo`, `helm_search_hub`, `helm_repo_list`, `helm_repo_add`, `helm_repo_remove`, `helm_repo_update`, `helm_rollback`, `helm_test`, `helm_lint`, `helm_package`, `helm_dependency_update`, `helm_dependency_list`, `helm_dependency_build`, `helm_pull`, `helm_create`, `helm_version`, `helm_env`, `helm_template`, `helm_template_apply` |
-| **GitOps (Flux / Argo CD)** | 7 | `gitops_apps_list`, `gitops_app_get`, `gitops_app_sync`, `gitops_app_status`, `gitops_sources_list`, `gitops_source_get`, `gitops_detect_engine` |
-| **cert-manager** | 9 | `list_certs`, `get_cert`, `list_cert_issuers`, `get_cert_issuer`, `renew_cert`, `explain_cert_status`, `list_cert_challenges`, `list_cert_requests`, `detect_certs` |
-| **Policy (Kyverno / Gatekeeper)** | 6 | `get_policy_list`, `get_policy`, `get_policy_violations`, `explain_policy_denial`, `audit_policies`, `detect_policy_engines` |
-| **Backup (Velero)** | 11 | `list_backups`, `get_backup`, `create_backup`, `delete_backup`, `list_restores`, `create_restore`, `get_restore`, `list_backup_locations`, `list_backup_schedules`, `create_backup_schedule`, `detect_backup` |
-| **KEDA** | 7 | `keda_scaledobjects_list`, `keda_scaledobject_get`, `keda_scaledjobs_list`, `keda_triggerauths_list`, `keda_triggerauth_get`, `keda_hpa_list`, `keda_detect` |
-| **Cilium / Hubble** | 8 | `cilium_list_policies`, `cilium_get_policy`, `cilium_list_endpoints`, `cilium_list_identities`, `cilium_list_nodes`, `cilium_get_status`, `get_hubble_flows`, `detect_cilium` |
-| **Argo Rollouts / Flagger** | 11 | `get_rollouts_list`, `get_rollout`, `get_rollout_status`, `promote_rollout`, `abort_rollout`, `retry_rollout`, `restart_rollout`, `get_analysis_runs`, `get_flagger_canaries`, `get_flagger_canary`, `detect_rollouts` |
-| **Cluster API** | 11 | `capi_list_clusters`, `capi_get_cluster`, `capi_list_machines`, `capi_get_machine`, `capi_list_machinedeployments`, `capi_scale_machinedeployment`, `capi_list_machinesets`, `capi_list_machinehealthchecks`, `capi_list_clusterclasses`, `capi_get_cluster_kubeconfig`, `detect_capi` |
-| **KubeVirt** | 13 | `kubevirt_vms_list`, `kubevirt_vm_get`, `kubevirt_vmis_list`, `kubevirt_vm_start`, `kubevirt_vm_stop`, `kubevirt_vm_restart`, `kubevirt_vm_pause`, `kubevirt_vm_unpause`, `kubevirt_vm_migrate`, `kubevirt_datasources_list`, `kubevirt_instancetypes_list`, `kubevirt_datavolumes_list`, `kubevirt_detect` |
-| **Istio / Kiali** | 10 | `istio_virtualservices_list`, `istio_virtualservice_get`, `istio_destinationrules_list`, `istio_gateways_list`, `istio_peerauthentications_list`, `istio_authorizationpolicies_list`, `istio_proxy_status`, `istio_analyze`, `istio_sidecar_status`, `istio_detect` |
-| **vCluster (vind)** | 14 | `vind_detect`, `vind_list_clusters`, `vind_status`, `vind_get_kubeconfig`, `vind_logs`, `vind_create_cluster`, `vind_delete_cluster`, `vind_pause`, `vind_resume`, `vind_connect`, `vind_disconnect`, `vind_upgrade`, `vind_describe`, `vind_platform_start` |
-| **kind** | 32 | `kind_detect`, `kind_version`, `kind_list_clusters`, `kind_get_nodes`, `kind_get_kubeconfig`, `kind_export_logs`, `kind_cluster_info`, `kind_node_labels`, `kind_create_cluster`, `kind_delete_cluster`, `kind_delete_all_clusters`, `kind_load_image`, `kind_load_image_archive`, `kind_build_node_image`, `kind_set_kubeconfig`, `kind_config_validate`, `kind_config_generate`, `kind_config_show`, `kind_available_images`, `kind_registry_create`, `kind_registry_connect`, `kind_registry_status`, `kind_node_exec`, `kind_node_logs`, `kind_node_inspect`, `kind_node_restart`, `kind_network_inspect`, `kind_port_mappings`, `kind_ingress_setup`, `kind_cluster_status`, `kind_images_list`, `kind_provider_info` |
-| **CRD discovery** | 6 | `discover_crds`, `search_crds`, `list_custom_resources`, `get_custom_resource`, `describe_crd`, `detect_crds` |
+Every tool definition costs context on every request, and models pick tools less reliably as the list grows. The server therefore registers only the **`core` and `helm` toolsets (26 tools) by default**. `kubectl_get`, `kubectl_describe`, `kubectl_logs`, `kubectl_apply` and friends work for every resource kind, including custom resources, so the default set covers most day-to-day work. Everything else is opt-in; tools outside the enabled toolsets are not registered at all, so they cannot be called.
+
+```bash
+kubectl-mcp-server                                    # core + helm
+kubectl-mcp-server --toolsets default,diagnostics,certs
+kubectl-mcp-server --toolsets all                     # all 209 tools
+MCP_TOOLSETS=default,gitops kubectl-mcp-server        # same, via environment
+```
+
+`detect_ecosystem` reports which operators are installed and which toolsets cover them. With many toolsets enabled and a client that cannot search tools itself, add `--tool-search` (`MCP_TOOL_SEARCH=true`): the server then lists only the default tools plus `search_tools` and `call_tool`, and the rest are discovered on demand. Read-only mode, scopes and redaction still apply to every discovered call.
+
+For deep work in one ecosystem, its project-maintained MCP server is usually a better fit than the opt-in toolset:
+
+| Ecosystem | MCP server |
+|-----------|------------|
+| Argo CD | [argoproj-labs/mcp-for-argocd](https://github.com/argoproj-labs/mcp-for-argocd) |
+| Flux | [Flux Operator MCP server](https://fluxoperator.dev/mcp-server/) |
+| Kyverno | [nirmata/kyverno-mcp](https://github.com/nirmata/kyverno-mcp) |
+
+| Toolset | Default | Tools | Covers | Names |
+|---------|---------|-------|--------|-------|
+| `core` | yes | 18 | Generic kubectl operations for every resource kind, including CRDs | `kubectl_get`, `kubectl_describe`, `kubectl_logs`, `kubectl_top`, `kubectl_explain`, `get_api_resources`, `kubectl_generic`, `kubectl_apply`, `kubectl_patch`, `delete_resource`, `kubectl_scale`, `kubectl_rollout`, `exec_in_pod`, `list_contexts`, `health_check`, `diagnose_pod_crash`, `detect_pending_pods`, `detect_ecosystem` |
+| `helm` | yes | 8 | Helm release lifecycle | `helm_list`, `helm_status`, `helm_get`, `helm_history`, `install_helm_chart`, `upgrade_helm_chart`, `uninstall_helm_chart`, `helm_rollback` |
+| `helm_dev` |  | 16 | Helm charts and repositories: search, show, template, lint, package, dependencies | `helm_show`, `helm_search_repo`, `helm_search_hub`, `helm_repo_list`, `helm_repo_add`, `helm_repo_remove`, `helm_repo_update`, `helm_test`, `helm_lint`, `helm_package`, `helm_dependency_update`, `helm_dependency_list`, `helm_dependency_build`, `helm_pull`, `helm_create`, `helm_template` |
+| `ops` |  | 10 | Maintenance: create, label, annotate, taint, cordon/drain, copy files, wait, cleanup | `kubectl_create`, `kubectl_cp`, `backup_resource`, `label_resource`, `annotate_resource`, `taint_node`, `wait_for_condition`, `node_management`, `cleanup_pods`, `run_pod` |
+| `diagnostics` |  | 9 | Network, DNS, node and pod health diagnostics | `check_pod_health`, `get_evicted_pods`, `diagnose_network_connectivity`, `check_dns_resolution`, `trace_service_chain`, `compare_namespaces`, `get_nodes_summary`, `node_logs`, `node_stats_summary` |
+| `security` |  | 5 | RBAC, pod security and secret hygiene audits | `analyze_pod_security`, `analyze_network_policies`, `audit_rbac_permissions`, `check_secrets_security`, `get_pod_security_info` |
+| `cost` |  | 8 | Resource right-sizing and cost allocation | `get_resource_recommendations`, `get_idle_resources`, `get_resource_quotas_usage`, `get_cost_analysis`, `get_overprovisioned_resources`, `get_resource_trends`, `get_namespace_cost_allocation`, `optimize_resource_requests` |
+| `multicluster` |  | 7 | Kubeconfig contexts and cross-cluster queries | `get_context_details`, `kubeconfig_view`, `switch_context`, `set_namespace_for_context`, `multi_cluster_query`, `multi_cluster_health`, `multi_cluster_pod_count` |
+| `crds` |  | 5 | CRD discovery and custom resource inspection | `discover_crds`, `search_crds`, `list_custom_resources`, `get_custom_resource`, `describe_crd` |
+| `gitops` |  | 6 | Flux and Argo CD | `gitops_apps_list`, `gitops_app_get`, `gitops_app_sync`, `gitops_app_status`, `gitops_sources_list`, `gitops_source_get` |
+| `certs` |  | 8 | cert-manager certificates and issuers | `list_certs`, `get_cert`, `list_cert_issuers`, `get_cert_issuer`, `renew_cert`, `explain_cert_status`, `list_cert_challenges`, `list_cert_requests` |
+| `policy` |  | 5 | Kyverno and Gatekeeper policies | `get_policy_list`, `get_policy`, `get_policy_violations`, `explain_policy_denial`, `audit_policies` |
+| `backup` |  | 10 | Velero backups and restores | `list_backups`, `get_backup`, `create_backup`, `delete_backup`, `list_restores`, `create_restore`, `get_restore`, `list_backup_locations`, `list_backup_schedules`, `create_backup_schedule` |
+| `keda` |  | 6 | KEDA event-driven autoscaling | `keda_scaledobjects_list`, `keda_scaledobject_get`, `keda_scaledjobs_list`, `keda_triggerauths_list`, `keda_triggerauth_get`, `keda_hpa_list` |
+| `cilium` |  | 7 | Cilium network policies and Hubble flows | `cilium_list_policies`, `cilium_get_policy`, `cilium_list_endpoints`, `cilium_list_identities`, `cilium_list_nodes`, `cilium_get_status`, `get_hubble_flows` |
+| `rollouts` |  | 10 | Argo Rollouts and Flagger progressive delivery | `get_rollouts_list`, `get_rollout`, `get_rollout_status`, `promote_rollout`, `abort_rollout`, `retry_rollout`, `restart_rollout`, `get_analysis_runs`, `get_flagger_canaries`, `get_flagger_canary` |
+| `capi` |  | 10 | Cluster API lifecycle | `capi_list_clusters`, `capi_get_cluster`, `capi_list_machines`, `capi_get_machine`, `capi_list_machinedeployments`, `capi_scale_machinedeployment`, `capi_list_machinesets`, `capi_list_machinehealthchecks`, `capi_list_clusterclasses`, `capi_get_cluster_kubeconfig` |
+| `kubevirt` |  | 12 | KubeVirt virtual machines | `kubevirt_vms_list`, `kubevirt_vm_get`, `kubevirt_vmis_list`, `kubevirt_vm_start`, `kubevirt_vm_stop`, `kubevirt_vm_restart`, `kubevirt_vm_pause`, `kubevirt_vm_unpause`, `kubevirt_vm_migrate`, `kubevirt_datasources_list`, `kubevirt_instancetypes_list`, `kubevirt_datavolumes_list` |
+| `istio` |  | 9 | Istio service mesh | `istio_virtualservices_list`, `istio_virtualservice_get`, `istio_destinationrules_list`, `istio_gateways_list`, `istio_peerauthentications_list`, `istio_authorizationpolicies_list`, `istio_proxy_status`, `istio_analyze`, `istio_sidecar_status` |
+| `kind` |  | 29 | kind local clusters (runs docker on the server host) | `kind_list_clusters`, `kind_get_nodes`, `kind_get_kubeconfig`, `kind_export_logs`, `kind_cluster_info`, `kind_node_labels`, `kind_create_cluster`, `kind_delete_cluster`, `kind_load_image`, `kind_load_image_archive`, `kind_build_node_image`, `kind_set_kubeconfig`, `kind_config_validate`, `kind_config_generate`, `kind_config_show`, `kind_available_images`, `kind_registry_create`, `kind_registry_connect`, `kind_registry_status`, `kind_node_exec`, `kind_node_logs`, `kind_node_inspect`, `kind_node_restart`, `kind_network_inspect`, `kind_port_mappings`, `kind_ingress_setup`, `kind_cluster_status`, `kind_images_list`, `kind_provider_info` |
+| `vind` |  | 11 | vCluster virtual clusters (runs vcluster on the server host) | `vind_list_clusters`, `vind_status`, `vind_get_kubeconfig`, `vind_create_cluster`, `vind_delete_cluster`, `vind_pause`, `vind_resume`, `vind_connect`, `vind_disconnect`, `vind_upgrade`, `vind_describe` |
 
 ### MCP Resources
 
@@ -499,10 +515,10 @@ Add your own prompts in `~/.config/kubectl-mcp/prompts.toml`; same-named prompts
 
 ### Key Capabilities
 
-- 🤖 **281 Tools** - Complete Kubernetes management from pods to security
+- 🤖 **26 default tools, 209 opt-in** - Generic kubectl and Helm by default, ecosystem toolsets on demand
 - 🎯 **14 Workflow Prompts** - Pre-built workflows for common operations
 - 📊 **8 Resources + 6 Templates** - Browsable Kubernetes data exposure
-- 🔄 **107 Ecosystem Tools** - GitOps, Cert-Manager, Policy, Backup, KEDA, Cilium, Rollouts, CAPI, KubeVirt, Istio, vCluster
+- 🔄 **Opt-in ecosystem toolsets** - GitOps, cert-manager, policy, Velero, KEDA, Cilium, Rollouts, CAPI, KubeVirt, Istio, kind, vCluster
 - ⚡ **Stateless MCP 2026-07-28** - stdio and Streamable HTTP, older clients negotiated automatically
 - 🔐 **Security First** - Read-only mode, per-call confirmation, Secret redaction, flag-injection guard
 - 🏥 **Advanced Diagnostics** - AI-powered troubleshooting and cost optimization
@@ -523,13 +539,13 @@ kubectl-mcp-server tools -d
 kubectl-mcp-server grep "*pod*"
 
 # Show specific tool schema
-kubectl-mcp-server tools get_pods
+kubectl-mcp-server tools kubectl_get
 
 # Call a tool directly
-kubectl-mcp-server call get_pods '{"namespace": "kube-system"}'
+kubectl-mcp-server call kubectl_get '{"resource_type": "pods", "namespace": "kube-system"}'
 
 # Pipe JSON from stdin
-echo '{"namespace": "default"}' | kubectl-mcp-server call get_pods
+echo '{"resource_type": "pods"}' | kubectl-mcp-server call kubectl_get
 
 # Check dependencies
 kubectl-mcp-server doctor
@@ -576,6 +592,8 @@ kubectl-mcp-server --transport sse --port 8000
 | `--host` | `MCP_SERVER_HOST` | `127.0.0.1` | Bind address for network transports |
 | `--port` | `MCP_SERVER_PORT` | `8000` | Port for network transports |
 | `--allow-unauthenticated` | `MCP_ALLOW_UNAUTHENTICATED` | off | Permit a non-loopback bind without OAuth |
+| `--toolsets` | `MCP_TOOLSETS` | `default` | Toolsets to register (`default`, `all`, or names; see [Toolsets](#toolsets)) |
+| `--tool-search` | `MCP_TOOL_SEARCH` | off | List default tools plus `search_tools`/`call_tool`; discover the rest on demand |
 | `--read-only` | `MCP_SAFETY_MODE=read-only` | off | Hide and block every tool that changes state |
 | `--disable-destructive` | `MCP_SAFETY_MODE=disable-destructive` | off | Allow create/update, block deletes |
 | `--confirm-destructive` | `MCP_SAFETY_MODE=confirm` | off | Ask the user before each destructive call |
@@ -705,7 +723,7 @@ EOF
 agentgateway --config gateway.yaml
 ```
 
-Connect clients to `http://localhost:3000/mcp` for unified access to all 281 tools.
+Connect clients to `http://localhost:3000/mcp`.
 
 ## In-Cluster Deployment
 
@@ -764,7 +782,7 @@ kubectl apply -f deploy/kagent/toolserver-stdio.yaml
 kagent dashboard
 ```
 
-Your AI agents now have access to all 281 Kubernetes tools. See [kagent quickstart](https://kagent.dev/docs/kagent/getting-started/quickstart).
+Your AI agents can now use the server's enabled toolsets. See [kagent quickstart](https://kagent.dev/docs/kagent/getting-started/quickstart).
 
 ## Architecture
 
@@ -783,14 +801,13 @@ The MCP server implements the [Model Context Protocol](https://github.com/modelc
 kubectl_mcp_tool/
 ├── mcp_server.py          # Main server (FastMCP, transports)
 ├── middleware.py          # Safety mode, flag-injection guard, scopes, redaction, metrics
-├── tools/                  # 281 MCP tools organized by category
-│   ├── pods.py            # Pod management & diagnostics
-│   ├── deployments.py     # Deployments, StatefulSets, DaemonSets
-│   ├── core.py            # Namespaces, ConfigMaps, Secrets
+├── toolsets.py            # Toolset registry, server instructions
+├── tools/                  # MCP tools, grouped into toolsets
+│   ├── kubectl.py         # Generic get/logs/top/scale for every kind, detect_ecosystem
+│   ├── pods.py            # Pod exec & diagnostics
 │   ├── cluster.py         # Context/cluster management
-│   ├── networking.py      # Services, Ingress, NetworkPolicies
-│   ├── storage.py         # PVCs, StorageClasses, PVs
-│   ├── security.py        # RBAC, ServiceAccounts, PodSecurity
+│   ├── networking.py      # Network and DNS diagnostics
+│   ├── security.py        # RBAC, pod security, secret hygiene audits
 │   ├── helm.py            # Complete Helm v3 operations
 │   ├── operations.py      # kubectl apply/patch/describe/etc
 │   ├── diagnostics.py     # Metrics, namespace comparison
@@ -879,10 +896,10 @@ Note: vCluster (vind) and kind tools run via their local CLIs and do not accept 
 **Direct tool calls with context:**
 ```bash
 # Target a specific cluster context
-kubectl-mcp-server call get_pods '{"namespace": "default", "context": "production"}'
+kubectl-mcp-server call kubectl_get '{"resource_type": "pods", "namespace": "default", "context": "production"}'
 
 # Get deployments from staging
-kubectl-mcp-server call get_deployments '{"namespace": "app", "context": "staging"}'
+kubectl-mcp-server call kubectl_get '{"resource_type": "deployments", "namespace": "app", "context": "staging"}'
 
 # Install Helm chart to production cluster
 kubectl-mcp-server call install_helm_chart '{"name": "redis", "chart": "bitnami/redis", "namespace": "cache", "context": "production"}'

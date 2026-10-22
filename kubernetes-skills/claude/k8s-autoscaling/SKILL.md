@@ -24,7 +24,7 @@ Use this skill when:
 
 | Priority | Rule | Impact | Tools |
 |----------|------|--------|-------|
-| 1 | Verify metrics-server for HPA | CRITICAL | `get_pod_metrics` |
+| 1 | Verify metrics-server for HPA | CRITICAL | `kubectl_top` |
 | 2 | Set resource requests before HPA | CRITICAL | `kubectl_describe` |
 | 3 | Use KEDA for scale-to-zero | HIGH | `keda_scaledobjects_list` |
 | 4 | Check VPA recommendations | MEDIUM | `get_resource_recommendations` |
@@ -36,7 +36,7 @@ Use this skill when:
 | List KEDA ScaledObjects | `keda_scaledobjects_list` | `keda_scaledobjects_list(namespace)` |
 | Get ScaledObject | `keda_scaledobject_get` | `keda_scaledobject_get(name, namespace)` |
 | List ScaledJobs | `keda_scaledjobs_list` | `keda_scaledjobs_list(namespace)` |
-| Check KEDA | `keda_detect` | `keda_detect()` |
+| Check KEDA | `detect_ecosystem` | `detect_ecosystem()` |
 
 ## HPA (Horizontal Pod Autoscaler)
 
@@ -67,7 +67,7 @@ Apply and verify:
 
 ```python
 kubectl_apply(hpa_yaml, namespace)
-get_hpa(namespace)
+kubectl_get(resource_type="hpa", namespace)
 ```
 
 ## VPA (Vertical Pod Autoscaler)
@@ -93,7 +93,7 @@ spec:
 ### Detect KEDA Installation
 
 ```python
-keda_detect()
+detect_ecosystem()
 ```
 
 ### List ScaledObjects
@@ -202,8 +202,8 @@ get_resource_recommendations(namespace)
 ### HPA Not Scaling
 
 ```python
-get_hpa(namespace)
-get_pod_metrics(name, namespace)
+kubectl_get(resource_type="hpa", namespace)
+kubectl_top(name, namespace)
 kubectl_describe(name, namespace)
 ```
 
@@ -211,7 +211,7 @@ kubectl_describe(name, namespace)
 
 ```python
 keda_scaledobject_get(name, namespace)
-get_events(namespace)
+kubectl_get(resource_type="events", namespace)
 ```
 
 ### Common Issues

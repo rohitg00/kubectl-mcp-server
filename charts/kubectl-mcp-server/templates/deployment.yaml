@@ -53,6 +53,12 @@ spec:
               value: "0.0.0.0"
             - name: MCP_K8S_PROVIDER
               value: in-cluster
+            - name: MCP_TOOLSETS
+              value: {{ .Values.mcp.toolsets | default "default" | quote }}
+            {{- if .Values.mcp.toolSearch }}
+            - name: MCP_TOOL_SEARCH
+              value: "true"
+            {{- end }}
             {{- if .Values.mcp.allowUnauthenticated }}
             - name: MCP_ALLOW_UNAUTHENTICATED
               value: "true"

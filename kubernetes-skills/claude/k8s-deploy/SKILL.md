@@ -26,11 +26,11 @@ Use this skill when:
 | Priority | Rule | Impact | Tools |
 |----------|------|--------|-------|
 | 1 | Preview with template before apply | CRITICAL | `helm_template` |
-| 2 | Check existing state first | CRITICAL | `get_pods`, `helm_list` |
+| 2 | Check existing state first | CRITICAL | `kubectl_get`, `helm_list` |
 | 3 | Use progressive delivery for prod | HIGH | `rollout_*` tools |
-| 4 | Verify health after deployment | HIGH | `get_pod_metrics`, `get_endpoints` |
+| 4 | Verify health after deployment | HIGH | `kubectl_top`, `kubectl_get` |
 | 5 | Keep rollback revision noted | MEDIUM | `helm_history` |
-| 6 | Scale incrementally | LOW | `scale_deployment` |
+| 6 | Scale incrementally | LOW | `kubectl_scale` |
 
 ## Quick Reference
 
@@ -39,7 +39,7 @@ Use this skill when:
 | Deploy from manifest | `kubectl_apply` | `kubectl_apply(yaml, namespace)` |
 | Deploy with Helm | `install_helm_chart` | `install_helm_chart(name, chart, namespace)` |
 | Update image | `kubectl_patch` | `kubectl_patch(name, ns, container, image)` |
-| Scale replicas | `scale_deployment` | `scale_deployment(name, ns, replicas=5)` |
+| Scale replicas | `kubectl_scale` | `kubectl_scale(resource_type="deployment", name, ns, replicas=5)` |
 | Rollback | `kubectl_rollout` | `kubectl_rollout(name, ns, revision=0)` |
 | Canary promote | `promote_rollout` | `promote_rollout(name, ns)` |
 
@@ -65,7 +65,7 @@ install_helm_chart(
 ### Scale Deployment
 
 ```python
-scale_deployment(name, namespace, replicas=5)
+kubectl_scale(resource_type="deployment", name, namespace, replicas=5)
 ```
 
 ### Rolling Update
@@ -153,11 +153,11 @@ abort_rollout(name, namespace)
 After deployment, verify health:
 
 ```python
-get_pods(namespace, label_selector="app=myapp")
+kubectl_get(resource_type="pods", namespace, label_selector="app=myapp")
 
-get_pod_metrics(name, namespace)
+kubectl_top(name, namespace)
 
-get_endpoints(namespace)
+kubectl_get(resource_type="endpoints", namespace)
 ```
 
 ## Multi-Cluster Deployments

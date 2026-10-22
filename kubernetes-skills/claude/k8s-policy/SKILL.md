@@ -24,7 +24,7 @@ Use this skill when:
 
 | Priority | Rule | Impact | Tools |
 |----------|------|--------|-------|
-| 1 | Detect policy engine first | CRITICAL | `detect_policy_engines`, `detect_policy_engines` |
+| 1 | Detect policy engine first | CRITICAL | `detect_ecosystem`, `detect_ecosystem` |
 | 2 | Use Audit mode before Enforce | HIGH | validationFailureAction |
 | 3 | Check policy reports for violations | HIGH | `get_policy_violations` |
 | 4 | Review constraint templates | MEDIUM | `get_policy_list` |
@@ -43,7 +43,7 @@ Use this skill when:
 ### Detect Installation
 
 ```python
-detect_policy_engines()
+detect_ecosystem()
 ```
 
 ### List Policies
@@ -123,7 +123,7 @@ spec:
 ### Detect Installation
 
 ```python
-detect_policy_engines()
+detect_ecosystem()
 ```
 
 ### List Constraints
@@ -197,7 +197,7 @@ spec:
 ## Policy Audit Workflow
 
 ```python
-detect_policy_engines()
+detect_ecosystem()
 get_policy_list()
 get_policy_violations()
 ```

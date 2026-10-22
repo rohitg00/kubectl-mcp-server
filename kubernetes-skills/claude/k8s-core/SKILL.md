@@ -24,32 +24,32 @@ Use this skill when:
 
 | Priority | Rule | Impact | Tools |
 |----------|------|--------|-------|
-| 1 | Check namespace exists before operations | CRITICAL | `get_namespaces` |
-| 2 | Never expose secrets in plain text | CRITICAL | Handle `get_secrets` output carefully |
+| 1 | Check namespace exists before operations | CRITICAL | `kubectl_get` |
+| 2 | Never expose secrets in plain text | CRITICAL | Handle `kubectl_get` output carefully |
 | 3 | Use labels for filtering | HIGH | `label_selector` parameter |
-| 4 | Check events after changes | MEDIUM | `get_events` |
+| 4 | Check events after changes | MEDIUM | `kubectl_get` |
 
 ## Quick Reference
 
 | Task | Tool | Example |
 |------|------|---------|
-| List pods | `get_pods` | `get_pods(namespace="default")` |
+| List pods | `kubectl_get` | `kubectl_get(resource_type="pods", namespace="default")` |
 | Describe pod | `kubectl_describe` | `kubectl_describe(name, namespace)` |
-| Get logs | `get_logs` | `get_logs(name, namespace)` |
-| List namespaces | `get_namespaces` | `get_namespaces()` |
-| Get configmap | `get_configmaps` | `get_configmaps(name, namespace)` |
-| List nodes | `get_nodes` | `get_nodes()` |
+| Get logs | `kubectl_logs` | `kubectl_logs(name, namespace)` |
+| List namespaces | `kubectl_get` | `kubectl_get(resource_type="namespaces")` |
+| Get configmap | `kubectl_get` | `kubectl_get(resource_type="configmaps", name, namespace)` |
+| List nodes | `kubectl_get` | `kubectl_get(resource_type="nodes")` |
 
 ## Pods
 
 ```python
-get_pods(namespace="default")
-get_pods(namespace="kube-system", label_selector="app=nginx")
+kubectl_get(resource_type="pods", namespace="default")
+kubectl_get(resource_type="pods", namespace="kube-system", label_selector="app=nginx")
 
 kubectl_describe(name="my-pod", namespace="default")
 
-get_logs(name="my-pod", namespace="default")
-get_logs(name="my-pod", namespace="default", previous=True)
+kubectl_logs(name="my-pod", namespace="default")
+kubectl_logs(name="my-pod", namespace="default", previous=True)
 
 delete_pod(name="my-pod", namespace="default")
 ```
@@ -57,7 +57,7 @@ delete_pod(name="my-pod", namespace="default")
 ## Namespaces
 
 ```python
-get_namespaces()
+kubectl_get(resource_type="namespaces")
 
 create_namespace(name="my-namespace")
 
@@ -67,9 +67,9 @@ delete_namespace(name="my-namespace")
 ## ConfigMaps
 
 ```python
-get_configmaps(namespace="default")
+kubectl_get(resource_type="configmaps", namespace="default")
 
-get_configmaps(name="my-config", namespace="default")
+kubectl_get(resource_type="configmaps", name="my-config", namespace="default")
 
 create_configmap(
     name="app-config",
@@ -81,9 +81,9 @@ create_configmap(
 ## Secrets
 
 ```python
-get_secrets(namespace="default")
+kubectl_get(resource_type="secrets", namespace="default")
 
-get_secrets(name="my-secret", namespace="default")
+kubectl_get(resource_type="secrets", name="my-secret", namespace="default")
 
 create_secret(
     name="db-credentials",
@@ -95,7 +95,7 @@ create_secret(
 ## Nodes
 
 ```python
-get_nodes()
+kubectl_get(resource_type="nodes")
 
 kubectl_describe(name="node-1")
 
@@ -110,9 +110,9 @@ drain_node(name="node-1", ignore_daemonsets=True)
 ## Events
 
 ```python
-get_events(namespace="default")
+kubectl_get(resource_type="events", namespace="default")
 
-get_events(namespace="default", field_selector="involvedObject.name=my-pod")
+kubectl_get(resource_type="events", namespace="default", field_selector="involvedObject.name=my-pod")
 ```
 
 ## Multi-Cluster Support
@@ -120,8 +120,8 @@ get_events(namespace="default", field_selector="involvedObject.name=my-pod")
 All tools support `context` parameter:
 
 ```python
-get_pods(namespace="default", context="production-cluster")
-get_nodes(context="staging-cluster")
+kubectl_get(resource_type="pods", namespace="default", context="production-cluster")
+kubectl_get(resource_type="nodes", context="staging-cluster")
 ```
 
 ## Related Skills

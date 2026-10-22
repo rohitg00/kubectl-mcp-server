@@ -24,7 +24,7 @@ Use this skill when:
 
 | Priority | Rule | Impact | Tools |
 |----------|------|--------|-------|
-| 1 | Detect cert-manager first | CRITICAL | `detect_certs` |
+| 1 | Detect cert-manager first | CRITICAL | `detect_ecosystem` |
 | 2 | Use staging issuer for testing | HIGH | Test with letsencrypt-staging |
 | 3 | Check issuer before cert | HIGH | `list_cert_issuers` |
 | 4 | Monitor certificate expiry | MEDIUM | `get_cert` |
@@ -33,7 +33,7 @@ Use this skill when:
 
 | Task | Tool | Example |
 |------|------|---------|
-| Detect cert-manager | `detect_certs` | `detect_certs()` |
+| Detect cert-manager | `detect_ecosystem` | `detect_ecosystem()` |
 | List certificates | `list_certs` | `list_certs(namespace)` |
 | Get certificate | `get_cert` | `get_cert(name, namespace)` |
 | List issuers | `list_cert_issuers` | `list_cert_issuers()` |
@@ -41,7 +41,7 @@ Use this skill when:
 ## Check Installation
 
 ```python
-detect_certs()
+detect_ecosystem()
 ```
 
 ## Certificates
@@ -167,14 +167,14 @@ list_cert_requests(
 ```python
 get_cert(name, namespace)
 list_cert_requests(namespace)
-get_events(namespace)
+kubectl_get(resource_type="events", namespace)
 ```
 
 ### Issuer Not Ready
 
 ```python
 get_cert_issuer(name)
-get_events(namespace="cert-manager")
+kubectl_get(resource_type="events", namespace="cert-manager")
 ```
 
 ## Ingress Integration

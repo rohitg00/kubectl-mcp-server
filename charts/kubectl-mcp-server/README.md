@@ -31,6 +31,8 @@ helm install kubectl-mcp ./charts/kubectl-mcp-server \
 |-----------|-------------|---------|
 | `mcp.transport` | `http` (stateless Streamable HTTP) or `sse` (deprecated) | `http` |
 | `mcp.port` | Container port | `8000` |
+| `mcp.toolsets` | Toolsets to register: `default` (core + helm, 26 tools), `all`, or a list such as `default,diagnostics,gitops`. Tools outside them are not registered | `default` |
+| `mcp.toolSearch` | List only default tools plus `search_tools`/`call_tool`; other enabled tools are discovered on demand | `false` |
 | `mcp.allowUnauthenticated` | Serve without OAuth | `false` |
 | `mcp.requestStateKeySecret` | Secret with key `request-state-key` (>= 32 bytes) shared by replicas; needed for `safety.mode=confirm` with more than one replica | `""` |
 | `mcp.debug` | Debug logging | `false` |
@@ -85,6 +87,14 @@ helm install kubectl-mcp ./charts/kubectl-mcp-server \
   --set auth.enabled=true --set auth.issuer=https://idp.example.com \
   --set safety.mode=confirm \
   --set replicaCount=3 --set mcp.requestStateKeySecret=kubectl-mcp-rsk
+```
+
+Extra toolsets (escape commas with `--set-string`, or use a values file):
+
+```bash
+helm install kubectl-mcp ./charts/kubectl-mcp-server \
+  --set mcp.allowUnauthenticated=true \
+  --set-string mcp.toolsets='default\,diagnostics\,certs'
 ```
 
 ## Connecting

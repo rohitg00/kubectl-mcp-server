@@ -24,7 +24,7 @@ Use this skill when:
 
 | Priority | Rule | Impact | Tools |
 |----------|------|--------|-------|
-| 1 | Check cluster-admin bindings first | CRITICAL | `get_cluster_roles` |
+| 1 | Check cluster-admin bindings first | CRITICAL | `kubectl_get` |
 | 2 | Audit secrets access permissions | CRITICAL | Review role rules |
 | 3 | Verify network isolation | HIGH | `analyze_network_policies` |
 | 4 | Check policy compliance | HIGH | `kyverno_*`, `gatekeeper_*` |
@@ -34,10 +34,10 @@ Use this skill when:
 
 | Task | Tool | Example |
 |------|------|---------|
-| List roles | `get_rbac_roles` | `get_rbac_roles(namespace)` |
-| Cluster roles | `get_cluster_roles` | `get_cluster_roles()` |
-| Role bindings | `get_rbac_roles` | `get_rbac_roles(namespace)` |
-| Service accounts | `get_service_accounts` | `get_service_accounts(namespace)` |
+| List roles | `kubectl_get` | `kubectl_get(resource_type="roles", namespace)` |
+| Cluster roles | `kubectl_get` | `kubectl_get(resource_type="clusterroles")` |
+| Role bindings | `kubectl_get` | `kubectl_get(resource_type="roles", namespace)` |
+| Service accounts | `kubectl_get` | `kubectl_get(resource_type="serviceaccounts", namespace)` |
 | Kyverno policies | `get_policy_list` | `get_policy_list()` |
 
 ## RBAC Auditing
@@ -45,23 +45,23 @@ Use this skill when:
 ### List Roles and Bindings
 
 ```python
-get_rbac_roles(namespace)
-get_cluster_roles()
-get_rbac_roles(namespace)
-get_cluster_roles()
+kubectl_get(resource_type="roles", namespace)
+kubectl_get(resource_type="clusterroles")
+kubectl_get(resource_type="roles", namespace)
+kubectl_get(resource_type="clusterroles")
 ```
 
 ### Check Service Account Permissions
 
 ```python
-get_service_accounts(namespace)
+kubectl_get(resource_type="serviceaccounts", namespace)
 ```
 
 ### Common RBAC Patterns
 
 | Pattern | Risk Level | Check |
 |---------|-----------|-------|
-| cluster-admin binding | Critical | `get_cluster_roles()` |
+| cluster-admin binding | Critical | `kubectl_get(resource_type="clusterroles")` |
 | Wildcard verbs (*) | High | Review role rules |
 | secrets access | High | Check get/list on secrets |
 | pod/exec | High | Allows container access |
@@ -101,7 +101,7 @@ get_policy_list()
 ### List Secrets
 
 ```python
-get_secrets(namespace)
+kubectl_get(resource_type="secrets", namespace)
 ```
 
 ### Secret Best Practices
@@ -144,8 +144,8 @@ spec:
 
 1. **RBAC Audit**
    ```python
-   get_cluster_roles()
-   get_rbac_roles(namespace)
+   kubectl_get(resource_type="clusterroles")
+   kubectl_get(resource_type="roles", namespace)
    ```
 
 2. **Policy Compliance**
@@ -162,7 +162,7 @@ spec:
 
 4. **Pod Security**
    ```python
-   get_pods(namespace)
+   kubectl_get(resource_type="pods", namespace)
    kubectl_describe(name, namespace)
    ```
 
@@ -171,8 +171,8 @@ spec:
 Audit across clusters:
 
 ```python
-get_cluster_roles(context="production")
-get_cluster_roles(context="staging")
+kubectl_get(resource_type="clusterroles", context="production")
+kubectl_get(resource_type="clusterroles", context="staging")
 ```
 
 ## Automated Audit Script
@@ -181,7 +181,7 @@ For comprehensive security audit, see [scripts/audit-rbac.py](scripts/audit-rbac
 
 ## Related Tools
 
-- RBAC: `get_rbac_roles`, `get_cluster_roles`, `get_rbac_roles`
+- RBAC: `kubectl_get`, `kubectl_get`, `kubectl_get`
 - Policy: `kyverno_*`, `gatekeeper_*`
 - Network: `analyze_network_policies`, `cilium_policies_*`
 - Istio: `istio_authorizationpolicies_list`, `istio_peerauthentications_list`

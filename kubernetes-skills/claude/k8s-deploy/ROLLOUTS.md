@@ -126,7 +126,7 @@ promote_rollout(name, namespace, full=True)
 ```
 get_rollout_status(name, namespace)
 get_analysis_runs(namespace)
-get_events(namespace)
+kubectl_get(resource_type="events", namespace)
 ```
 
 ### Analysis Failing

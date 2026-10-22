@@ -26,9 +26,9 @@ install_helm_chart(name, chart, namespace, values)
 
 **Diagnosis:**
 ```python
-get_pods(namespace, label_selector="app.kubernetes.io/instance=<release>")
+kubectl_get(resource_type="pods", namespace, label_selector="app.kubernetes.io/instance=<release>")
 kubectl_describe(name, namespace)
-get_events(namespace)
+kubectl_get(resource_type="events", namespace)
 ```
 
 **Common Causes:**
@@ -50,7 +50,7 @@ upgrade_helm_chart(name, chart, namespace, values)
 **Diagnosis:**
 ```python
 # Check if resource exists
-get_deployments(namespace)  # or other resource type
+kubectl_get(resource_type="deployments", namespace)  # or other resource type
 ```
 
 **Resolution:**
@@ -95,7 +95,7 @@ helm_rollback(name, namespace, revision=<last-good>)
 
 **Diagnosis:**
 ```python
-helm_get_values(name, namespace)
+helm_get(name, namespace)
 helm_history(name, namespace)
 ```
 
@@ -123,7 +123,7 @@ helm_lint(chart)
 
 **Diagnosis:**
 ```python
-helm_get_values(name, namespace)
+helm_get(name, namespace)
 helm_template(name, chart, namespace, values)
 ```
 
@@ -154,7 +154,7 @@ get_helm_release(name, namespace)
 helm_history(name, namespace)
 
 # Current values
-helm_get_values(name, namespace)
+helm_get(name, namespace)
 
 # Rendered manifests
 get_helm_manifest(name, namespace)

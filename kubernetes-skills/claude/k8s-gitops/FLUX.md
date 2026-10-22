@@ -140,7 +140,7 @@ gitops_sources_list(namespace="flux-system")
 
 ```
 gitops_apps_list(namespace="flux-system")
-get_events(namespace="flux-system")
+kubectl_get(resource_type="events", namespace="flux-system")
 # Check:
 # - Path exists in repo
 # - Kustomization.yaml valid
@@ -151,7 +151,7 @@ get_events(namespace="flux-system")
 
 ```
 gitops_apps_list(namespace)
-get_events(namespace)
+kubectl_get(resource_type="events", namespace)
 # Check:
 # - Chart exists in repo
 # - Version exists

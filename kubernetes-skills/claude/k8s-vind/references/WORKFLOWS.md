@@ -158,13 +158,13 @@ vind_delete_cluster(name="old-prod")
 ### Cluster Not Starting
 
 ```python
-vind_detect()
+detect_ecosystem()
 
-vind_logs(name="my-cluster", tail=200)
+vind_status(name="my-cluster", tail=200)
 
 vind_status(name="my-cluster")
 
-get_events(namespace="my-cluster-vcluster")
+kubectl_get(resource_type="events", namespace="my-cluster-vcluster")
 ```
 
 ### Connection Issues
@@ -217,9 +217,9 @@ vind_create_cluster(
 ### Start UI for Management
 
 ```python
-vind_platform_start()
+vind_status()
 
-vind_platform_start(host="0.0.0.0", port=9898)
+vind_status(host="0.0.0.0", port=9898)
 ```
 
 ## Comparison: vCluster vs Host Resources

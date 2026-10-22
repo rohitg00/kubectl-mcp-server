@@ -61,9 +61,9 @@ CLI: `kubectl-mcp-server context <context-name>`
 All kubectl-mcp-server tools support the `context` parameter:
 
 ```python
-get_pods(namespace="default", context="production-cluster")
+kubectl_get(resource_type="pods", namespace="default", context="production-cluster")
 
-get_pods(namespace="default", context="staging-cluster")
+kubectl_get(resource_type="pods", namespace="default", context="staging-cluster")
 ```
 
 ## Common Multi-Cluster Patterns
@@ -84,18 +84,18 @@ compare_namespaces(
 Query multiple clusters simultaneously:
 
 ```python
-get_pods(namespace="app", context="prod-us-east")
-get_pods(namespace="app", context="prod-eu-west")
+kubectl_get(resource_type="pods", namespace="app", context="prod-us-east")
+kubectl_get(resource_type="pods", namespace="app", context="prod-eu-west")
 
-get_pods(namespace="app", context="development")
+kubectl_get(resource_type="pods", namespace="app", context="development")
 ```
 
 ### Cross-Cluster Health Check
 
 ```python
 for context in ["prod-1", "prod-2", "staging"]:
-    get_nodes(context=context)
-    get_pods(namespace="kube-system", context=context)
+    kubectl_get(resource_type="nodes", context=context)
+    kubectl_get(resource_type="pods", namespace="kube-system", context=context)
 ```
 
 ## Cluster API (CAPI) Management
@@ -186,7 +186,7 @@ gitops_apps_list(namespace="argocd", context="management-cluster")
 ### Secret Synchronization
 
 ```python
-get_secrets(namespace="app", context="source-cluster")
+kubectl_get(resource_type="secrets", namespace="app", context="source-cluster")
 
 kubectl_apply(secret_manifest, namespace="app", context="target-cluster")
 ```

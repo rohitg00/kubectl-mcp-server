@@ -399,10 +399,10 @@ Examples:
   kubectl-mcp-server serve --transport http         # Stateless Streamable HTTP on 127.0.0.1:8000/mcp
   kubectl-mcp-server tools                          # List all tools
   kubectl-mcp-server tools -d                       # List tools with descriptions
-  kubectl-mcp-server tools get_pods                 # Show tool schema
+  kubectl-mcp-server tools kubectl_get                 # Show tool schema
   kubectl-mcp-server grep "*pod*"                   # Search for pod-related tools
-  kubectl-mcp-server call get_pods '{"namespace": "default"}'  # Call a tool
-  echo '{"namespace": "kube-system"}' | kubectl-mcp-server call get_pods
+  kubectl-mcp-server call kubectl_get '{"namespace": "default"}'  # Call a tool
+  echo '{"namespace": "kube-system"}' | kubectl-mcp-server call kubectl_get
   kubectl-mcp-server context                        # Show k8s context
   kubectl-mcp-server doctor                         # Check dependencies
 

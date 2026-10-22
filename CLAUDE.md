@@ -3,7 +3,7 @@
 ## Project Overview
 - **Name**: kubectl-mcp-server
 - **Version**: 2.0.0
-- **Description**: Stateless MCP (2026-07-28) server for Kubernetes: 281 tools, 8 resources + 6 templates, 14 prompts
+- **Description**: Stateless MCP (2026-07-28) server for Kubernetes: 26 default tools (209 across all toolsets), 8 resources + 6 templates, 14 prompts
 - **Framework**: FastMCP 4.x (`fastmcp>=4.1,<5`) on MCP Python SDK v2, Python >= 3.10
 - **Repository**: https://github.com/rohitg00/kubectl-mcp-server
 
@@ -18,7 +18,9 @@
 - **Entrypoints**: one parser in `mcp_server.add_serve_arguments` + `run_server`; `main()` accepts a leading `serve`. Env defaults `MCP_SERVER_TRANSPORT/HOST/PORT`.
 - **Removed**: browser tools, MCP-UI tools (`ui.py`), `kubectl-mcp-app/`, k8s-browser skill, hand-rolled JSON-RPC HTTP fallback.
 - **Docker**: multi-stage, python:3.13-slim, UID 10001, kubectl v1.37.1 + helm v3.22.1 with sha256 verification, ENTRYPOINT `kubectl-mcp`, `.dockerignore` allowlist.
-- **Verify**: `pytest` (555), conformance `npx -y @hasmcp/mcp-spec-test@0.1.1 -c "python -m kubectl_mcp_tool.mcp_server"` (2025-11-25 conformant; its 2026-07-28 probe omits `_meta`, which mcp 2.3 routes to the legacy era).
+- **Toolsets** (`toolsets.py`): every tool is assigned to one toolset in `_BY_TOOLSET`; `ToolsetServer` wraps the FastMCP server so only enabled toolsets register (disabled tools do not exist, not just hidden). Default = `core` + `helm` (26 tools, ~6.5K tokens vs ~41K for all). `--toolsets`/`MCP_TOOLSETS` (`default`, `all`, names); unknown names stop startup. `--tool-search`/`MCP_TOOL_SEARCH` adds FastMCP `BM25SearchTransform` with default tools pinned; middleware passes `search_tools`/`call_tool` through and guards the inner call. Server instructions list unloaded toolsets and the Argo CD / Flux / Kyverno MCP servers. `test_every_tool_is_assigned_to_exactly_one_toolset` fails if a new tool is not mapped.
+- **Generic core** (`tools/kubectl.py`): `kubectl_get` (any kind incl. CRDs, selectors, sort, 60K char cap), `kubectl_logs` (previous/since, TYPE/NAME), `kubectl_top`, `kubectl_scale` (scale-to-zero needs confirmation), `detect_ecosystem`. Helm: `helm_get(what=...)`, `helm_show(what=...)`. 79 tools removed (per-kind getters, duplicates, `*_detect`, server-admin toggles, `port_forward`, broken `vind_logs`). `helm_list` passes explicit status flags because Helm 4 removed `--all`.
+- **Verify**: `pytest` (516), live smoke harness against a kind cluster in the 2026-10-22 session; conformance `npx -y @hasmcp/mcp-spec-test@0.1.1 -c "python -m kubectl_mcp_tool.mcp_server"` (2025-11-25 conformant; its 2026-07-28 probe omits `_meta`, which mcp 2.3 routes to the legacy era).
 - **Tool names**: README table generated from the live registry; skills had 935 stale/phantom names fixed.
 
 ### Release v1.22.0

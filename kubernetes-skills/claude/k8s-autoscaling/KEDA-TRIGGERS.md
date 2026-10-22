@@ -258,7 +258,7 @@ keda_hpa_list(namespace)
 ```python
 keda_scaledobject_get(name, namespace)
 # Check status conditions
-get_events(namespace)
+kubectl_get(resource_type="events", namespace)
 ```
 
 **Common Issues:**

@@ -54,11 +54,11 @@ All kubectl-mcp-server tools accept `context` parameter:
 
 ```python
 # Explicit context (recommended)
-get_pods(namespace="default", context="production")
-get_pods(namespace="default", context="staging")
+kubectl_get(resource_type="pods", namespace="default", context="production")
+kubectl_get(resource_type="pods", namespace="default", context="staging")
 
 # Current context (implicit)
-get_pods(namespace="default")
+kubectl_get(resource_type="pods", namespace="default")
 ```
 
 ## Multi-Cluster Patterns
@@ -67,15 +67,15 @@ get_pods(namespace="default")
 
 ```python
 # Get deployments from both clusters
-prod_deps = get_deployments(namespace="app", context="production")
-staging_deps = get_deployments(namespace="app", context="staging")
+prod_deps = kubectl_get(resource_type="deployments", namespace="app", context="production")
+staging_deps = kubectl_get(resource_type="deployments", namespace="app", context="staging")
 ```
 
 ### Cross-Cluster Secret Sync
 
 ```python
 # Read secret from source
-secret = get_secrets(namespace="app", context="source-cluster")
+secret = kubectl_get(resource_type="secrets", namespace="app", context="source-cluster")
 
 # Apply to target (via manifest)
 kubectl_apply(secret_yaml, namespace="app", context="target-cluster")
@@ -86,8 +86,8 @@ kubectl_apply(secret_yaml, namespace="app", context="target-cluster")
 ```python
 contexts = ["prod-1", "prod-2", "staging"]
 for ctx in contexts:
-    nodes = get_nodes(context=ctx)
-    pods = get_pods(namespace="kube-system", context=ctx)
+    nodes = kubectl_get(resource_type="nodes", context=ctx)
+    pods = kubectl_get(resource_type="pods", namespace="kube-system", context=ctx)
     # Report status
 ```
 
@@ -99,14 +99,14 @@ install_helm_chart(name="app", chart="./app",
                    namespace="prod", context="staging")
 
 # Verify
-get_pods(namespace="prod", label_selector="app=myapp", context="staging")
+kubectl_get(resource_type="pods", namespace="prod", label_selector="app=myapp", context="staging")
 
 # Deploy to production regions sequentially
 for region in ["us-east", "us-west", "eu-west"]:
     install_helm_chart(name="app", chart="./app",
                        namespace="prod", context=f"production-{region}")
     # Wait for healthy
-    get_pods(namespace="prod", context=f"production-{region}")
+    kubectl_get(resource_type="pods", namespace="prod", context=f"production-{region}")
 ```
 
 ## Access Control Per Context
@@ -124,7 +124,7 @@ export KUBECONFIG=~/.kube/development.yaml
 ```python
 # Different SAs for different access levels
 # Production: read-only SA
-get_pods(namespace="app", context="production-readonly")
+kubectl_get(resource_type="pods", namespace="app", context="production-readonly")
 
 # Development: full access SA
 kubectl_apply(manifest, namespace="app", context="development-admin")
@@ -174,10 +174,10 @@ istio_proxy_status(context="remote")
 1. **Always Use Explicit Context**
    ```python
    # Good: explicit
-   get_pods(context="production")
+   kubectl_get(resource_type="pods", context="production")
 
    # Risky: implicit
-   get_pods()  # Which cluster?
+   kubectl_get(resource_type="pods")  # Which cluster?
    ```
 
 2. **Naming Convention**

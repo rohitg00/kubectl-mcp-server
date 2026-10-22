@@ -61,6 +61,12 @@ mcp:
   transport: http
   # Server port
   port: 8000
+  # Toolsets to register: "default" (core + helm, 26 tools), "all", or a list such as
+  # "default,diagnostics,gitops". Tools outside these toolsets are not registered at all.
+  toolsets: default
+  # List only the default tools plus search_tools/call_tool; other enabled tools are
+  # discovered on demand. Useful with many toolsets and clients without built-in tool search.
+  toolSearch: false
   # Serve without OAuth. Only for networks that are otherwise locked down (NetworkPolicy,
   # mesh mTLS + authz). Installation fails unless auth.enabled or this is true.
   allowUnauthenticated: false

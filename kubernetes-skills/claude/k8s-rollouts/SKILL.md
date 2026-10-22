@@ -24,7 +24,7 @@ Use this skill when:
 
 | Priority | Rule | Impact | Tools |
 |----------|------|--------|-------|
-| 1 | Detect Argo Rollouts installation first | CRITICAL | `detect_rollouts` |
+| 1 | Detect Argo Rollouts installation first | CRITICAL | `detect_ecosystem` |
 | 2 | Check rollout status before promoting | HIGH | `get_rollout_status` |
 | 3 | Monitor analysis runs for failures | HIGH | `get_analysis_runs` |
 | 4 | Abort immediately on critical failures | CRITICAL | `abort_rollout` |
@@ -33,7 +33,7 @@ Use this skill when:
 
 | Task | Tool | Example |
 |------|------|---------|
-| Detect Argo Rollouts | `detect_rollouts` | `detect_rollouts()` |
+| Detect Argo Rollouts | `detect_ecosystem` | `detect_ecosystem()` |
 | List rollouts | `get_rollouts_list` | `get_rollouts_list(namespace)` |
 | Get rollout status | `get_rollout_status` | `get_rollout_status(name, namespace)` |
 | Promote rollout | `promote_rollout` | `promote_rollout(name, namespace)` |
@@ -41,7 +41,7 @@ Use this skill when:
 ## Check Installation
 
 ```python
-detect_rollouts()
+detect_ecosystem()
 ```
 
 ## Argo Rollouts
@@ -268,7 +268,7 @@ spec:
 ```python
 1. get_rollout_status(name, namespace)  # Check current step
 2. get_analysis_runs(namespace)  # Check analysis
-3. get_events(namespace)  # Check events
+3. kubectl_get(resource_type="events", namespace)  # Check events
 4. # If analysis failing:
    abort_rollout(name, namespace)
 ```

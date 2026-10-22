@@ -35,7 +35,7 @@ Use this skill when:
 |------|---------|---------|
 | List tools | `tools -d` | `kubectl-mcp-server tools -d` |
 | Search tools | `grep` | `kubectl-mcp-server grep "*pod*"` |
-| Call tool | `call` | `kubectl-mcp-server call get_pods '{"namespace": "default"}'` |
+| Call tool | `call` | `kubectl-mcp-server call kubectl_get '{"namespace": "default"}'` |
 | Check health | `doctor` | `kubectl-mcp-server doctor` |
 
 ## Server Commands
@@ -96,7 +96,7 @@ kubectl-mcp-server grep "*velero*"
 
 ```bash
 # Show tool parameters
-kubectl-mcp-server tools get_pods
+kubectl-mcp-server tools kubectl_get
 kubectl-mcp-server tools install_helm_chart
 
 # Shows:
@@ -111,29 +111,29 @@ kubectl-mcp-server tools install_helm_chart
 
 ```bash
 # Call with JSON arguments
-kubectl-mcp-server call get_pods '{"namespace": "default"}'
+kubectl-mcp-server call kubectl_get '{"namespace": "default"}'
 
 # Call with stdin
-echo '{"namespace": "kube-system"}' | kubectl-mcp-server call get_pods
+echo '{"namespace": "kube-system"}' | kubectl-mcp-server call kubectl_get
 
 # Call with no arguments
-kubectl-mcp-server call get_namespaces '{}'
+kubectl-mcp-server call kubectl_get '{}'
 ```
 
 ### Examples
 
 ```bash
 # Get pods
-kubectl-mcp-server call get_pods '{"namespace": "default"}'
+kubectl-mcp-server call kubectl_get '{"namespace": "default"}'
 
 # Describe pod
 kubectl-mcp-server call kubectl_describe '{"name": "nginx-xxx", "namespace": "default"}'
 
 # Get logs
-kubectl-mcp-server call get_logs '{"name": "nginx-xxx", "namespace": "default"}'
+kubectl-mcp-server call kubectl_logs '{"name": "nginx-xxx", "namespace": "default"}'
 
 # Scale deployment
-kubectl-mcp-server call scale_deployment '{"name": "nginx", "namespace": "default", "replicas": 3}'
+kubectl-mcp-server call kubectl_scale '{"name": "nginx", "namespace": "default", "replicas": 3}'
 
 # Install helm chart
 kubectl-mcp-server call install_helm_chart '{

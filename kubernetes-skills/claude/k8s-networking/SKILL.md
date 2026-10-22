@@ -24,8 +24,8 @@ Use this skill when:
 
 | Priority | Rule | Impact | Tools |
 |----------|------|--------|-------|
-| 1 | Check endpoints before troubleshooting services | CRITICAL | `get_endpoints` |
-| 2 | Verify service selector matches pod labels | HIGH | `get_services`, `get_pods` |
+| 1 | Check endpoints before troubleshooting services | CRITICAL | `kubectl_get` |
+| 2 | Verify service selector matches pod labels | HIGH | `kubectl_get`, `kubectl_get` |
 | 3 | Review network policies for isolation | HIGH | `analyze_network_policies` |
 | 4 | Test DNS resolution from within pods | MEDIUM | `exec_in_pod` |
 
@@ -33,15 +33,15 @@ Use this skill when:
 
 | Task | Tool | Example |
 |------|------|---------|
-| List services | `get_services` | `get_services(namespace)` |
-| Check backends | `get_endpoints` | `get_endpoints(namespace)` |
-| List ingresses | `get_ingress` | `get_ingress(namespace)` |
+| List services | `kubectl_get` | `kubectl_get(resource_type="services", namespace)` |
+| Check backends | `kubectl_get` | `kubectl_get(resource_type="endpoints", namespace)` |
+| List ingresses | `kubectl_get` | `kubectl_get(resource_type="ingress", namespace)` |
 | Network policies | `analyze_network_policies` | `analyze_network_policies(namespace)` |
 
 ## Services
 
 ```python
-get_services(namespace="default")
+kubectl_get(resource_type="services", namespace="default")
 
 describe_service(name="my-service", namespace="default")
 
@@ -64,13 +64,13 @@ create_service(
 ## Endpoints
 
 ```python
-get_endpoints(namespace="default")
+kubectl_get(resource_type="endpoints", namespace="default")
 ```
 
 ## Ingress
 
 ```python
-get_ingress(namespace="default")
+kubectl_get(resource_type="ingress", namespace="default")
 
 describe_ingress(name="my-ingress", namespace="default")
 
@@ -138,7 +138,7 @@ spec:
 ## Troubleshooting Connectivity
 
 ```python
-get_endpoints(namespace="default")
+kubectl_get(resource_type="endpoints", namespace="default")
 
 analyze_network_policies(namespace="default")
 
