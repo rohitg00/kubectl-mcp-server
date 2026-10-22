@@ -1,0 +1,38 @@
+name: ClawHub skills
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "kubernetes-skills/claude/**"
+      - ".github/workflows/clawhub-skills.yml"
+  pull_request:
+    paths:
+      - "kubernetes-skills/claude/**"
+      - ".github/workflows/clawhub-skills.yml"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: Preview the publish plan without uploading
+        type: boolean
+        default: true
+
+permissions: {}
+
+concurrency:
+  group: clawhub-skills-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    permissions:
+      contents: read
+      id-token: write
+    uses: openclaw/clawhub/.github/workflows/skill-publish.yml@911211fc6cc6384a2cdb3ca0eff6f9031afd25f0
+    with:
+      root: kubernetes-skills/claude
+      dry_run: ${{ github.event_name == 'pull_request' || (github.event_name == 'workflow_dispatch' && inputs.dry_run) }}
+      changelog: Synced from ${{ github.repository }}@${{ github.sha }}
+    secrets:
+      clawhub_token: ${{ secrets.CLAWHUB_TOKEN }}

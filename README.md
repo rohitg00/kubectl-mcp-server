@@ -832,17 +832,25 @@ kubectl_mcp_tool/
 
 ## Agent Skills (25 Skills for AI Coding Agents)
 
-Extend your AI coding agent with Kubernetes expertise using our [Agent Skills](https://agenstskills.com) library. Skills provide specialized knowledge and workflows that agents can load on demand.
+Extend your AI coding agent with Kubernetes expertise using the skills in [`kubernetes-skills/`](kubernetes-skills/). Skills provide specialized knowledge and workflows that agents load on demand, and each one names the toolsets it needs.
 
 ### Quick Install
 
 ```bash
-# Copy all skills to Claude
-cp -r kubernetes-skills/claude/* ~/.claude/skills/
+# Any agent (Claude Code, Codex, Cursor, OpenCode, Gemini CLI, ...) via the skills CLI
+npx skills add rohitg00/kubectl-mcp-server
 
-# Or install specific skills
-cp -r kubernetes-skills/claude/k8s-helm ~/.claude/skills/
+# A single skill for a single agent
+npx skills add rohitg00/kubectl-mcp-server --skill k8s-helm --agent claude-code
+
+# OpenClaw, from ClawHub (synced from this repo on every merge)
+openclaw skills install @rohitg00/k8s-helm
+
+# Or copy into Claude Code directly
+cp -r kubernetes-skills/claude/* ~/.claude/skills/
 ```
+
+Browse them on [ClawHub](https://clawhub.ai/rohitg00) or list them with `npx skills add rohitg00/kubectl-mcp-server --list`.
 
 ### Available Skills (25)
 
@@ -854,7 +862,8 @@ cp -r kubernetes-skills/claude/k8s-helm ~/.claude/skills/
 | **Security** | k8s-security, k8s-policy, k8s-certs |
 | **GitOps** | k8s-gitops, k8s-rollouts |
 | **Scaling** | k8s-autoscaling, k8s-cost, k8s-backup |
-| **Multi-Cluster** | k8s-multicluster, k8s-capi, k8s-kubevirt, k8s-vind |
+| **Multi-Cluster** | k8s-multicluster, k8s-capi, k8s-kubevirt |
+| **Development** | k8s-vind, k8s-kind |
 | **Networking** | k8s-service-mesh, k8s-cilium |
 | **Tools** | k8s-cli |
 
